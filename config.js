@@ -22,10 +22,10 @@ module.exports = {
 
     status: {
         enabled: true,
-        text: "🔗 discord.gg/lack",
-        type: 1,          // 0=Playing, 1=Streaming, 2=Listening, 3=Watching, 5=Competing
-        status: "online", // online, idle, dnd, invisible
-        url: "https://twitch.tv/discord"           // Only needed if type is 1 (Streaming)
+        text: "",
+        type: ,          // 0=Playing, 1=Streaming, 2=Listening, 3=Watching, 5=Competing
+        status: "dnd", // online, idle, dnd, invisible
+        url: ""           // Only needed if type is 1 (Streaming)
     }
 
 };
