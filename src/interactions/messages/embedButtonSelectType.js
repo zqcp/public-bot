@@ -77,6 +77,56 @@ module.exports = {
             });
         }
 
+        let menuCount = 0;
+
+        if (Array.isArray(saved.components)) {
+
+            for (const componentRow of saved.components) {
+
+                if (!Array.isArray(componentRow?.components)) {
+                    continue;
+                }
+
+                for (const component of componentRow.components) {
+
+                    if (!component) {
+                        continue;
+                    }
+
+                    if (
+                        type === "role" &&
+                        component.type === 6
+                    ) {
+                        menuCount++;
+                    }
+
+                    if (
+                        type === "user" &&
+                        component.type === 5
+                    ) {
+                        menuCount++;
+                    }
+
+                    if (
+                        type === "channel" &&
+                        component.type === 8
+                    ) {
+                        menuCount++;
+                    }
+
+                    if (
+                        type === "mentionable" &&
+                        component.type === 7
+                    ) {
+                        menuCount++;
+                    }
+
+                }
+
+            }
+
+        }
+
         const row =
             new ActionRowBuilder()
                 .addComponents(
@@ -94,7 +144,35 @@ module.exports = {
 
                     new ButtonBuilder()
                         .setCustomId(
-                            `embedButtonSelect:${name}`
+                            `embedSelectMenuEdit:${name}:${type}`
+                        )
+                        .setLabel(
+                            `Edit ${selectedType}`
+                        )
+                        .setStyle(
+                            ButtonStyle.Primary
+                        )
+                        .setDisabled(
+                            menuCount === 0
+                        ),
+
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `embedSelectMenuRemove:${name}:${type}`
+                        )
+                        .setLabel(
+                            `Remove ${selectedType}`
+                        )
+                        .setStyle(
+                            ButtonStyle.Danger
+                        )
+                        .setDisabled(
+                            menuCount === 0
+                        ),
+
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `embedButtonSelectOpen:${name}`
                         )
                         .setLabel("Back")
                         .setStyle(
@@ -107,7 +185,7 @@ module.exports = {
             embeds: [
                 embeds.regular(
                     interaction.user,
-                    `You selected **${selectedType}** for embed **${name}**.`
+                    `Manage **${selectedType}** menus for embed **${name}**.`
                 )
             ],
             components: [
