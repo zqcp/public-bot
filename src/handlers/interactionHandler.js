@@ -130,16 +130,23 @@ async function executeHandler(handler, interaction) {
 
     } catch (error) {
 
-        console.error(
-            `[INTERACTIONS] Error:`,
-            error
-        );
+        console.error("\n========== INTERACTION ERROR ==========");
+        console.error("Type:", interaction.type);
+        console.error("User:", interaction.user?.tag);
+        console.error("Guild:", interaction.guild?.id);
+        console.error("Custom ID:", interaction.customId);
+        console.error("Handler:", handler?.name);
+        console.error("Error:", error);
+        console.error("Message:", error?.message);
+        console.error("Stack:", error?.stack);
+        console.error("=======================================\n");
 
         try {
 
             const payload = {
                 content:
-                    "Something went wrong while processing this interaction.",
+                    `❌ **Interaction Error**\n` +
+                    `\`${error?.message || "Unknown error"}\``,
                 flags: 64
             };
 
@@ -152,7 +159,14 @@ async function executeHandler(handler, interaction) {
                 await interaction.reply(payload);
             }
 
-        } catch {}
+        } catch (replyError) {
+
+            console.error(
+                "[INTERACTIONS] Error sending error message:",
+                replyError
+            );
+
+        }
 
         return false;
     }
