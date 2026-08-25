@@ -105,7 +105,10 @@ function findHandler(collection, customId) {
 
     for (const [key, handler] of collection) {
 
-        if (id.startsWith(key)) {
+        if (
+            id === key ||
+            id.startsWith(`${key}:`)
+        ) {
             return handler;
         }
 
@@ -118,7 +121,11 @@ async function executeHandler(handler, interaction) {
 
     try {
 
-        await handler(interaction);
+        await handler(
+            interaction.client,
+            interaction
+        );
+
         return true;
 
     } catch (error) {
@@ -140,13 +147,9 @@ async function executeHandler(handler, interaction) {
                 interaction.replied ||
                 interaction.deferred
             ) {
-
                 await interaction.followUp(payload);
-
             } else {
-
                 await interaction.reply(payload);
-
             }
 
         } catch {}
