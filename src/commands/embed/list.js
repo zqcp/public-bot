@@ -1,5 +1,9 @@
+const {
+    EmbedBuilder
+} = require("discord.js");
+
 const Embed = require("../../models/Embed");
-const embeds = require("../../embeds/embeds");
+const config = require("../../config");
 const globalEmbeds = require("../../embeds/global");
 
 module.exports = {
@@ -24,7 +28,9 @@ module.exports = {
          */
 
         if (
-            !message.member.permissions.has("ManageGuild")
+            !message.member.permissions.has(
+                "ManageGuild"
+            )
         ) {
             return message.channel.send({
                 embeds: [
@@ -74,7 +80,7 @@ module.exports = {
         if (!savedEmbeds.length) {
             return message.channel.send({
                 embeds: [
-                    embeds.regular(
+                    globalEmbeds.regular(
                         message.author,
                         "There are no saved embeds in this server."
                     )
@@ -93,12 +99,25 @@ module.exports = {
                 })
                 .join("\n");
 
+        /*
+         * Saved embeds display
+         */
+
+        const listEmbed =
+            new EmbedBuilder()
+                .setColor(config.colors.regular)
+                .setTitle("Saved Embeds")
+                .setAuthor({
+                    name: message.guild.name,
+                    iconURL: message.guild.iconURL({
+                        dynamic: true
+                    }) || undefined
+                })
+                .setDescription(list);
+
         return message.channel.send({
             embeds: [
-                embeds.regular(
-                    message.author,
-                    `Saved embeds:\n\n${list}`
-                )
+                listEmbed
             ]
         });
 
