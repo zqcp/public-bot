@@ -5,6 +5,7 @@ const {
 } = require("discord.js");
 
 const Embed = require("../../models/Embed");
+const embeds = require("../../embeds/embeds");
 const helpEmbed = require("../../embeds/help/embed");
 const globalEmbeds = require("../../embeds/global");
 
@@ -95,7 +96,7 @@ module.exports = {
         if (!existing) {
             return message.channel.send({
                 embeds: [
-                    globalEmbeds.error(
+                    embeds.error(
                         message.author,
                         `I couldn't find an embed named **${name}**.`
                     )
@@ -105,8 +106,6 @@ module.exports = {
 
         /*
          * Open existing embed editor
-         *
-         * Existing information is preserved.
          */
 
         const row =
@@ -124,7 +123,7 @@ module.exports = {
 
         return message.channel.send({
             embeds: [
-                globalEmbeds.success(
+                embeds.success(
                     message.author,
                     `Editing embed **${name}**. Existing information will be preserved unless you explicitly remove it.`
                 )
