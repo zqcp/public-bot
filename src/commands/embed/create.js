@@ -1,5 +1,4 @@
 const Embed = require("../../models/Embed");
-const embeds = require("../../embeds/embeds");
 const helpEmbed = require("../../embeds/help/embed");
 const globalEmbeds = require("../../embeds/global");
 
@@ -59,8 +58,8 @@ module.exports = {
         /*
          * Help
          *
-         * User has permission, but didn't
-         * provide the required name.
+         * Permission is valid, but no name
+         * was provided.
          */
 
         const name = args
@@ -79,7 +78,7 @@ module.exports = {
         }
 
         /*
-         * Check for existing embed
+         * Check if the embed already exists.
          */
 
         const existing =
@@ -91,16 +90,19 @@ module.exports = {
         if (existing) {
             return message.channel.send({
                 embeds: [
-                    embeds.failed(
-                        message.author,
-                        `An embed named **${name}** already exists.`
+                    globalEmbeds.error(
+                        `${message.author}: An embed named **${name}** already exists.`
                     )
                 ]
             });
         }
 
         /*
-         * Create new embed
+         * Create a completely new embed.
+         *
+         * Existing information is NOT copied here.
+         * Editing an existing embed will preserve
+         * its information.
          */
 
         await Embed.create({
@@ -108,15 +110,17 @@ module.exports = {
             name,
             content: null,
             embeds: [],
-            components: [],
-            messages: []
+            components: []
         });
+
+        /*
+         * Success
+         */
 
         return message.channel.send({
             embeds: [
-                embeds.success(
-                    message.author,
-                    `Embed **${name}** has been created.`
+                globalEmbeds.regular(
+                    `${message.author}: Embed **${name}** has been created successfully.`
                 )
             ]
         });
