@@ -1,5 +1,10 @@
+const {
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle
+} = require("discord.js");
+
 const Embed = require("../../models/Embed");
-const embeds = require("../../embeds/embeds");
 const helpEmbed = require("../../embeds/help/embed");
 const globalEmbeds = require("../../embeds/global");
 
@@ -25,7 +30,9 @@ module.exports = {
          */
 
         if (
-            !message.member.permissions.has("ManageGuild")
+            !message.member.permissions.has(
+                "ManageGuild"
+            )
         ) {
             return message.channel.send({
                 embeds: [
@@ -88,7 +95,7 @@ module.exports = {
         if (!existing) {
             return message.channel.send({
                 embeds: [
-                    embeds.error(
+                    globalEmbeds.error(
                         message.author,
                         `I couldn't find an embed named **${name}**.`
                     )
@@ -97,19 +104,33 @@ module.exports = {
         }
 
         /*
-         * Open the existing embed editor.
+         * Open existing embed editor
          *
-         * The editor will load the complete saved
-         * configuration so existing information is
-         * preserved.
+         * Existing information is preserved.
          */
+
+        const row =
+            new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `embedEditor:${name}:open`
+                        )
+                        .setLabel("Open Editor")
+                        .setStyle(
+                            ButtonStyle.Primary
+                        )
+                );
 
         return message.channel.send({
             embeds: [
-                embeds.regular(
+                globalEmbeds.success(
                     message.author,
-                    `Editing embed **${name}**.`
+                    `Editing embed **${name}**. Existing information will be preserved unless you explicitly remove it.`
                 )
+            ],
+            components: [
+                row
             ]
         });
 
