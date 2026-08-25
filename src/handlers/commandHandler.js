@@ -1,289 +1,554 @@
 const fs = require("fs");
 const path = require("path");
 
+
+// =====================================================
+// COMMAND COLLECTIONS
+// =====================================================
+
 const commands = new Map();
 const aliases = new Map();
 
+
+// =====================================================
+// NORMALIZE
+// =====================================================
+
 function normalize(value) {
-    return value
+
+    return String(value || "")
         .trim()
         .toLowerCase()
         .replace(/\s+/g, " ");
+
 }
 
-function getFiles(directory) {
+
+// =====================================================
+// FIND COMMAND FILES
+// =====================================================
+
+function getCommandFiles(directory) {
+
     if (!fs.existsSync(directory)) {
         return [];
     }
 
     const files = [];
 
-    for (const entry of fs.readdirSync(directory, {
-        withFileTypes: true
-    })) {
-        const fullPath = path.join(directory, entry.name);
+    for (const file of fs.readdirSync(directory)) {
 
-        if (entry.isDirectory()) {
-            files.push(...getFiles(fullPath));
+        const filePath =
+            path.join(directory, file);
+
+        const stats =
+            fs.statSync(filePath);
+
+        if (stats.isDirectory()) {
+
+            files.push(
+                ...getCommandFiles(filePath)
+            );
+
             continue;
         }
 
-        if (entry.isFile() && entry.name.endsWith(".js")) {
-            files.push(fullPath);
+        if (
+            file.endsWith(".js") &&
+            file !== "index.js"
+        ) {
+            files.push(filePath);
         }
     }
 
     return files;
 }
 
-function loadCommands(client) {
-    const commandsPath = path.join(__dirname, "../commands");
 
-    commands.clear();
-    aliases.clear();
+// =====================================================
+// REGISTER COMMAND
+// =====================================================
 
-    const files = getFiles(commandsPath);
+function registerCommand(command, filePath) {
 
-    for (const file of files) {
-        try {
-            delete require.cache[require.resolve(file)];
+    if (
+        !command ||
+        typeof command !== "object"
+    ) {
+        return;
+    }
 
-            const command = require(file);
+    if (
+        !command.name ||
+        typeof command.execute !== "function"
+    ) {
+        console.log(
+            `[COMMANDS] Skipped invalid command: ${filePath}`
+        );
 
-            if (!command || typeof command.execute !== "function") {
-                console.warn(
-                    `[COMMANDS] Skipped ${path.relative(process.cwd(), file)} - missing execute()`
-                );
+        return;
+    }
+
+    const name =
+        normalize(command.name);
+
+    if (!name) {
+        return;
+    }
+
+
+    // =================================================
+    // COMMAND
+    // =================================================
+
+    commands.set(
+        name,
+        command
+    );
+
+
+    // =================================================
+    // ALIASES
+    // =================================================
+
+    if (Array.isArray(command.aliases)) {
+
+        for (const alias of command.aliases) {
+
+            const normalizedAlias =
+                normalize(alias);
+
+            if (!normalizedAlias) {
                 continue;
             }
 
-            if (!command.name) {
-                console.warn(
-                    `[COMMANDS] Skipped ${path.relative(process.cwd(), file)} - missing name`
-                );
-                continue;
-            }
-
-            const commandName = normalize(command.name);
-
-            if (commands.has(commandName)) {
-                console.warn(
-                    `[COMMANDS] Duplicate command: ${commandName}`
-                );
-                continue;
-            }
-
-            command.category ??= path.basename(path.dirname(file));
-            command.file = file;
-
-            commands.set(commandName, command);
-
-            if (Array.isArray(command.aliases)) {
-                for (const alias of command.aliases) {
-                    if (typeof alias !== "string") {
-                        continue;
-                    }
-
-                    const normalizedAlias = normalize(alias);
-
-                    if (!normalizedAlias) {
-                        continue;
-                    }
-
-                    if (commands.has(normalizedAlias)) {
-                        console.warn(
-                            `[COMMANDS] Alias "${alias}" conflicts with command "${normalizedAlias}"`
-                        );
-                        continue;
-                    }
-
-                    if (aliases.has(normalizedAlias)) {
-                        console.warn(
-                            `[COMMANDS] Duplicate alias: ${normalizedAlias}`
-                        );
-                        continue;
-                    }
-
-                    aliases.set(normalizedAlias, command);
-                }
-            }
-
-            console.log(
-                `[COMMANDS] Loaded ${commandName}`
+            aliases.set(
+                normalizedAlias,
+                name
             );
-
-        } catch (error) {
-            console.error(
-                `[COMMANDS] Failed to load ${path.relative(process.cwd(), file)}`
-            );
-
-            console.error(error);
         }
     }
 
-    client.commands = commands;
-    client.commandAliases = aliases;
 
     console.log(
-        `[COMMANDS] Loaded ${commands.size} commands and ${aliases.size} aliases.`
+        `[COMMANDS] Loaded: ${name}`
     );
 
-    return {
-        commands,
-        aliases
-    };
 }
+
+
+// =====================================================
+// LOAD COMMANDS
+// =====================================================
+
+function load(client) {
+
+    const commandsPath =
+        path.join(
+            __dirname,
+            "../commands"
+        );
+
+
+    if (!fs.existsSync(commandsPath)) {
+
+        console.log(
+            "[COMMANDS] Commands folder not found."
+        );
+
+        client.commands = commands;
+
+        return commands;
+    }
+
+
+    const files =
+        getCommandFiles(
+            commandsPath
+        );
+
+
+    for (const filePath of files) {
+
+        try {
+
+            delete require.cache[
+                require.resolve(filePath)
+            ];
+
+            const command =
+                require(filePath);
+
+
+            // =========================================
+            // SUPPORT DEFAULT EXPORT
+            // =========================================
+
+            if (
+                command &&
+                command.default
+            ) {
+
+                registerCommand(
+                    command.default,
+                    filePath
+                );
+
+                continue;
+            }
+
+
+            // =========================================
+            // NORMAL COMMAND
+            // =========================================
+
+            registerCommand(
+                command,
+                filePath
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                `[COMMANDS] Failed to load ${filePath}:`,
+                error
+            );
+
+        }
+    }
+
+
+    // =================================================
+    // CLIENT COLLECTION
+    // =================================================
+
+    client.commands =
+        commands;
+
+    client.commandAliases =
+        aliases;
+
+
+    console.log(
+        `[COMMANDS] Loaded ${commands.size} command(s).`
+    );
+
+
+    return commands;
+
+}
+
+
+// =====================================================
+// FIND COMMAND
+// =====================================================
 
 function findCommand(input) {
-    if (!input) {
+
+    const name =
+        normalize(input);
+
+    if (!name) {
         return null;
     }
 
-    const normalized = normalize(input);
 
-    if (!normalized) {
-        return null;
+    // =================================================
+    // EXACT COMMAND
+    // =================================================
+
+    if (commands.has(name)) {
+
+        return commands.get(name);
+
     }
 
-    if (commands.has(normalized)) {
-        return commands.get(normalized);
+
+    // =================================================
+    // ALIAS
+    // =================================================
+
+    const aliasTarget =
+        aliases.get(name);
+
+    if (
+        aliasTarget &&
+        commands.has(aliasTarget)
+    ) {
+
+        return commands.get(
+            aliasTarget
+        );
+
     }
 
-    if (aliases.has(normalized)) {
-        return aliases.get(normalized);
-    }
 
     return null;
+
 }
 
-function parseCommand(content, prefix) {
-    if (!content || !prefix) {
+
+// =====================================================
+// PARSE PREFIX COMMAND
+// =====================================================
+
+function parseCommand(message, prefix) {
+
+    if (
+        !message ||
+        !message.content
+    ) {
         return null;
     }
 
-    if (!content.toLowerCase().startsWith(prefix.toLowerCase())) {
+
+    const content =
+        message.content.trim();
+
+
+    if (!content) {
         return null;
     }
 
-    const withoutPrefix = content
-        .slice(prefix.length)
-        .trim();
+
+    const normalizedPrefix =
+        String(prefix || ",")
+            .trim();
+
+
+    if (
+        !content
+            .toLowerCase()
+            .startsWith(
+                normalizedPrefix.toLowerCase()
+            )
+    ) {
+        return null;
+    }
+
+
+    const withoutPrefix =
+        content.slice(
+            normalizedPrefix.length
+        ).trim();
+
 
     if (!withoutPrefix) {
         return null;
     }
 
-    const parts = withoutPrefix.split(/\s+/);
 
-    /*
-     * Find the longest matching command.
-     *
-     * Example:
-     *
-     * ,reaction role create
-     *
-     * If "reaction role" is a registered command:
-     *
-     * commandName = reaction role
-     * args = ["create"]
-     */
+    const parts =
+        withoutPrefix.split(/\s+/);
 
-    for (let length = parts.length; length >= 1; length--) {
-        const possibleCommand = parts
-            .slice(0, length)
-            .join(" ");
 
-        const command = findCommand(possibleCommand);
+    if (!parts.length) {
+        return null;
+    }
 
-        if (!command) {
-            continue;
+
+    // =================================================
+    // SUPPORT SPACED COMMANDS
+    //
+    // ,embed create
+    // ,embed edit
+    // ,embed delete
+    //
+    // =================================================
+
+    let commandName =
+        normalize(parts[0]);
+
+    let argumentStart = 1;
+
+
+    if (parts.length >= 2) {
+
+        const twoPart =
+            normalize(
+                `${parts[0]} ${parts[1]}`
+            );
+
+
+        if (
+            commands.has(twoPart) ||
+            aliases.has(twoPart)
+        ) {
+
+            commandName =
+                twoPart;
+
+            argumentStart = 2;
+
         }
 
-        return {
-            command,
-            commandName: normalize(possibleCommand),
-            args: parts.slice(length),
-            rawArgs: parts.slice(length).join(" ")
-        };
     }
+
+
+    const args =
+        parts.slice(
+            argumentStart
+        );
+
 
     return {
-        command: null,
-        commandName: normalize(parts[0]),
-        args: parts.slice(1),
-        rawArgs: parts.slice(1).join(" ")
+        name: commandName,
+        args
     };
+
 }
 
-async function handleMessage(message, config) {
-    if (!message || !message.content) {
-        return;
+
+// =====================================================
+// EXECUTE COMMAND
+// =====================================================
+
+async function execute(
+    message,
+    prefix
+) {
+
+    if (
+        !message ||
+        message.author?.bot
+    ) {
+        return false;
     }
 
-    if (message.author?.bot) {
-        return;
+
+    const parsed =
+        parseCommand(
+            message,
+            prefix
+        );
+
+
+    if (!parsed) {
+        return false;
     }
 
-    const parsed = parseCommand(
-        message.content,
-        config.prefix
-    );
 
-    if (!parsed || !parsed.command) {
-        return;
+    const command =
+        findCommand(
+            parsed.name
+        );
+
+
+    if (!command) {
+        return false;
     }
 
-    const {
-        command,
-        args,
-        rawArgs,
-        commandName
-    } = parsed;
 
     try {
-        await command.execute(message, args, {
-            client: message.client,
-            command,
-            commandName,
-            rawArgs
-        });
+
+        await command.execute(
+            message,
+            parsed.args
+        );
+
+
+        return true;
+
 
     } catch (error) {
+
         console.error(
-            `[COMMANDS] Error executing ${commandName}:`,
+            `[COMMANDS] Error executing ${parsed.name}:`,
             error
         );
 
-        if (
-            !message.replied &&
-            !message.deferred
-        ) {
-            try {
-                const Embed = require("../embeds/global");
 
-                await message.channel.send({
-                    embeds: [
-                        Embed.error(
-                            "Something went wrong while executing that command."
-                        )
-                    ]
-                });
+        try {
 
-            } catch (sendError) {
-                console.error(
-                    "[COMMANDS] Failed to send error embed:",
-                    sendError
+            const payload = {
+                content:
+                    "Something went wrong while executing this command.",
+                flags: 64
+            };
+
+
+            if (
+                message.replied ||
+                message.deferred
+            ) {
+
+                await message.channel.send(
+                    payload
                 );
+
+            } else {
+
+                await message.channel.send(
+                    payload
+                );
+
             }
+
+        } catch (replyError) {
+
+            console.error(
+                "[COMMANDS] Failed to send error:",
+                replyError
+            );
+
         }
+
+
+        return false;
+
     }
+
 }
 
+
+// =====================================================
+// REGISTER MESSAGE HANDLER
+// =====================================================
+
+function register(client) {
+
+    client.on(
+        "messageCreate",
+        async message => {
+
+            const config =
+                require("../config");
+
+
+            const prefix =
+                config.prefix || ",";
+
+
+            await execute(
+                message,
+                prefix
+            );
+
+        }
+    );
+
+}
+
+
+// =====================================================
+// EXPORT
+// =====================================================
+
 module.exports = {
-    loadCommands,
-    handleMessage,
-    parseCommand,
+
+    load,
+
+    register,
+
+    execute,
+
     findCommand,
+
+    parseCommand,
+
     commands,
+
     aliases
+
 };
