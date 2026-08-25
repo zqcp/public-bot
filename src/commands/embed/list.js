@@ -4,6 +4,7 @@ const {
 
 const Embed = require("../../models/Embed");
 const config = require("../../config");
+const embeds = require("../../embeds/embeds");
 const globalEmbeds = require("../../embeds/global");
 
 module.exports = {
@@ -80,7 +81,7 @@ module.exports = {
         if (!savedEmbeds.length) {
             return message.channel.send({
                 embeds: [
-                    globalEmbeds.regular(
+                    embeds.error(
                         message.author,
                         "There are no saved embeds in this server."
                     )
@@ -109,9 +110,10 @@ module.exports = {
                 .setTitle("Saved Embeds")
                 .setAuthor({
                     name: message.guild.name,
-                    iconURL: message.guild.iconURL({
-                        dynamic: true
-                    }) || undefined
+                    iconURL:
+                        message.guild.iconURL({
+                            dynamic: true
+                        }) || undefined
                 })
                 .setDescription(list);
 
