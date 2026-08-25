@@ -181,6 +181,10 @@ async function handleInteraction(interaction) {
             interaction.customId
         );
 
+        console.log(
+            `[INTERACTION] BUTTON | ${interaction.customId} | Handler: ${handler?.name || "NOT FOUND"}`
+        );
+
         if (handler) {
             await executeHandler(
                 handler,
@@ -204,6 +208,10 @@ async function handleInteraction(interaction) {
             interaction.customId
         );
 
+        console.log(
+            `[INTERACTION] SELECT | ${interaction.customId} | Handler: ${handler?.name || "NOT FOUND"}`
+        );
+
         if (handler) {
             await executeHandler(
                 handler,
@@ -219,6 +227,41 @@ async function handleInteraction(interaction) {
         const handler = findHandler(
             modals,
             interaction.customId
+        );
+
+        console.log(
+            "\n========== MODAL SUBMIT =========="
+        );
+
+        console.log(
+            "Custom ID:",
+            interaction.customId
+        );
+
+        console.log(
+            "Handler:",
+            handler?.name || "NOT FOUND"
+        );
+
+        console.log(
+            "Guild:",
+            interaction.guild?.id
+        );
+
+        console.log(
+            "User:",
+            interaction.user?.tag
+        );
+
+        console.log(
+            "Fields:",
+            interaction.fields?.fields
+                ? [...interaction.fields.fields.keys()]
+                : []
+        );
+
+        console.log(
+            "==================================\n"
         );
 
         if (handler) {
