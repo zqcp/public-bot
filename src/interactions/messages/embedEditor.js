@@ -67,6 +67,13 @@ module.exports = {
 
                         new ButtonBuilder()
                             .setCustomId(
+                                `embedEmbeds:${name}`
+                            )
+                            .setLabel("Embeds")
+                            .setStyle(ButtonStyle.Secondary),
+
+                        new ButtonBuilder()
+                            .setCustomId(
                                 `embedDescription:${name}`
                             )
                             .setLabel("Description")
@@ -77,13 +84,6 @@ module.exports = {
                                 `embedAuthor:${name}`
                             )
                             .setLabel("Author")
-                            .setStyle(ButtonStyle.Secondary),
-
-                        new ButtonBuilder()
-                            .setCustomId(
-                                `embedFooter:${name}`
-                            )
-                            .setLabel("Footer")
                             .setStyle(ButtonStyle.Secondary)
 
                     );
@@ -91,6 +91,13 @@ module.exports = {
             const row2 =
                 new ActionRowBuilder()
                     .addComponents(
+
+                        new ButtonBuilder()
+                            .setCustomId(
+                                `embedFooter:${name}`
+                            )
+                            .setLabel("Footer")
+                            .setStyle(ButtonStyle.Secondary),
 
                         new ButtonBuilder()
                             .setCustomId(
@@ -111,13 +118,6 @@ module.exports = {
                                 `embedButtons:${name}`
                             )
                             .setLabel("Buttons")
-                            .setStyle(ButtonStyle.Secondary),
-
-                        new ButtonBuilder()
-                            .setCustomId(
-                                `embedButtonSelect:${name}`
-                            )
-                            .setLabel("Select Menus")
                             .setStyle(ButtonStyle.Secondary)
 
                     );
@@ -125,6 +125,13 @@ module.exports = {
             const row3 =
                 new ActionRowBuilder()
                     .addComponents(
+
+                        new ButtonBuilder()
+                            .setCustomId(
+                                `embedButtonSelect:${name}`
+                            )
+                            .setLabel("Select Menus")
+                            .setStyle(ButtonStyle.Secondary),
 
                         new ButtonBuilder()
                             .setCustomId(
