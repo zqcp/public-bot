@@ -6,7 +6,7 @@ module.exports = {
 
     name: "embed delete",
 
-    async execute(message, args) {
+    async execute(cilent, message, args) {
 
         // ==========================================
         // PERMISSION
