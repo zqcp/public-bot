@@ -9,6 +9,7 @@ const {
 } = require("discord.js");
 
 const mongoose = require("mongoose");
+
 const {
     DefaultWebSocketManagerOptions
 } = require("@discordjs/ws");
@@ -26,6 +27,56 @@ const EventHandler =
 
 const InteractionHandler =
     require("./handlers/interactionHandler");
+
+
+// =========================
+// ISSUE CHECKER
+// =========================
+
+function issueChecker() {
+
+    const issues = [];
+
+    if (!process.env.TOKEN) {
+        issues.push("TOKEN is missing");
+    }
+
+    if (!process.env.MONGO_URI) {
+        issues.push("MONGO_URI is missing");
+    }
+
+    if (issues.length > 0) {
+
+        console.warn(
+            "\n[ISSUE CHECKER]"
+        );
+
+        for (const issue of issues) {
+
+            console.warn(
+                `⚠️ ${issue}`
+            );
+
+        }
+
+        console.warn(
+            ""
+        );
+
+    } else {
+
+        console.log(
+            "[ISSUE CHECKER] ✓ No configuration issues found."
+        );
+
+    }
+
+}
+
+
+// Run checker
+
+issueChecker();
 
 
 // =========================
