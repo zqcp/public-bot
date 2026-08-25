@@ -67,9 +67,9 @@ module.exports = {
 
                         new ButtonBuilder()
                             .setCustomId(
-                                `embedEmbeds:${name}`
+                                `embedDescription:${name}`
                             )
-                            .setLabel("Embeds")
+                            .setLabel("Description")
                             .setStyle(ButtonStyle.Secondary),
 
                         new ButtonBuilder()
