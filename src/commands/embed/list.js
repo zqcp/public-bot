@@ -1,0 +1,107 @@
+const Embed = require("../../models/Embed");
+const embeds = require("../../embeds/embeds");
+const globalEmbeds = require("../../embeds/global");
+
+module.exports = {
+
+    name: "embed list",
+
+    aliases: [],
+
+    permissions: {
+        user: ["ManageGuild"],
+        bot: ["ManageGuild"]
+    },
+
+    async execute(client, message, args) {
+
+        if (!message.guild) {
+            return;
+        }
+
+        /*
+         * User permission
+         */
+
+        if (
+            !message.member.permissions.has("ManageGuild")
+        ) {
+            return message.channel.send({
+                embeds: [
+                    globalEmbeds.permission(
+                        message.author,
+                        "Manage Server"
+                    )
+                ]
+            });
+        }
+
+        /*
+         * Bot permission
+         */
+
+        if (
+            !message.guild.members.me.permissions.has(
+                "ManageGuild"
+            )
+        ) {
+            return message.channel.send({
+                embeds: [
+                    globalEmbeds.botPermission(
+                        message.author,
+                        ["ManageGuild"]
+                    )
+                ]
+            });
+        }
+
+        /*
+         * Get saved embeds
+         */
+
+        const savedEmbeds =
+            await Embed.find({
+                guildId: message.guild.id
+            })
+            .sort({
+                name: 1
+            });
+
+        /*
+         * No embeds
+         */
+
+        if (!savedEmbeds.length) {
+            return message.channel.send({
+                embeds: [
+                    embeds.regular(
+                        message.author,
+                        "There are no saved embeds in this server."
+                    )
+                ]
+            });
+        }
+
+        /*
+         * Build list
+         */
+
+        const list =
+            savedEmbeds
+                .map(embed => {
+                    return `• **${embed.name}**`;
+                })
+                .join("\n");
+
+        return message.channel.send({
+            embeds: [
+                embeds.regular(
+                    message.author,
+                    `Saved embeds:\n\n${list}`
+                )
+            ]
+        });
+
+    }
+
+};
