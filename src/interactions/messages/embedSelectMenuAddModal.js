@@ -1,11 +1,3 @@
-const {
-    RoleSelectMenuBuilder,
-    UserSelectMenuBuilder,
-    ChannelSelectMenuBuilder,
-    MentionableSelectMenuBuilder,
-    ActionRowBuilder
-} = require("discord.js");
-
 const embeds = require("../../embeds/embeds");
 const Embed = require("../../models/Embed");
 const editor = require("../../systems/messages/editor");
@@ -61,6 +53,10 @@ module.exports = {
             });
         }
 
+        if (!Array.isArray(saved.components)) {
+            saved.components = [];
+        }
+
         const placeholder =
             interaction.fields
                 .getTextInputValue(
@@ -68,7 +64,7 @@ module.exports = {
                 )
                 .trim();
 
-        const customIdInput =
+        const customId =
             interaction.fields
                 .getTextInputValue(
                     "customId"
@@ -83,53 +79,45 @@ module.exports = {
                 .trim()
                 .toLowerCase();
 
-        const disabled =
-            disabledInput === "true";
+        if (!customId) {
+            return interaction.reply({
+                embeds: [
+                    embeds.error(
+                        interaction.user,
+                        "A Custom ID is required."
+                    )
+                ],
+                flags: 64
+            });
+        }
 
-        let menu;
+        if (
+            disabledInput &&
+            disabledInput !== "true" &&
+            disabledInput !== "false"
+        ) {
+            return interaction.reply({
+                embeds: [
+                    embeds.error(
+                        interaction.user,
+                        "Disabled must be either `true` or `false`."
+                    )
+                ],
+                flags: 64
+            });
+        }
 
-        const customId =
-            customIdInput ||
-            `select_${Date.now()}`;
+        const typeMap = {
+            role: 6,
+            user: 5,
+            mentionable: 7,
+            channel: 8
+        };
 
-        const menuPlaceholder =
-            placeholder ||
-            "Select an option...";
+        const componentType =
+            typeMap[type];
 
-        if (type === "role") {
-
-            menu =
-                new RoleSelectMenuBuilder()
-                    .setCustomId(customId)
-                    .setPlaceholder(menuPlaceholder)
-                    .setDisabled(disabled);
-
-        } else if (type === "user") {
-
-            menu =
-                new UserSelectMenuBuilder()
-                    .setCustomId(customId)
-                    .setPlaceholder(menuPlaceholder)
-                    .setDisabled(disabled);
-
-        } else if (type === "channel") {
-
-            menu =
-                new ChannelSelectMenuBuilder()
-                    .setCustomId(customId)
-                    .setPlaceholder(menuPlaceholder)
-                    .setDisabled(disabled);
-
-        } else if (type === "mentionable") {
-
-            menu =
-                new MentionableSelectMenuBuilder()
-                    .setCustomId(customId)
-                    .setPlaceholder(menuPlaceholder)
-                    .setDisabled(disabled);
-
-        } else {
-
+        if (!componentType) {
             return interaction.reply({
                 embeds: [
                     embeds.error(
@@ -139,17 +127,59 @@ module.exports = {
                 ],
                 flags: 64
             });
-
         }
 
-        if (!Array.isArray(saved.components)) {
-            saved.components = [];
+        let row =
+            saved.components.find(
+                componentRow =>
+                    componentRow &&
+                    componentRow.type === 1 &&
+                    Array.isArray(
+                        componentRow.components
+                    ) &&
+                    componentRow.components.length < 5
+            );
+
+        if (!row) {
+
+            if (saved.components.length >= 5) {
+                return interaction.reply({
+                    embeds: [
+                        embeds.error(
+                            interaction.user,
+                            `Embed **${name}** already has the maximum of **5 component rows**.`
+                        )
+                    ],
+                    flags: 64
+                });
+            }
+
+            row = {
+                type: 1,
+                components: []
+            };
+
+            saved.components.push(row);
         }
 
-        saved.components.push(
-            new ActionRowBuilder()
-                .addComponents(menu)
-                .toJSON()
+        const selectMenu = {
+            type: componentType,
+            custom_id: customId,
+            disabled:
+                disabledInput === "true"
+        };
+
+        if (placeholder) {
+            selectMenu.placeholder =
+                placeholder;
+        }
+
+        row.components.push(
+            selectMenu
+        );
+
+        saved.markModified(
+            "components"
         );
 
         await saved.save();
@@ -164,7 +194,7 @@ module.exports = {
             embeds: [
                 embeds.success(
                     interaction.user,
-                    `The **${menuPlaceholder}** ${type} select menu has been added to **${name}**.`
+                    `A new ${type} select menu has been added to **${name}**.`
                 )
             ],
             flags: 64
