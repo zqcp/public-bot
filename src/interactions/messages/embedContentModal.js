@@ -1,7 +1,6 @@
 const embeds = require("../../embeds/embeds");
 const Embed = require("../../models/Embed");
 const editor = require("../../systems/messages/editor");
-const renderer = require("../../systems/messages/renderer");
 
 module.exports = {
 
@@ -53,10 +52,6 @@ module.exports = {
                 "content"
             );
 
-        /*
-         * Only update content.
-         */
-
         await editor.updateAndRender(
             client,
             interaction.guild.id,
@@ -66,31 +61,6 @@ module.exports = {
                     content.trim() || null
             }
         );
-
-        /*
-         * Get the updated embed and show it
-         * immediately in the editor.
-         */
-
-        const updated =
-            await Embed.findOne({
-                guildId: interaction.guild.id,
-                name
-            });
-
-        if (updated) {
-
-            const preview =
-                renderer.render(
-                    updated.toObject()
-                );
-
-            return interaction.reply({
-                ...preview,
-                flags: 64
-            });
-
-        }
 
         return interaction.reply({
             embeds: [
