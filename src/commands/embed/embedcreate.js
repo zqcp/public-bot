@@ -14,7 +14,7 @@ module.exports = {
 
     name: "embed create",
 
-    async execute(message, args) {
+    async execute(cilent, message, args) {
 
         // ==========================================
         // PERMISSION
