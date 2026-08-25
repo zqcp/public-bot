@@ -23,7 +23,7 @@ module.exports = {
     status: {
         enabled: true,
         text: "",
-        type: ,          // 0=Playing, 1=Streaming, 2=Listening, 3=Watching, 5=Competing
+        type: 0,          // 0=Playing, 1=Streaming, 2=Listening, 3=Watching, 5=Competing
         status: "dnd", // online, idle, dnd, invisible
         url: ""           // Only needed if type is 1 (Streaming)
     }
