@@ -52,16 +52,16 @@ module.exports = {
             });
         }
 
-        if (!Array.isArray(saved.embeds)) {
-            saved.embeds = [];
-        }
-
-        if (!saved.embeds.length) {
-            saved.embeds.push({});
-            await saved.save();
-        }
-
         if (action === "open") {
+
+            if (!Array.isArray(saved.embeds)) {
+                saved.embeds = [];
+            }
+
+            if (!saved.embeds.length) {
+                saved.embeds.push({});
+                await saved.save();
+            }
 
             const row1 =
                 new ActionRowBuilder()
