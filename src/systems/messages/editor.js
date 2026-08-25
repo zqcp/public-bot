@@ -95,6 +95,20 @@ module.exports = {
             return null;
         }
 
+        /*
+         * Make sure the saved embed always has
+         * at least one blank embed available
+         * for the editor to modify.
+         */
+
+        if (!Array.isArray(embed.embeds)) {
+            embed.embeds = [];
+        }
+
+        if (!embed.embeds.length) {
+            embed.embeds.push({});
+        }
+
         const current =
             embed.toObject();
 
@@ -102,6 +116,19 @@ module.exports = {
             clone(current),
             clone(changes)
         );
+
+        /*
+         * Make sure the updated document also
+         * keeps a valid blank embed.
+         */
+
+        if (!Array.isArray(updated.embeds)) {
+            updated.embeds = [];
+        }
+
+        if (!updated.embeds.length) {
+            updated.embeds.push({});
+        }
 
         delete updated._id;
         delete updated.__v;
@@ -192,6 +219,20 @@ module.exports = {
 
         const saved =
             embed.toObject();
+
+        /*
+         * Keep the saved document compatible
+         * with the editor even if it was created
+         * before the blank embed was added.
+         */
+
+        if (!Array.isArray(saved.embeds)) {
+            saved.embeds = [];
+        }
+
+        if (!saved.embeds.length) {
+            saved.embeds.push({});
+        }
 
         const references =
             await registry.get(
