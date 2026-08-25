@@ -64,9 +64,14 @@ module.exports = {
             return component;
         }
 
-        const row = new ActionRowBuilder();
+        const row =
+            new ActionRowBuilder();
 
-        if (!Array.isArray(component.components)) {
+        if (
+            !Array.isArray(
+                component.components
+            )
+        ) {
             return row;
         }
 
@@ -76,32 +81,117 @@ module.exports = {
                 continue;
             }
 
+            /*
+             * Already a Discord.js builder
+             */
+
             if (
-                item.type === 2 ||
-                item.data?.type === 2
+                typeof item.toJSON ===
+                "function"
             ) {
-                row.addComponents(item);
+
+                row.addComponents(
+                    item
+                );
+
+                continue;
+            }
+
+            /*
+             * Plain saved button
+             */
+
+            if (
+                item.type === 2
+            ) {
+
+                row.addComponents(
+                    new ButtonBuilder(
+                        item
+                    )
+                );
+
+                continue;
+            }
+
+            /*
+             * Plain saved select menu
+             */
+
+            if (
+                item.type === 3
+            ) {
+
+                row.addComponents(
+                    new StringSelectMenuBuilder(
+                        item
+                    )
+                );
+
                 continue;
             }
 
             if (
-                item.type === 3 ||
-                item.type === 5 ||
-                item.type === 6 ||
-                item.type === 7 ||
-                item.type === 8 ||
-                item.data?.type === 3 ||
-                item.data?.type === 5 ||
-                item.data?.type === 6 ||
-                item.data?.type === 7 ||
-                item.data?.type === 8
+                item.type === 5
             ) {
-                row.addComponents(item);
+
+                row.addComponents(
+                    new UserSelectMenuBuilder(
+                        item
+                    )
+                );
+
                 continue;
             }
+
+            if (
+                item.type === 6
+            ) {
+
+                row.addComponents(
+                    new RoleSelectMenuBuilder(
+                        item
+                    )
+                );
+
+                continue;
+            }
+
+            if (
+                item.type === 7
+            ) {
+
+                row.addComponents(
+                    new MentionableSelectMenuBuilder(
+                        item
+                    )
+                );
+
+                continue;
+            }
+
+            if (
+                item.type === 8
+            ) {
+
+                row.addComponents(
+                    new ChannelSelectMenuBuilder(
+                        item
+                    )
+                );
+
+                continue;
+            }
+
+            /*
+             * Fallback for your custom
+             * type-based select format.
+             */
 
             row.addComponents(
-                this.renderSelect(item)
+                this.renderSelect(
+                    item
+                )
             );
 
         }
@@ -112,23 +202,49 @@ module.exports = {
 
     renderSelect(select = {}) {
 
-        if (select.type === "role") {
-            return new RoleSelectMenuBuilder(select);
+        if (
+            select.type === "role"
+        ) {
+
+            return new RoleSelectMenuBuilder(
+                select
+            );
+
         }
 
-        if (select.type === "user") {
-            return new UserSelectMenuBuilder(select);
+        if (
+            select.type === "user"
+        ) {
+
+            return new UserSelectMenuBuilder(
+                select
+            );
+
         }
 
-        if (select.type === "channel") {
-            return new ChannelSelectMenuBuilder(select);
+        if (
+            select.type === "channel"
+        ) {
+
+            return new ChannelSelectMenuBuilder(
+                select
+            );
+
         }
 
-        if (select.type === "mentionable") {
-            return new MentionableSelectMenuBuilder(select);
+        if (
+            select.type === "mentionable"
+        ) {
+
+            return new MentionableSelectMenuBuilder(
+                select
+            );
+
         }
 
-        return new StringSelectMenuBuilder(select);
+        return new StringSelectMenuBuilder(
+            select
+        );
 
     }
 
