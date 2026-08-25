@@ -76,12 +76,20 @@ module.exports = {
                 continue;
             }
 
-            if (item.data?.type === 2) {
+            if (
+                item.type === 2 ||
+                item.data?.type === 2
+            ) {
                 row.addComponents(item);
                 continue;
             }
 
             if (
+                item.type === 3 ||
+                item.type === 5 ||
+                item.type === 6 ||
+                item.type === 7 ||
+                item.type === 8 ||
                 item.data?.type === 3 ||
                 item.data?.type === 5 ||
                 item.data?.type === 6 ||
