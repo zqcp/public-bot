@@ -26,8 +26,27 @@ const EmbedSchema = new mongoose.Schema(
         components: {
             type: mongoose.Schema.Types.Mixed,
             default: []
+        },
+
+        messages: {
+            type: [
+                {
+                    channelId: {
+                        type: String,
+                        required: true
+                    },
+
+                    messageId: {
+                        type: String,
+                        required: true
+                    }
+                }
+            ],
+
+            default: []
         }
     },
+
     {
         timestamps: true
     }
@@ -38,6 +57,7 @@ EmbedSchema.index(
         guildId: 1,
         name: 1
     },
+
     {
         unique: true
     }
