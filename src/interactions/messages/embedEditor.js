@@ -52,6 +52,15 @@ module.exports = {
             });
         }
 
+        if (!Array.isArray(saved.embeds)) {
+            saved.embeds = [];
+        }
+
+        if (!saved.embeds.length) {
+            saved.embeds.push({});
+            await saved.save();
+        }
+
         if (action === "open") {
 
             const row1 =
@@ -81,16 +90,16 @@ module.exports = {
 
                         new ButtonBuilder()
                             .setCustomId(
-                                `embedAuthor:${name}`
+                                `embedTitle:${name}`
                             )
-                            .setLabel("Author")
+                            .setLabel("Title")
                             .setStyle(ButtonStyle.Secondary),
 
                         new ButtonBuilder()
                             .setCustomId(
-                                `embedFooter:${name}`
+                                `embedAuthor:${name}`
                             )
-                            .setLabel("Footer")
+                            .setLabel("Author")
                             .setStyle(ButtonStyle.Secondary)
 
                     );
@@ -98,6 +107,27 @@ module.exports = {
             const row2 =
                 new ActionRowBuilder()
                     .addComponents(
+
+                        new ButtonBuilder()
+                            .setCustomId(
+                                `embedFooter:${name}`
+                            )
+                            .setLabel("Footer")
+                            .setStyle(ButtonStyle.Secondary),
+
+                        new ButtonBuilder()
+                            .setCustomId(
+                                `embedColor:${name}`
+                            )
+                            .setLabel("Color")
+                            .setStyle(ButtonStyle.Secondary),
+
+                        new ButtonBuilder()
+                            .setCustomId(
+                                `embedTimestamp:${name}`
+                            )
+                            .setLabel("Timestamp")
+                            .setStyle(ButtonStyle.Secondary),
 
                         new ButtonBuilder()
                             .setCustomId(
@@ -111,7 +141,13 @@ module.exports = {
                                 `embedImages:${name}`
                             )
                             .setLabel("Images")
-                            .setStyle(ButtonStyle.Secondary),
+                            .setStyle(ButtonStyle.Secondary)
+
+                    );
+
+            const row3 =
+                new ActionRowBuilder()
+                    .addComponents(
 
                         new ButtonBuilder()
                             .setCustomId(
@@ -125,13 +161,7 @@ module.exports = {
                                 `embedButtonSelect:${name}`
                             )
                             .setLabel("Select Menus")
-                            .setStyle(ButtonStyle.Secondary)
-
-                    );
-
-            const row3 =
-                new ActionRowBuilder()
-                    .addComponents(
+                            .setStyle(ButtonStyle.Secondary),
 
                         new ButtonBuilder()
                             .setCustomId(
