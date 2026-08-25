@@ -1,4 +1,9 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+const {
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle
+} = require("discord.js");
+
 const embeds = require("../../embeds/embeds");
 const Embed = require("../../models/Embed");
 
@@ -18,6 +23,7 @@ module.exports = {
             interaction.customId.split(":");
 
         if (!name) {
+
             return interaction.reply({
                 embeds: [
                     embeds.error(
@@ -27,6 +33,7 @@ module.exports = {
                 ],
                 flags: 64
             });
+
         }
 
         const saved =
@@ -36,6 +43,7 @@ module.exports = {
             });
 
         if (!saved) {
+
             return interaction.reply({
                 embeds: [
                     embeds.error(
@@ -45,6 +53,7 @@ module.exports = {
                 ],
                 flags: 64
             });
+
         }
 
         if (action === "open") {
@@ -58,28 +67,36 @@ module.exports = {
                                 `embedEditor:${name}:content`
                             )
                             .setLabel("Content")
-                            .setStyle(ButtonStyle.Secondary),
+                            .setStyle(
+                                ButtonStyle.Secondary
+                            ),
 
                         new ButtonBuilder()
                             .setCustomId(
                                 `embedEditor:${name}:embeds`
                             )
                             .setLabel("Embeds")
-                            .setStyle(ButtonStyle.Secondary),
+                            .setStyle(
+                                ButtonStyle.Secondary
+                            ),
 
                         new ButtonBuilder()
                             .setCustomId(
                                 `embedEditor:${name}:author`
                             )
                             .setLabel("Author")
-                            .setStyle(ButtonStyle.Secondary),
+                            .setStyle(
+                                ButtonStyle.Secondary
+                            ),
 
                         new ButtonBuilder()
                             .setCustomId(
                                 `embedEditor:${name}:footer`
                             )
                             .setLabel("Footer")
-                            .setStyle(ButtonStyle.Secondary)
+                            .setStyle(
+                                ButtonStyle.Secondary
+                            )
 
                     );
 
@@ -92,28 +109,36 @@ module.exports = {
                                 `embedEditor:${name}:fields`
                             )
                             .setLabel("Fields")
-                            .setStyle(ButtonStyle.Secondary),
+                            .setStyle(
+                                ButtonStyle.Secondary
+                            ),
 
                         new ButtonBuilder()
                             .setCustomId(
                                 `embedEditor:${name}:images`
                             )
                             .setLabel("Images")
-                            .setStyle(ButtonStyle.Secondary),
+                            .setStyle(
+                                ButtonStyle.Secondary
+                            ),
 
                         new ButtonBuilder()
                             .setCustomId(
                                 `embedEditor:${name}:buttons`
                             )
                             .setLabel("Buttons")
-                            .setStyle(ButtonStyle.Secondary),
+                            .setStyle(
+                                ButtonStyle.Secondary
+                            ),
 
                         new ButtonBuilder()
                             .setCustomId(
                                 `embedEditor:${name}:selects`
                             )
                             .setLabel("Select Menus")
-                            .setStyle(ButtonStyle.Secondary)
+                            .setStyle(
+                                ButtonStyle.Secondary
+                            )
 
                     );
 
@@ -126,14 +151,18 @@ module.exports = {
                                 `embedEditor:${name}:save`
                             )
                             .setLabel("Save")
-                            .setStyle(ButtonStyle.Success),
+                            .setStyle(
+                                ButtonStyle.Success
+                            ),
 
                         new ButtonBuilder()
                             .setCustomId(
                                 `embedEditor:${name}:cancel`
                             )
                             .setLabel("Cancel")
-                            .setStyle(ButtonStyle.Danger)
+                            .setStyle(
+                                ButtonStyle.Danger
+                            )
 
                     );
 
@@ -153,11 +182,6 @@ module.exports = {
             });
 
         }
-
-        /*
-         * The individual actions will be handled
-         * by their dedicated interaction files.
-         */
 
         return interaction.reply({
             embeds: [
