@@ -1,6 +1,7 @@
 const storage = require("./storage");
 const registry = require("./registry");
 const renderer = require("./renderer");
+const Embed = require("../../models/Embed");
 
 function clone(value) {
 
@@ -66,10 +67,15 @@ module.exports = {
 
     async load(guildId, name) {
 
-        return storage.getMessage(
-            guildId,
-            name
-        );
+        const embed =
+            await Embed.findOne({
+                guildId,
+                name
+            });
+
+        return embed
+            ? embed.toObject()
+            : null;
 
     },
 
@@ -79,25 +85,38 @@ module.exports = {
         changes = {}
     ) {
 
-        const current =
-            await storage.getMessage(
+        const embed =
+            await Embed.findOne({
                 guildId,
                 name
-            );
+            });
 
-        if (!current) {
+        if (!embed) {
             return null;
         }
+
+        const current =
+            embed.toObject();
 
         const updated = merge(
             clone(current),
             clone(changes)
         );
 
-        await storage.setMessage(
-            guildId,
-            name,
-            updated
+        delete updated._id;
+        delete updated.__v;
+
+        await Embed.findOneAndUpdate(
+            {
+                guildId,
+                name
+            },
+            {
+                $set: updated
+            },
+            {
+                new: true
+            }
         );
 
         return updated;
@@ -110,17 +129,18 @@ module.exports = {
         property
     ) {
 
-        const current =
-            await storage.getMessage(
+        const embed =
+            await Embed.findOne({
                 guildId,
                 name
-            );
+            });
 
-        if (!current) {
+        if (!embed) {
             return null;
         }
 
-        const updated = clone(current);
+        const updated =
+            embed.toObject();
 
         if (
             property &&
@@ -134,10 +154,20 @@ module.exports = {
 
         }
 
-        await storage.setMessage(
-            guildId,
-            name,
-            updated
+        delete updated._id;
+        delete updated.__v;
+
+        await Embed.findOneAndUpdate(
+            {
+                guildId,
+                name
+            },
+            {
+                $set: updated
+            },
+            {
+                new: true
+            }
         );
 
         return updated;
@@ -150,15 +180,18 @@ module.exports = {
         name
     ) {
 
-        const saved =
-            await storage.getMessage(
+        const embed =
+            await Embed.findOne({
                 guildId,
                 name
-            );
+            });
 
-        if (!saved) {
+        if (!embed) {
             return null;
         }
+
+        const saved =
+            embed.toObject();
 
         const references =
             await registry.get(
