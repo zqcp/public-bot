@@ -97,17 +97,6 @@ module.exports = {
                     "Select something..."
                 );
 
-        const customId =
-            new TextInputBuilder()
-                .setCustomId("customId")
-                .setLabel("Custom ID")
-                .setStyle(TextInputStyle.Short)
-                .setRequired(true)
-                .setValue(
-                    menu.custom_id ||
-                    ""
-                );
-
         const disabled =
             new TextInputBuilder()
                 .setCustomId("disabled")
@@ -129,24 +118,108 @@ module.exports = {
                     `Edit ${type} Select`
                 );
 
-        modal.addComponents(
+        /*
+         * Role Select
+         *
+         * Role selects are stored as String Selects
+         * (type 3) with role IDs inside option values.
+         */
+        if (type === "role") {
 
-            new ActionRowBuilder()
-                .addComponents(
-                    placeholder
-                ),
+            const option =
+                Array.isArray(menu.options) &&
+                menu.options.length
+                    ? menu.options[0]
+                    : null;
 
-            new ActionRowBuilder()
-                .addComponents(
-                    customId
-                ),
+            const roleId =
+                option?.value || "";
 
-            new ActionRowBuilder()
-                .addComponents(
-                    disabled
-                )
+            const role =
+                interaction.guild.roles.cache.get(
+                    String(roleId)
+                );
 
-        );
+            const roleName =
+                new TextInputBuilder()
+                    .setCustomId("roleName")
+                    .setLabel("Role Name")
+                    .setStyle(TextInputStyle.Short)
+                    .setRequired(true)
+                    .setValue(
+                        option?.label ||
+                        role?.name ||
+                        ""
+                    );
+
+            const roleIdInput =
+                new TextInputBuilder()
+                    .setCustomId("roleId")
+                    .setLabel("Role ID")
+                    .setStyle(TextInputStyle.Short)
+                    .setRequired(true)
+                    .setValue(
+                        roleId
+                            ? String(roleId)
+                            : ""
+                    );
+
+            modal.addComponents(
+
+                new ActionRowBuilder()
+                    .addComponents(
+                        placeholder
+                    ),
+
+                new ActionRowBuilder()
+                    .addComponents(
+                        roleName
+                    ),
+
+                new ActionRowBuilder()
+                    .addComponents(
+                        roleIdInput
+                    ),
+
+                new ActionRowBuilder()
+                    .addComponents(
+                        disabled
+                    )
+
+            );
+
+        } else {
+
+            const customId =
+                new TextInputBuilder()
+                    .setCustomId("customId")
+                    .setLabel("Custom ID")
+                    .setStyle(TextInputStyle.Short)
+                    .setRequired(true)
+                    .setValue(
+                        menu.custom_id ||
+                        ""
+                    );
+
+            modal.addComponents(
+
+                new ActionRowBuilder()
+                    .addComponents(
+                        placeholder
+                    ),
+
+                new ActionRowBuilder()
+                    .addComponents(
+                        customId
+                    ),
+
+                new ActionRowBuilder()
+                    .addComponents(
+                        disabled
+                    )
+
+            );
+        }
 
         return interaction.showModal(modal);
 
