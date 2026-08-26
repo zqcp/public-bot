@@ -17,11 +17,8 @@ module.exports = {
         const parts =
             interaction.customId.split(":");
 
-        const name =
-            parts[1];
-
-        const type =
-            parts[2];
+        const name = parts[1];
+        const type = parts[2];
 
         if (!name || !type) {
             return interaction.reply({
@@ -53,10 +50,6 @@ module.exports = {
             });
         }
 
-        if (!Array.isArray(saved.components)) {
-            saved.components = [];
-        }
-
         const placeholder =
             interaction.fields
                 .getTextInputValue("placeholder")
@@ -67,11 +60,11 @@ module.exports = {
                 .getTextInputValue("customId")
                 .trim();
 
-        const disabledInput =
+        const disabled =
             interaction.fields
                 .getTextInputValue("disabled")
                 .trim()
-                .toLowerCase();
+                .toLowerCase() === "true";
 
         if (!customId) {
             return interaction.reply({
@@ -85,103 +78,35 @@ module.exports = {
             });
         }
 
-        if (
-            disabledInput &&
-            disabledInput !== "true" &&
-            disabledInput !== "false"
-        ) {
-            return interaction.reply({
-                embeds: [
-                    embeds.error(
-                        interaction.user,
-                        "Disabled must be either `true` or `false`."
-                    )
-                ],
-                flags: 64
-            });
+        if (!Array.isArray(saved.components)) {
+            saved.components = [];
         }
 
         /*
          * ROLE SELECT
          *
-         * This is intentionally stored as a
-         * String Select Menu instead of Discord's
-         * native Role Select Menu.
-         *
-         * That lets us control the visible name
-         * while storing the real Discord role ID.
+         * Uses a String Select Menu so we can
+         * control the visible role names.
          */
 
         if (type === "role") {
 
-            let roleName = "";
+            const roleName =
+                interaction.fields.getTextInputValue(
+                    "roleName"
+                ).trim();
 
-            let roleId = "";
+            const roleId =
+                interaction.fields.getTextInputValue(
+                    "roleId"
+                ).trim();
 
-            try {
-
-                roleName =
-                    interaction.fields
-                        .getTextInputValue(
-                            "roleName"
-                        )
-                        .trim();
-
-            } catch {
-                roleName = "";
-            }
-
-            try {
-
-                roleId =
-                    interaction.fields
-                        .getTextInputValue(
-                            "roleId"
-                        )
-                        .trim();
-
-            } catch {
-                roleId = "";
-            }
-
-            if (!roleName) {
+            if (!roleName || !roleId) {
                 return interaction.reply({
                     embeds: [
                         embeds.error(
                             interaction.user,
-                            "A Role Name is required."
-                        )
-                    ],
-                    flags: 64
-                });
-            }
-
-            /*
-             * Accept either:
-             *
-             * 123456789012345678
-             *
-             * or:
-             *
-             * <@&123456789012345678>
-             */
-
-            const mentionMatch =
-                roleId.match(
-                    /^<@&(\d+)>$/
-                );
-
-            if (mentionMatch) {
-                roleId =
-                    mentionMatch[1];
-            }
-
-            if (!/^\d+$/.test(roleId)) {
-                return interaction.reply({
-                    embeds: [
-                        embeds.error(
-                            interaction.user,
-                            "Please provide a valid Discord role ID or role mention."
+                            "Role name and role are required."
                         )
                     ],
                     flags: 64
@@ -190,7 +115,10 @@ module.exports = {
 
             const role =
                 interaction.guild.roles.cache.get(
-                    roleId
+                    roleId.replace(
+                        /[<@&>]/g,
+                        ""
+                    )
                 );
 
             if (!role) {
@@ -198,169 +126,48 @@ module.exports = {
                     embeds: [
                         embeds.error(
                             interaction.user,
-                            "I couldn't find that role in this server."
+                            "I couldn't find that role."
                         )
                     ],
                     flags: 64
                 });
             }
 
-            /*
-             * Role Selects are String Select Menus.
-             */
+            const row = {
+                type: 1,
+                components: [
+                    {
+                        type: 3,
+                        custom_id: customId,
+                        placeholder:
+                            placeholder ||
+                            "Select your role...",
+                        disabled,
+                        min_values: 1,
+                        max_values: 1,
+                        options: [
+                            {
+                                label: roleName,
+                                value: role.id
+                            }
+                        ]
+                    }
+                ]
+            };
 
-            let row =
-                saved.components.find(
-                    componentRow =>
-                        componentRow &&
-                        componentRow.type === 1 &&
-                        Array.isArray(
-                            componentRow.components
-                        ) &&
-                        componentRow.components.length === 0
-                );
-
-            /*
-             * Do not put a select menu beside
-             * another select menu.
-             */
-
-            if (!row) {
-
-                if (saved.components.length >= 5) {
-                    return interaction.reply({
-                        embeds: [
-                            embeds.error(
-                                interaction.user,
-                                `Embed **${name}** already has the maximum of **5 component rows**.`
-                            )
-                        ],
-                        flags: 64
-                    });
-                }
-
-                row = {
-                    type: 1,
-                    components: []
-                };
-
-                saved.components.push(row);
-
-            }
-
-            /*
-             * Find an existing Role Select with
-             * this custom ID so multiple roles can
-             * be added to the same selector.
-             */
-
-            let selectMenu =
-                row.components.find(
-                    component =>
-                        component &&
-                        component.type === 3 &&
-                        component.custom_id === customId &&
-                        component.role_select === true
-                );
-
-            if (!selectMenu) {
-
-                selectMenu = {
-                    type: 3,
-
-                    custom_id: customId,
-
-                    placeholder:
-                        placeholder ||
-                        "Select your role...",
-
-                    disabled:
-                        disabledInput === "true",
-
-                    min_values: 1,
-
-                    max_values: 1,
-
-                    role_select: true,
-
-                    options: []
-                };
-
-                row.components.push(
-                    selectMenu
-                );
-
-            } else {
-
-                /*
-                 * Keep the configured placeholder
-                 * and disabled state updated.
-                 */
-
-                selectMenu.placeholder =
-                    placeholder ||
-                    "Select your role...";
-
-                selectMenu.disabled =
-                    disabledInput === "true";
-
-            }
-
-            /*
-             * Prevent duplicate role options.
-             */
-
-            const alreadyExists =
-                selectMenu.options.some(
-                    option =>
-                        option.value === role.id
-                );
-
-            if (alreadyExists) {
+            if (saved.components.length >= 5) {
                 return interaction.reply({
                     embeds: [
                         embeds.error(
                             interaction.user,
-                            `The role **${role.name}** is already configured for this Role Select.`
+                            `Embed **${name}** already has the maximum of **5 component rows**.`
                         )
                     ],
                     flags: 64
                 });
             }
 
-            if (
-                selectMenu.options.length >= 25
-            ) {
-                return interaction.reply({
-                    embeds: [
-                        embeds.error(
-                            interaction.user,
-                            "A select menu can contain a maximum of 25 roles."
-                        )
-                    ],
-                    flags: 64
-                });
-            }
-
-            selectMenu.options.push({
-
-                label:
-                    roleName
-                        .slice(0, 100),
-
-                value:
-                    role.id,
-
-                description:
-                    `Give ${role.name}`
-                        .slice(0, 100)
-
-            });
-
-            /*
-             * Discord String Select Menus cannot
-             * exceed 25 options.
-             */
+            saved.components.push(row);
 
             saved.markModified(
                 "components"
@@ -378,16 +185,15 @@ module.exports = {
                 embeds: [
                     embeds.success(
                         interaction.user,
-                        `**${roleName}** has been added to the Role Select for **${name}**.`
+                        `Role **${roleName}** was added to **${name}**.`
                     )
                 ],
                 flags: 64
             });
-
         }
 
         /*
-         * OTHER SELECT MENU TYPES
+         * OTHER SELECT MENUS
          */
 
         const typeMap = {
@@ -411,60 +217,33 @@ module.exports = {
             });
         }
 
-        let row =
-            saved.components.find(
-                componentRow =>
-                    componentRow &&
-                    componentRow.type === 1 &&
-                    Array.isArray(
-                        componentRow.components
-                    ) &&
-                    componentRow.components.length === 0
-            );
-
-        if (!row) {
-
-            if (saved.components.length >= 5) {
-                return interaction.reply({
-                    embeds: [
-                        embeds.error(
-                            interaction.user,
-                            `Embed **${name}** already has the maximum of **5 component rows**.`
-                        )
-                    ],
-                    flags: 64
-                });
-            }
-
-            row = {
-                type: 1,
-                components: []
-            };
-
-            saved.components.push(row);
+        if (saved.components.length >= 5) {
+            return interaction.reply({
+                embeds: [
+                    embeds.error(
+                        interaction.user,
+                        `Embed **${name}** already has the maximum of **5 component rows**.`
+                    )
+                ],
+                flags: 64
+            });
         }
 
-        const selectMenu = {
-
-            type:
-                componentType,
-
-            custom_id:
-                customId,
-
-            disabled:
-                disabledInput === "true"
-
+        const row = {
+            type: 1,
+            components: [
+                {
+                    type: componentType,
+                    custom_id: customId,
+                    placeholder:
+                        placeholder ||
+                        "Select something...",
+                    disabled
+                }
+            ]
         };
 
-        if (placeholder) {
-            selectMenu.placeholder =
-                placeholder;
-        }
-
-        row.components.push(
-            selectMenu
-        );
+        saved.components.push(row);
 
         saved.markModified(
             "components"
