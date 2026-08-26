@@ -117,10 +117,10 @@ module.exports = {
         /*
          * ROLE SELECT
          *
-         * Role selects are stored as String Selects
-         * (type 3) with the role ID inside the option
-         * value.
+         * Original system stores role selects
+         * as String Select type 3.
          */
+
         if (type === "role") {
 
             const roleName =
@@ -193,10 +193,6 @@ module.exports = {
                 disabledInput === "true";
 
         } else {
-
-            /*
-             * OTHER SELECT MENUS
-             */
 
             const customId =
                 getField("customId");
