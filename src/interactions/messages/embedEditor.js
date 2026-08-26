@@ -197,15 +197,52 @@ module.exports = {
         }
 
         if (action === "save") {
-            return interaction.reply({
-                embeds: [
-                    embeds.success(
-                        interaction.user,
-                        `Embed **${name}** is ready to be saved.`
-                    )
-                ],
-                flags: 64
-            });
+
+            try {
+
+                /*
+                 * The individual editor actions already save
+                 * their changes to MongoDB.
+                 *
+                 * Save now pushes the CURRENT saved embed,
+                 * including components/select menus, to every
+                 * existing message registered for this embed.
+                 */
+
+                await editor.updateMessage(
+                    client,
+                    interaction.guild.id,
+                    name
+                );
+
+                return interaction.reply({
+                    embeds: [
+                        embeds.success(
+                            interaction.user,
+                            `Embed **${name}** has been saved and all existing messages have been updated.`
+                        )
+                    ],
+                    flags: 64
+                });
+
+            } catch (error) {
+
+                console.error(
+                    `[EMBED SAVE] Failed to update ${name}:`,
+                    error
+                );
+
+                return interaction.reply({
+                    embeds: [
+                        embeds.error(
+                            interaction.user,
+                            `I couldn't update the existing messages for **${name}**.`
+                        )
+                    ],
+                    flags: 64
+                });
+
+            }
         }
 
         if (action === "cancel") {
