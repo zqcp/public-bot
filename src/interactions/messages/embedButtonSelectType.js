@@ -93,12 +93,30 @@ module.exports = {
                         continue;
                     }
 
+                    /*
+                     * ROLE SELECT
+                     *
+                     * Your role selector is stored as a
+                     * String Select (type 3) because the
+                     * role is represented as an option.
+                     *
+                     * Also support native Discord Role
+                     * Select menus (type 6).
+                     */
+
                     if (
                         type === "role" &&
-                        component.type === 6
+                        (
+                            component.type === 3 ||
+                            component.type === 6
+                        )
                     ) {
                         menuCount++;
                     }
+
+                    /*
+                     * USER SELECT
+                     */
 
                     if (
                         type === "user" &&
@@ -107,12 +125,20 @@ module.exports = {
                         menuCount++;
                     }
 
+                    /*
+                     * CHANNEL SELECT
+                     */
+
                     if (
                         type === "channel" &&
                         component.type === 8
                     ) {
                         menuCount++;
                     }
+
+                    /*
+                     * MENTIONABLE SELECT
+                     */
 
                     if (
                         type === "mentionable" &&
