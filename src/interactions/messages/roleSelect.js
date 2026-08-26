@@ -21,7 +21,8 @@ module.exports = {
 
         }
 
-        const member = interaction.member;
+        const member =
+            interaction.member;
 
         if (!member) {
 
@@ -35,7 +36,8 @@ module.exports = {
 
         }
 
-        const roleIds = interaction.values || [];
+        const roleIds =
+            interaction.values || [];
 
         if (!roleIds.length) {
 
@@ -64,13 +66,47 @@ module.exports = {
                 continue;
             }
 
+            // Bot cannot manage @everyone or roles
+            // above/equal to its highest role.
+            const botMember =
+                interaction.guild.members.me;
+
+            if (
+                role.id ===
+                interaction.guild.id ||
+                !botMember ||
+                role.position >=
+                botMember.roles.highest.position
+            ) {
+
+                failedRoles.push(
+                    role.id
+                );
+
+                continue;
+            }
+
             try {
 
-                if (!member.roles.cache.has(role.id)) {
+                if (
+                    !member.roles.cache.has(
+                        role.id
+                    )
+                ) {
 
-                    await member.roles.add(role);
+                    await member.roles.add(
+                        role
+                    );
 
-                    addedRoles.push(role);
+                    addedRoles.push(
+                        role
+                    );
+
+                } else {
+
+                    addedRoles.push(
+                        role
+                    );
 
                 }
 
@@ -81,7 +117,9 @@ module.exports = {
                     error
                 );
 
-                failedRoles.push(role.id);
+                failedRoles.push(
+                    role.id
+                );
 
             }
 
@@ -104,8 +142,8 @@ module.exports = {
             {
                 content:
                     `${config.emojis.success} ${interaction.user}: your roles have been updated.`
-            }
-        );
+                }
+            );
 
     }
 
