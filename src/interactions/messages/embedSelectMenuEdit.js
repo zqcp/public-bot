@@ -24,11 +24,8 @@ module.exports = {
         const parts =
             interaction.customId.split(":");
 
-        const name =
-            parts[1];
-
-        const type =
-            parts[2];
+        const name = parts[1];
+        const type = parts[2];
 
         if (!name || !type) {
             return interaction.reply({
@@ -92,6 +89,12 @@ module.exports = {
 
                     let componentType = null;
 
+                    /*
+                     * Role selects created by the original
+                     * Add system are type 3 String Selects
+                     * with the role ID stored in options[0].value.
+                     */
+
                     if (component.type === 3) {
 
                         const isRoleMenu =
@@ -124,6 +127,7 @@ module.exports = {
                     } else if (component.type === 8) {
 
                         componentType = "channel";
+
                     }
 
                     if (componentType !== type) {
@@ -177,9 +181,9 @@ module.exports = {
 
                     return new StringSelectMenuOptionBuilder()
                         .setLabel(
-                            label.length > 100
-                                ? label.slice(0, 97) + "..."
-                                : label
+                            String(label).length > 100
+                                ? String(label).slice(0, 97) + "..."
+                                : String(label)
                         )
                         .setDescription(
                             component.custom_id
@@ -212,7 +216,7 @@ module.exports = {
                 .addComponents(
                     new ButtonBuilder()
                         .setCustomId(
-                            `embedButtonSelect:${name}`
+                            `embedButtonSelectType:${name}:${type}`
                         )
                         .setLabel("Back")
                         .setStyle(
