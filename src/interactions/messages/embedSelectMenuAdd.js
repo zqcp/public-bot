@@ -23,11 +23,8 @@ module.exports = {
         const parts =
             interaction.customId.split(":");
 
-        const name =
-            parts[1];
-
-        const type =
-            parts[2];
+        const name = parts[1];
+        const type = parts[2];
 
         if (!name || !type) {
             return interaction.reply({
@@ -119,17 +116,6 @@ module.exports = {
                 )
                 .setValue("false");
 
-        /*
-         * ROLE SELECT
-         *
-         * No custom ID is requested.
-         * The system automatically uses:
-         *
-         * role-select
-         *
-         * The role becomes the select option.
-         */
-
         if (type === "role") {
 
             const roleName =
@@ -140,9 +126,7 @@ module.exports = {
                         TextInputStyle.Short
                     )
                     .setRequired(true)
-                    .setPlaceholder(
-                        "Male"
-                    );
+                    .setPlaceholder("Male");
 
             const roleId =
                 new TextInputBuilder()
@@ -185,10 +169,6 @@ module.exports = {
             );
         }
 
-        /*
-         * OTHER SELECT MENUS
-         */
-
         const customId =
             new TextInputBuilder()
                 .setCustomId("customId")
@@ -213,7 +193,7 @@ module.exports = {
                     customId
                 ),
 
-            new ActionRow()
+            new ActionRowBuilder()
                 .addComponents(
                     disabled
                 )
