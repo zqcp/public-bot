@@ -92,15 +92,41 @@ module.exports = {
 
                     let componentType = null;
 
+                    /*
+                     * Role Select is stored as a String Select
+                     * (type 3) with role IDs as option values.
+                     */
                     if (component.type === 3) {
-                        componentType = "string";
+
+                        const isRoleMenu =
+                            Array.isArray(component.options) &&
+                            component.options.length > 0 &&
+                            component.options.every(
+                                option =>
+                                    interaction.guild.roles.cache.has(
+                                        String(option.value)
+                                    )
+                            );
+
+                        componentType =
+                            isRoleMenu
+                                ? "role"
+                                : "string";
+
                     } else if (component.type === 5) {
+
                         componentType = "user";
+
                     } else if (component.type === 6) {
+
                         componentType = "role";
+
                     } else if (component.type === 7) {
+
                         componentType = "mentionable";
+
                     } else if (component.type === 8) {
+
                         componentType = "channel";
                     }
 
