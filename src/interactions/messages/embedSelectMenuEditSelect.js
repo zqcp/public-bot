@@ -23,16 +23,13 @@ module.exports = {
         const parts =
             interaction.customId.split(":");
 
-        const name =
-            parts[1];
-
-        const type =
-            parts[2];
+        const name = parts[1];
+        const type = parts[2];
 
         const value =
             interaction.values?.[0];
 
-        if (!name || !type || !value) {
+        if (!value) {
             return interaction.reply({
                 embeds: [
                     embeds.error(
@@ -48,6 +45,8 @@ module.exports = {
             value.split(":").map(Number);
 
         if (
+            !name ||
+            !type ||
             Number.isNaN(rowIndex) ||
             Number.isNaN(componentIndex)
         ) {
@@ -128,6 +127,16 @@ module.exports = {
                     `Edit ${type} Select`
                 );
 
+        /*
+         * ROLE SELECT
+         *
+         * Keep this consistent with Add:
+         *
+         * type = 3
+         * options[0].label = role name
+         * options[0].value = role ID
+         */
+
         if (type === "role") {
 
             const roleOption =
@@ -136,7 +145,9 @@ module.exports = {
                     : null;
 
             const roleId =
-                roleOption?.value || "";
+                roleOption?.value
+                    ? String(roleOption.value)
+                    : "";
 
             let roleName =
                 roleOption?.label || "";
@@ -144,13 +155,12 @@ module.exports = {
             const role =
                 roleId
                     ? interaction.guild.roles.cache.get(
-                        String(roleId)
+                        roleId
                     )
                     : null;
 
             if (role) {
-                roleName =
-                    role.name;
+                roleName = role.name;
             }
 
             const roleNameInput =
@@ -170,7 +180,7 @@ module.exports = {
                     .setStyle(TextInputStyle.Short)
                     .setRequired(true)
                     .setValue(
-                        String(roleId)
+                        roleId
                     );
 
             modal.addComponents(
@@ -199,6 +209,10 @@ module.exports = {
 
             return interaction.showModal(modal);
         }
+
+        /*
+         * USER / CHANNEL / MENTIONABLE
+         */
 
         const customId =
             new TextInputBuilder()
