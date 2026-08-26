@@ -85,11 +85,6 @@ module.exports = {
                 .getTextInputValue("placeholder")
                 .trim();
 
-        const customId =
-            interaction.fields
-                .getTextInputValue("customId")
-                .trim();
-
         const disabledInput =
             interaction.fields
                 .getTextInputValue("disabled")
@@ -112,18 +107,116 @@ module.exports = {
             });
         }
 
-        if (placeholder) {
-            component.placeholder = placeholder;
+        /*
+         * ROLE SELECT
+         *
+         * Role selects are stored as String Selects
+         * (type 3) with the role ID inside the option
+         * value.
+         */
+        if (type === "role") {
+
+            const roleName =
+                interaction.fields
+                    .getTextInputValue("roleName")
+                    .trim();
+
+            const roleId =
+                interaction.fields
+                    .getTextInputValue("roleId")
+                    .trim()
+                    .replace(
+                        /[<@&>]/g,
+                        ""
+                    );
+
+            if (!roleName || !roleId) {
+                return interaction.reply({
+                    embeds: [
+                        embeds.error(
+                            interaction.user,
+                            "Role name and role are required."
+                        )
+                    ],
+                    flags: 64
+                });
+            }
+
+            const role =
+                interaction.guild.roles.cache.get(
+                    roleId
+                );
+
+            if (!role) {
+                return interaction.reply({
+                    embeds: [
+                        embeds.error(
+                            interaction.user,
+                            "I couldn't find that role."
+                        )
+                    ],
+                    flags: 64
+                });
+            }
+
+            if (
+                component.type !== 3 ||
+                !Array.isArray(component.options) ||
+                !component.options.length
+            ) {
+                return interaction.reply({
+                    embeds: [
+                        embeds.error(
+                            interaction.user,
+                            "That component isn't a valid role select."
+                        )
+                    ],
+                    flags: 64
+                });
+            }
+
+            if (placeholder) {
+                component.placeholder =
+                    placeholder;
+            }
+
+            component.options[0].label =
+                roleName;
+
+            component.options[0].value =
+                role.id;
+
+            component.disabled =
+                disabledInput === "true";
+
+        } else {
+
+            /*
+             * OTHER SELECT MENUS
+             */
+
+            const customId =
+                interaction.fields
+                    .getTextInputValue("customId")
+                    .trim();
+
+            if (placeholder) {
+                component.placeholder =
+                    placeholder;
+            }
+
+            if (customId) {
+                component.custom_id =
+                    customId;
+            }
+
+            component.disabled =
+                disabledInput === "true";
         }
 
-        if (customId) {
-            component.custom_id = customId;
-        }
-
-        component.disabled =
-            disabledInput === "true";
-
-        saved.markModified("components");
+        saved.markModified(
+            "components"
+        );
 
         await saved.save();
 
