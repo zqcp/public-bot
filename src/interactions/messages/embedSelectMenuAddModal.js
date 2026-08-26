@@ -85,21 +85,25 @@ module.exports = {
         /*
          * ROLE SELECT
          *
-         * Uses a String Select Menu so we can
-         * control the visible role names.
+         * Uses a String Select Menu so custom
+         * role names can be displayed.
          */
 
         if (type === "role") {
 
             const roleName =
-                interaction.fields.getTextInputValue(
-                    "roleName"
-                ).trim();
+                interaction.fields
+                    .getTextInputValue("roleName")
+                    .trim();
 
             const roleId =
-                interaction.fields.getTextInputValue(
-                    "roleId"
-                ).trim();
+                interaction.fields
+                    .getTextInputValue("roleId")
+                    .trim()
+                    .replace(
+                        /[<@&>]/g,
+                        ""
+                    );
 
             if (!roleName || !roleId) {
                 return interaction.reply({
@@ -115,10 +119,7 @@ module.exports = {
 
             const role =
                 interaction.guild.roles.cache.get(
-                    roleId.replace(
-                        /[<@&>]/g,
-                        ""
-                    )
+                    roleId
                 );
 
             if (!role) {
@@ -133,28 +134,6 @@ module.exports = {
                 });
             }
 
-            const row = {
-                type: 1,
-                components: [
-                    {
-                        type: 3,
-                        custom_id: customId,
-                        placeholder:
-                            placeholder ||
-                            "Select your role...",
-                        disabled,
-                        min_values: 1,
-                        max_values: 1,
-                        options: [
-                            {
-                                label: roleName,
-                                value: role.id
-                            }
-                        ]
-                    }
-                ]
-            };
-
             if (saved.components.length >= 5) {
                 return interaction.reply({
                     embeds: [
@@ -166,6 +145,35 @@ module.exports = {
                     flags: 64
                 });
             }
+
+            const row = {
+                type: 1,
+                components: [
+                    {
+                        type: 3,
+
+                        // Handler ID.
+                        custom_id: customId,
+
+                        // Visible text.
+                        placeholder:
+                            placeholder ||
+                            "Select your role...",
+
+                        disabled,
+
+                        min_values: 1,
+                        max_values: 1,
+
+                        options: [
+                            {
+                                label: roleName,
+                                value: role.id
+                            }
+                        ]
+                    }
+                ]
+            };
 
             saved.components.push(row);
 
