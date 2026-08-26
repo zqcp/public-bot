@@ -92,10 +92,6 @@ module.exports = {
 
                     let componentType = null;
 
-                    /*
-                     * Role Select is stored as a String Select
-                     * (type 3) with role IDs as option values.
-                     */
                     if (component.type === 3) {
 
                         const isRoleMenu =
@@ -169,11 +165,6 @@ module.exports = {
                     index
                 ) => {
 
-                    /*
-                     * For role selects, show the actual role
-                     * option label instead of the shared
-                     * "Select your role..." placeholder.
-                     */
                     const label =
                         type === "role" &&
                         component.type === 3 &&
