@@ -21,18 +21,19 @@ module.exports = {
 
         }
 
+        await interaction.deferReply({
+            flags: 64
+        });
+
         const member =
             interaction.member;
 
         if (!member) {
 
-            return messages.reply(
-                interaction,
-                {
-                    content:
-                        `${config.emojis.failed} ${interaction.user}: I couldn't find your member information.`
-                }
-            );
+            return interaction.editReply({
+                content:
+                    `${config.emojis.failed} ${interaction.user}: I couldn't find your member information.`
+            });
 
         }
 
@@ -41,13 +42,10 @@ module.exports = {
 
         if (!roleIds.length) {
 
-            return messages.reply(
-                interaction,
-                {
-                    content:
-                        `${config.emojis.failed} ${interaction.user}: no roles were selected.`
-                }
-            );
+            return interaction.editReply({
+                content:
+                    `${config.emojis.failed} ${interaction.user}: no roles were selected.`
+            });
 
         }
 
@@ -66,17 +64,14 @@ module.exports = {
                 continue;
             }
 
-            // Bot cannot manage @everyone or roles
-            // above/equal to its highest role.
             const botMember =
                 interaction.guild.members.me;
 
             if (
-                role.id ===
-                interaction.guild.id ||
+                role.id === interaction.guild.id ||
                 !botMember ||
                 role.position >=
-                botMember.roles.highest.position
+                    botMember.roles.highest.position
             ) {
 
                 failedRoles.push(
@@ -84,6 +79,7 @@ module.exports = {
                 );
 
                 continue;
+
             }
 
             try {
@@ -98,17 +94,11 @@ module.exports = {
                         role
                     );
 
-                    addedRoles.push(
-                        role
-                    );
-
-                } else {
-
-                    addedRoles.push(
-                        role
-                    );
-
                 }
+
+                addedRoles.push(
+                    role
+                );
 
             } catch (error) {
 
@@ -127,23 +117,17 @@ module.exports = {
 
         if (!addedRoles.length) {
 
-            return messages.reply(
-                interaction,
-                {
-                    content:
-                        `${config.emojis.failed} ${interaction.user}: your roles could not be updated.`
-                }
-            );
+            return interaction.editReply({
+                content:
+                    `${config.emojis.failed} ${interaction.user}: your roles could not be updated.`
+            });
 
         }
 
-        return messages.reply(
-            interaction,
-            {
-                content:
-                    `${config.emojis.success} ${interaction.user}: your roles have been updated.`
-                }
-            );
+        return interaction.editReply({
+            content:
+                `${config.emojis.success} ${interaction.user}: your roles have been updated.`
+        });
 
     }
 
