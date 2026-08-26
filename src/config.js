@@ -11,13 +11,13 @@ module.exports = {
     },
 
     emojis: {
-        success: "<:successful:1534690890008891564>",
-        failed: "<:failed:1534690786636202205>",
-        error: "<:error:1534690869842804896>",
+        success: "<:success:1541970152814551162>",
+        failed: "<:failed:1541973642345185280>",
+        error: "<:error:1541970187786653797>",
 
         // Command specific
-        add: "<:add:1534690844672524319>",
-        remove: "<:remove:1534690818743341257>"
+        add: "<:add:1541970245453873313>",
+        remove: "<:remove:1541970285715132416>"
     },
 
     status: {
