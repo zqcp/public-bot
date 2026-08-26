@@ -132,7 +132,6 @@ module.exports = {
                 .setValue("false");
 
         modal.addComponents(
-
             new ActionRowBuilder()
                 .addComponents(
                     placeholder
@@ -147,8 +146,49 @@ module.exports = {
                 .addComponents(
                     disabled
                 )
-
         );
+
+        if (type === "role") {
+
+            const roleName =
+                new TextInputBuilder()
+                    .setCustomId("roleName")
+                    .setLabel("Role Name")
+                    .setStyle(
+                        TextInputStyle.Short
+                    )
+                    .setRequired(true)
+                    .setPlaceholder(
+                        "Male"
+                    );
+
+            const roleId =
+                new TextInputBuilder()
+                    .setCustomId("roleId")
+                    .setLabel("Role ID")
+                    .setStyle(
+                        TextInputStyle.Short
+                    )
+                    .setRequired(true)
+                    .setPlaceholder(
+                        "Enter the role ID"
+                    );
+
+            modal.addComponents(
+
+                new ActionRowBuilder()
+                    .addComponents(
+                        roleName
+                    ),
+
+                new ActionRowBuilder()
+                    .addComponents(
+                        roleId
+                    )
+
+            );
+
+        }
 
         return interaction.showModal(modal);
 
