@@ -106,18 +106,6 @@ module.exports = {
                         : "Select something..."
                 );
 
-        const customId =
-            new TextInputBuilder()
-                .setCustomId("customId")
-                .setLabel("Custom ID")
-                .setStyle(
-                    TextInputStyle.Short
-                )
-                .setRequired(false)
-                .setPlaceholder(
-                    "my-select-menu"
-                );
-
         const disabled =
             new TextInputBuilder()
                 .setCustomId("disabled")
@@ -131,22 +119,16 @@ module.exports = {
                 )
                 .setValue("false");
 
-        modal.addComponents(
-            new ActionRowBuilder()
-                .addComponents(
-                    placeholder
-                ),
-
-            new ActionRowBuilder()
-                .addComponents(
-                    customId
-                ),
-
-            new ActionRowBuilder()
-                .addComponents(
-                    disabled
-                )
-        );
+        /*
+         * ROLE SELECT
+         *
+         * No custom ID is requested.
+         * The system automatically uses:
+         *
+         * role-select
+         *
+         * The role becomes the select option.
+         */
 
         if (type === "role") {
 
@@ -178,19 +160,69 @@ module.exports = {
 
                 new ActionRowBuilder()
                     .addComponents(
+                        placeholder
+                    ),
+
+                new ActionRowBuilder()
+                    .addComponents(
                         roleName
                     ),
 
                 new ActionRowBuilder()
                     .addComponents(
                         roleId
+                    ),
+
+                new ActionRowBuilder()
+                    .addComponents(
+                        disabled
                     )
 
             );
 
+            return interaction.showModal(
+                modal
+            );
         }
 
-        return interaction.showModal(modal);
+        /*
+         * OTHER SELECT MENUS
+         */
+
+        const customId =
+            new TextInputBuilder()
+                .setCustomId("customId")
+                .setLabel("Custom ID")
+                .setStyle(
+                    TextInputStyle.Short
+                )
+                .setRequired(true)
+                .setPlaceholder(
+                    "my-select-menu"
+                );
+
+        modal.addComponents(
+
+            new ActionRowBuilder()
+                .addComponents(
+                    placeholder
+                ),
+
+            new ActionRowBuilder()
+                .addComponents(
+                    customId
+                ),
+
+            new ActionRow()
+                .addComponents(
+                    disabled
+                )
+
+        );
+
+        return interaction.showModal(
+            modal
+        );
 
     }
 
