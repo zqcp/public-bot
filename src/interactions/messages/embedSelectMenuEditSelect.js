@@ -30,7 +30,7 @@ module.exports = {
             parts[2];
 
         const value =
-            interaction.values[0];
+            interaction.values?.[0];
 
         const [rowIndex, componentIndex] =
             value.split(":").map(Number);
@@ -119,37 +119,44 @@ module.exports = {
                 );
 
         /*
-         * Role Select
+         * ROLE SELECT
          *
-         * Role selects are stored as String Selects
-         * (type 3) with role IDs inside option values.
+         * Role selects in your system are stored
+         * as type 3 String Selects with the role
+         * ID inside the option value.
          */
         if (type === "role") {
 
-            const option =
-                Array.isArray(menu.options) &&
-                menu.options.length
+            const roleOption =
+                Array.isArray(menu.options)
                     ? menu.options[0]
                     : null;
 
             const roleId =
-                option?.value || "";
+                roleOption?.value || "";
+
+            let roleName =
+                roleOption?.label || "";
 
             const role =
-                interaction.guild.roles.cache.get(
-                    String(roleId)
-                );
+                roleId
+                    ? interaction.guild.roles.cache.get(
+                        String(roleId)
+                    )
+                    : null;
 
-            const roleName =
+            if (role) {
+                roleName = role.name;
+            }
+
+            const roleNameInput =
                 new TextInputBuilder()
                     .setCustomId("roleName")
                     .setLabel("Role Name")
                     .setStyle(TextInputStyle.Short)
                     .setRequired(true)
                     .setValue(
-                        option?.label ||
-                        role?.name ||
-                        ""
+                        roleName || "Role"
                     );
 
             const roleIdInput =
@@ -159,9 +166,7 @@ module.exports = {
                     .setStyle(TextInputStyle.Short)
                     .setRequired(true)
                     .setValue(
-                        roleId
-                            ? String(roleId)
-                            : ""
+                        String(roleId)
                     );
 
             modal.addComponents(
@@ -173,7 +178,7 @@ module.exports = {
 
                 new ActionRowBuilder()
                     .addComponents(
-                        roleName
+                        roleNameInput
                     ),
 
                 new ActionRowBuilder()
@@ -188,38 +193,42 @@ module.exports = {
 
             );
 
-        } else {
-
-            const customId =
-                new TextInputBuilder()
-                    .setCustomId("customId")
-                    .setLabel("Custom ID")
-                    .setStyle(TextInputStyle.Short)
-                    .setRequired(true)
-                    .setValue(
-                        menu.custom_id ||
-                        ""
-                    );
-
-            modal.addComponents(
-
-                new ActionRowBuilder()
-                    .addComponents(
-                        placeholder
-                    ),
-
-                new ActionRowBuilder()
-                    .addComponents(
-                        customId
-                    ),
-
-                new ActionRowBuilder()
-                    .addComponents(
-                        disabled
-                    )
-
-            );
+            return interaction.showModal(modal);
         }
+
+        /*
+         * OTHER SELECT MENUS
+         */
+
+        const customId =
+            new TextInputBuilder()
+                .setCustomId("customId")
+                .setLabel("Custom ID")
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true)
+                .setValue(
+                    menu.custom_id ||
+                    ""
+                );
+
+        modal.addComponents(
+
+            new ActionRowBuilder()
+                .addComponents(
+                    placeholder
+                ),
+
+            new ActionRowBuilder()
+                .addComponents(
+                    customId
+                ),
+
+            new ActionRowBuilder()
+                .addComponents(
+                    disabled
+                )
+
+        );
 
         return interaction.showModal(modal);
 
