@@ -55,28 +55,11 @@ module.exports = {
                 .getTextInputValue("placeholder")
                 .trim();
 
-        const customId =
-            interaction.fields
-                .getTextInputValue("customId")
-                .trim();
-
         const disabled =
             interaction.fields
                 .getTextInputValue("disabled")
                 .trim()
                 .toLowerCase() === "true";
-
-        if (!customId) {
-            return interaction.reply({
-                embeds: [
-                    embeds.error(
-                        interaction.user,
-                        "A Custom ID is required."
-                    )
-                ],
-                flags: 64
-            });
-        }
 
         if (!Array.isArray(saved.components)) {
             saved.components = [];
@@ -85,8 +68,12 @@ module.exports = {
         /*
          * ROLE SELECT
          *
-         * Uses a String Select Menu so custom
-         * role names can be displayed.
+         * Uses a String Select Menu.
+         *
+         * custom_id = role-select
+         * placeholder = Select your role...
+         * role name = option label
+         * role ID = option value
          */
 
         if (type === "role") {
@@ -148,14 +135,13 @@ module.exports = {
 
             const row = {
                 type: 1,
+
                 components: [
                     {
                         type: 3,
 
-                        // Handler ID.
-                        custom_id: customId,
+                        custom_id: "role-select",
 
-                        // Visible text.
                         placeholder:
                             placeholder ||
                             "Select your role...",
@@ -175,7 +161,9 @@ module.exports = {
                 ]
             };
 
-            saved.components.push(row);
+            saved.components.push(
+                row
+            );
 
             saved.markModified(
                 "components"
@@ -203,6 +191,23 @@ module.exports = {
         /*
          * OTHER SELECT MENUS
          */
+
+        const customId =
+            interaction.fields
+                .getTextInputValue("customId")
+                .trim();
+
+        if (!customId) {
+            return interaction.reply({
+                embeds: [
+                    embeds.error(
+                        interaction.user,
+                        "A Custom ID is required."
+                    )
+                ],
+                flags: 64
+            });
+        }
 
         const typeMap = {
             user: 5,
@@ -239,19 +244,25 @@ module.exports = {
 
         const row = {
             type: 1,
+
             components: [
                 {
                     type: componentType,
+
                     custom_id: customId,
+
                     placeholder:
                         placeholder ||
                         "Select something...",
+
                     disabled
                 }
             ]
         };
 
-        saved.components.push(row);
+        saved.components.push(
+            row
+        );
 
         saved.markModified(
             "components"
