@@ -96,10 +96,14 @@ module.exports = {
                 )
                 .setRequired(false)
                 .setPlaceholder(
-                    "Select something..."
+                    type === "role"
+                        ? "Select your role..."
+                        : "Select something..."
                 )
                 .setValue(
-                    "Select something..."
+                    type === "role"
+                        ? "Select your role..."
+                        : "Select something..."
                 );
 
         const customId =
