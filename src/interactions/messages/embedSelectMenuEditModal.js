@@ -17,11 +17,8 @@ module.exports = {
         const parts =
             interaction.customId.split(":");
 
-        const name =
-            parts[1];
-
-        const type =
-            parts[2];
+        const name = parts[1];
+        const type = parts[2];
 
         const rowIndex =
             Number(parts[3]);
@@ -82,13 +79,19 @@ module.exports = {
 
         const getField =
             customId => {
+
                 try {
+
                     return interaction.fields
                         .getTextInputValue(customId)
                         .trim();
+
                 } catch {
+
                     return "";
+
                 }
+
             };
 
         const placeholder =
@@ -117,8 +120,7 @@ module.exports = {
         /*
          * ROLE SELECT
          *
-         * Original system stores role selects
-         * as String Select type 3.
+         * This intentionally matches the Add system.
          */
 
         if (type === "role") {
@@ -162,6 +164,11 @@ module.exports = {
                 });
             }
 
+            /*
+             * Do NOT replace the component.
+             * Modify the existing saved component.
+             */
+
             if (
                 component.type !== 3 ||
                 !Array.isArray(component.options) ||
@@ -194,28 +201,52 @@ module.exports = {
 
         } else {
 
+            /*
+             * OTHER SELECT MENUS
+             */
+
             const customId =
                 getField("customId");
+
+            if (!customId) {
+                return interaction.reply({
+                    embeds: [
+                        embeds.error(
+                            interaction.user,
+                            "A Custom ID is required."
+                        )
+                    ],
+                    flags: 64
+                });
+            }
 
             if (placeholder) {
                 component.placeholder =
                     placeholder;
             }
 
-            if (customId) {
-                component.custom_id =
-                    customId;
-            }
+            component.custom_id =
+                customId;
 
             component.disabled =
                 disabledInput === "true";
         }
+
+        /*
+         * Save the SAME component structure that
+         * was originally created by Add.
+         */
 
         saved.markModified(
             "components"
         );
 
         await saved.save();
+
+        /*
+         * Existing editor update system.
+         * No editor.js changes required.
+         */
 
         await editor.updateMessage(
             client,
