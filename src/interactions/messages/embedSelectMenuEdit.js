@@ -169,10 +169,20 @@ module.exports = {
                     index
                 ) => {
 
+                    /*
+                     * For role selects, show the actual role
+                     * option label instead of the shared
+                     * "Select your role..." placeholder.
+                     */
                     const label =
-                        component.placeholder ||
-                        component.custom_id ||
-                        `Select Menu ${index + 1}`;
+                        type === "role" &&
+                        component.type === 3 &&
+                        Array.isArray(component.options) &&
+                        component.options.length
+                            ? component.options[0].label
+                            : component.placeholder ||
+                              component.custom_id ||
+                              `Select Menu ${index + 1}`;
 
                     return new StringSelectMenuOptionBuilder()
                         .setLabel(
@@ -181,7 +191,9 @@ module.exports = {
                                 : label
                         )
                         .setDescription(
-                            `Row ${rowIndex + 1}, Menu ${componentIndex + 1}`
+                            component.custom_id
+                                ? `Custom ID: ${component.custom_id}`
+                                : `Row ${rowIndex + 1}, Menu ${componentIndex + 1}`
                         )
                         .setValue(
                             `${rowIndex}:${componentIndex}`
