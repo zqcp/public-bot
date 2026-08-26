@@ -7,7 +7,7 @@ module.exports = {
 
     type: "select",
 
-    async execute(interaction) {
+    async execute(cilent, interaction) {
 
         if (!interaction.guild) {
 
