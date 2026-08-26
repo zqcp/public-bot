@@ -32,12 +32,22 @@ module.exports = {
         const value =
             interaction.values?.[0];
 
+        if (!name || !type || !value) {
+            return interaction.reply({
+                embeds: [
+                    embeds.error(
+                        interaction.user,
+                        "I couldn't determine which select menu you're editing."
+                    )
+                ],
+                flags: 64
+            });
+        }
+
         const [rowIndex, componentIndex] =
             value.split(":").map(Number);
 
         if (
-            !name ||
-            !type ||
             Number.isNaN(rowIndex) ||
             Number.isNaN(componentIndex)
         ) {
@@ -118,13 +128,6 @@ module.exports = {
                     `Edit ${type} Select`
                 );
 
-        /*
-         * ROLE SELECT
-         *
-         * Role selects in your system are stored
-         * as type 3 String Selects with the role
-         * ID inside the option value.
-         */
         if (type === "role") {
 
             const roleOption =
@@ -146,7 +149,8 @@ module.exports = {
                     : null;
 
             if (role) {
-                roleName = role.name;
+                roleName =
+                    role.name;
             }
 
             const roleNameInput =
@@ -195,10 +199,6 @@ module.exports = {
 
             return interaction.showModal(modal);
         }
-
-        /*
-         * OTHER SELECT MENUS
-         */
 
         const customId =
             new TextInputBuilder()
