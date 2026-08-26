@@ -9,7 +9,7 @@ const Embed = require("../../models/Embed");
 
 module.exports = {
 
-    name: "embedButtonSelect",
+    name: "embedButtonSelectOpen",
 
     type: "button",
 
