@@ -80,15 +80,22 @@ module.exports = {
             });
         }
 
+        const getField =
+            customId => {
+                try {
+                    return interaction.fields
+                        .getTextInputValue(customId)
+                        .trim();
+                } catch {
+                    return "";
+                }
+            };
+
         const placeholder =
-            interaction.fields
-                .getTextInputValue("placeholder")
-                .trim();
+            getField("placeholder");
 
         const disabledInput =
-            interaction.fields
-                .getTextInputValue("disabled")
-                .trim()
+            getField("disabled")
                 .toLowerCase();
 
         if (
@@ -117,14 +124,10 @@ module.exports = {
         if (type === "role") {
 
             const roleName =
-                interaction.fields
-                    .getTextInputValue("roleName")
-                    .trim();
+                getField("roleName");
 
             const roleId =
-                interaction.fields
-                    .getTextInputValue("roleId")
-                    .trim()
+                getField("roleId")
                     .replace(
                         /[<@&>]/g,
                         ""
@@ -135,7 +138,7 @@ module.exports = {
                     embeds: [
                         embeds.error(
                             interaction.user,
-                            "Role name and role are required."
+                            "Role name and role ID are required."
                         )
                     ],
                     flags: 64
@@ -196,9 +199,7 @@ module.exports = {
              */
 
             const customId =
-                interaction.fields
-                    .getTextInputValue("customId")
-                    .trim();
+                getField("customId");
 
             if (placeholder) {
                 component.placeholder =
