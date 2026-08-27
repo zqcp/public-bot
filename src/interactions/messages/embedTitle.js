@@ -1,5 +1,3 @@
-Alright apply the fix for title
-
 const {
     ModalBuilder,
     TextInputBuilder,
