@@ -7,6 +7,7 @@ const {
 const Embed = require("../../models/Embed");
 const embeds = require("../../embeds/embeds");
 const editor = require("../../systems/messages/editor");
+const renderer = require("../../systems/messages/renderer");
 
 module.exports = {
 
@@ -199,17 +200,36 @@ module.exports = {
 
                     );
 
+            const data =
+                saved.toObject();
+
+            let preview =
+                renderer.render(data);
+
             /*
-             * The editor is private.
-             *
-             * The original public message containing
-             * "Open Editor" is left untouched.
-             *
-             * Only the user who clicked the button
-             * receives these editor controls.
+             * Discord does not accept an empty embed object.
+             * Use a blank description only when there is
+             * currently no embed content.
              */
 
+            if (
+                !preview.embeds ||
+                !preview.embeds.length
+            ) {
+
+                preview = {
+                    ...preview,
+                    embeds: [
+                        {
+                            description: " "
+                        }
+                    ]
+                };
+
+            }
+
             return interaction.reply({
+                ...preview,
                 components: [
                     row1,
                     row2,
@@ -262,7 +282,8 @@ module.exports = {
         if (action === "cancel") {
 
             return interaction.update({
-                components: []
+                components: [],
+                embeds: []
             });
 
         }
