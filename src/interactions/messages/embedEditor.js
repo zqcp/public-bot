@@ -1,7 +1,8 @@
 const {
     ActionRowBuilder,
     ButtonBuilder,
-    ButtonStyle
+    ButtonStyle,
+    EmbedBuilder
 } = require("discord.js");
 
 const Embed = require("../../models/Embed");
@@ -62,6 +63,7 @@ module.exports = {
 
             if (!saved.embeds.length) {
                 saved.embeds.push({});
+                saved.markModified("embeds");
                 await saved.save();
             }
 
@@ -167,70 +169,7 @@ module.exports = {
 
                     );
 
-            /*
-             * The preview is the actual private editor message.
-             *
-             * Send it first so we can get its message ID.
-             */
-
-            let previewPayload = {
-                components: [],
-                flags: 64
-            };
-
-            try {
-
-                const rendered =
-                    renderer.render(
-                        saved.toObject()
-                    );
-
-                if (
-                    rendered &&
-                    Array.isArray(rendered.embeds) &&
-                    rendered.embeds.length
-                ) {
-                    previewPayload.embeds =
-                        rendered.embeds;
-                }
-
-            } catch (error) {
-
-                console.error(
-                    `[EMBED EDITOR PREVIEW] Failed to render ${name}:`,
-                    error
-                );
-
-            }
-
-            const previewMessage =
-                await interaction.reply({
-                    ...previewPayload,
-                    fetchReply: true
-                });
-
-            /*
-             * Now that we have the private editor
-             * message ID, attach it to the buttons
-             * that need to update the preview.
-             */
-
-            const titleButton =
-                new ButtonBuilder()
-                    .setCustomId(
-                        `embedTitle:${name}:${previewMessage.id}`
-                    )
-                    .setLabel("Title")
-                    .setStyle(
-                        ButtonStyle.Secondary
-                    );
-
-            row1.components[1] =
-                titleButton;
-
-            const finalRows = [
-                row1,
-                row2,
+            const row3 =
                 new ActionRowBuilder()
                     .addComponents(
 
@@ -261,16 +200,123 @@ module.exports = {
                                 ButtonStyle.Danger
                             )
 
+                    );
+
+            /*
+             * Render the current saved embed.
+             */
+
+            let preview;
+
+            try {
+
+                preview =
+                    renderer.render(
+                        saved.toObject()
+                    );
+
+            } catch (error) {
+
+                console.error(
+                    `[EMBED EDITOR PREVIEW] Failed to render ${name}:`,
+                    error
+                );
+
+                preview = null;
+
+            }
+
+            /*
+             * Discord requires the interaction response
+             * to contain actual message content.
+             *
+             * Start with an invisible embed so an empty
+             * embed configuration is still valid.
+             */
+
+            let previewEmbed =
+                new EmbedBuilder()
+                    .setDescription("\u200B");
+
+            /*
+             * If the renderer produced an embed,
+             * use the saved embed instead.
+             */
+
+            if (
+                preview &&
+                Array.isArray(preview.embeds) &&
+                preview.embeds.length
+            ) {
+
+                try {
+
+                    previewEmbed =
+                        EmbedBuilder.from(
+                            preview.embeds[0]
+                        );
+
+                } catch (error) {
+
+                    console.error(
+                        `[EMBED EDITOR PREVIEW] Invalid rendered embed for ${name}:`,
+                        error
+                    );
+
+                }
+
+            }
+
+            /*
+             * Send the private editor message.
+             */
+
+            const response =
+                await interaction.reply({
+                    embeds: [
+                        previewEmbed
+                    ],
+                    components: [
+                        row1,
+                        row2,
+                        row3
+                    ],
+                    flags: 64,
+                    fetchReply: true
+                });
+
+            /*
+             * Store the editor message ID in the Title
+             * button so the modal knows exactly which
+             * private preview message to update.
+             *
+             * Keep every other button unchanged.
+             */
+
+            row1.components[1] =
+                new ButtonBuilder()
+                    .setCustomId(
+                        `embedTitle:${name}:${response.id}`
                     )
-            ];
+                    .setLabel("Title")
+                    .setStyle(
+                        ButtonStyle.Secondary
+                    );
 
             /*
              * Update the private editor message with
-             * the complete button layout.
+             * the corrected Title button.
              */
 
-            return previewMessage.edit({
-                components: finalRows
+            return response.edit({
+                embeds: [
+                    previewEmbed
+                ],
+                components: [
+                    row1,
+                    row2,
+                    row3
+                ]
             });
         }
 
