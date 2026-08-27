@@ -204,7 +204,8 @@ module.exports = {
                 saved.toObject();
 
             const hasEmbedContent =
-                data.embeds?.some(
+                Array.isArray(data.embeds) &&
+                data.embeds.some(
                     embed =>
                         embed &&
                         typeof embed === "object" &&
@@ -225,11 +226,7 @@ module.exports = {
 
             } else {
 
-                preview = {
-                    embeds: [
-                        {}
-                    ]
-                };
+                preview = {};
 
             }
 
