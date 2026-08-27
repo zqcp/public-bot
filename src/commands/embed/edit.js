@@ -126,6 +126,7 @@ module.exports = {
         return message.channel.send({
             embeds: [
                 new EmbedBuilder()
+                    .setDescription("\u200B")
             ],
             components: [
                 row
