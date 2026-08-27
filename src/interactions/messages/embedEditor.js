@@ -290,14 +290,11 @@ module.exports = {
             try {
 
                 /*
-                 * Acknowledge the interaction immediately
-                 * so Discord does not expire the button
-                 * while the existing messages are updated.
+                 * Acknowledge the button immediately
+                 * without showing "Robot Cop is thinking..."
                  */
 
-                await interaction.deferReply({
-                    flags: 64
-                });
+                await interaction.deferUpdate();
 
                 /*
                  * Apply the saved embed data to every
@@ -338,13 +335,14 @@ module.exports = {
 
                 }
 
-                return interaction.editReply({
+                return interaction.followUp({
                     embeds: [
                         embeds.success(
                             interaction.user,
-                            `Embed **${name}** has been saved and existing messages have been updated.`
+                            `Embed **${name}** has been saved and updated.`
                         )
-                    ]
+                    ],
+                    flags: 64
                 });
 
             } catch (error) {
@@ -358,13 +356,14 @@ module.exports = {
                     interaction.deferred ||
                     interaction.replied
                 ) {
-                    return interaction.editReply({
+                    return interaction.followUp({
                         embeds: [
                             embeds.error(
                                 interaction.user,
                                 `I couldn't update the existing messages for **${name}**.`
                             )
-                        ]
+                        ],
+                        flags: 64
                     });
                 }
 
