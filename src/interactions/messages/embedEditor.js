@@ -77,13 +77,6 @@ module.exports = {
 
                         new ButtonBuilder()
                             .setCustomId(
-                                `embedEmbeds:${name}`
-                            )
-                            .setLabel("Embeds")
-                            .setStyle(ButtonStyle.Secondary),
-
-                        new ButtonBuilder()
-                            .setCustomId(
                                 `embedDescription:${name}`
                             )
                             .setLabel("Description")
@@ -200,15 +193,6 @@ module.exports = {
 
             try {
 
-                /*
-                 * The individual editor actions already save
-                 * their changes to MongoDB.
-                 *
-                 * Save now pushes the CURRENT saved embed,
-                 * including components/select menus, to every
-                 * existing message registered for this embed.
-                 */
-
                 await editor.updateMessage(
                     client,
                     interaction.guild.id,
@@ -219,7 +203,7 @@ module.exports = {
                     embeds: [
                         embeds.success(
                             interaction.user,
-                            `Embed **${name}** has been saved and all existing messages have been updated.`
+                            `Embed **${name}** has been saved and existing messages have been updated.`
                         )
                     ],
                     flags: 64
