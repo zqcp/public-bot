@@ -290,13 +290,6 @@ module.exports = {
             try {
 
                 /*
-                 * Acknowledge the button immediately
-                 * without showing "Robot Cop is thinking..."
-                 */
-
-                await interaction.deferUpdate();
-
-                /*
                  * Apply the saved embed data to every
                  * message created with ,embed send.
                  */
@@ -335,11 +328,11 @@ module.exports = {
 
                 }
 
-                return interaction.followUp({
+                return interaction.reply({
                     embeds: [
                         embeds.success(
                             interaction.user,
-                            `Embed **${name}** has been saved and updated.`
+                            `Embed **${name}** has been saved and existing messages have been updated.`
                         )
                     ],
                     flags: 64
@@ -351,21 +344,6 @@ module.exports = {
                     `[EMBED SAVE] Failed to update ${name}:`,
                     error
                 );
-
-                if (
-                    interaction.deferred ||
-                    interaction.replied
-                ) {
-                    return interaction.followUp({
-                        embeds: [
-                            embeds.error(
-                                interaction.user,
-                                `I couldn't update the existing messages for **${name}**.`
-                            )
-                        ],
-                        flags: 64
-                    });
-                }
 
                 return interaction.reply({
                     embeds: [
