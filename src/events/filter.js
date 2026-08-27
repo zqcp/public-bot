@@ -4,7 +4,7 @@ const CommandHandler =
     require("../handlers/commandHandler");
 
 const TextFilter =
-    require("../systems/textFilter");
+    require("../systems/TextFilter");
 
 module.exports = {
 
