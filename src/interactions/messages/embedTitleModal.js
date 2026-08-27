@@ -14,6 +14,10 @@ module.exports = {
             return;
         }
 
+        await interaction.deferReply({
+            flags: 64
+        });
+
         const parts =
             interaction.customId.split(":");
 
@@ -24,14 +28,13 @@ module.exports = {
             parts[2];
 
         if (!name) {
-            return interaction.reply({
+            return interaction.editReply({
                 embeds: [
                     embeds.error(
                         interaction.user,
                         "I couldn't determine which embed you're editing."
                     )
-                ],
-                flags: 64
+                ]
             });
         }
 
@@ -47,14 +50,13 @@ module.exports = {
             });
 
         if (!saved) {
-            return interaction.reply({
+            return interaction.editReply({
                 embeds: [
                     embeds.error(
                         interaction.user,
                         `I couldn't find an embed named **${name}**.`
                     )
-                ],
-                flags: 64
+                ]
             });
         }
 
@@ -161,7 +163,7 @@ module.exports = {
          * The editor preview has already been updated above.
          */
 
-        return interaction.reply({
+        return interaction.editReply({
             embeds: [
                 embeds.success(
                     interaction.user,
@@ -169,8 +171,7 @@ module.exports = {
                         ? `The title for **${name}** has been updated.`
                         : `The title for **${name}** has been removed.`
                 )
-            ],
-            flags: 64
+            ]
         });
 
     }
