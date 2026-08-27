@@ -7,7 +7,6 @@ const {
 const Embed = require("../../models/Embed");
 const embeds = require("../../embeds/embeds");
 const editor = require("../../systems/messages/editor");
-const renderer = require("../../systems/messages/renderer");
 
 module.exports = {
 
@@ -200,43 +199,23 @@ module.exports = {
 
                     );
 
-            const data =
-                saved.toObject();
+            /*
+             * The editor is private.
+             *
+             * The original public message containing
+             * "Open Editor" is left untouched.
+             *
+             * Only the user who clicked the button
+             * receives these editor controls.
+             */
 
-            const hasEmbedContent =
-                Array.isArray(data.embeds) &&
-                data.embeds.some(
-                    embed =>
-                        embed &&
-                        typeof embed === "object" &&
-                        Object.keys(embed).some(
-                            key =>
-                                embed[key] !== undefined &&
-                                embed[key] !== null &&
-                                embed[key] !== ""
-                        )
-                );
-
-            let preview;
-
-            if (hasEmbedContent) {
-
-                preview =
-                    renderer.render(data);
-
-            } else {
-
-                preview = {};
-
-            }
-
-            return interaction.update({
-                ...preview,
+            return interaction.reply({
                 components: [
                     row1,
                     row2,
                     row3
-                ]
+                ],
+                flags: 64
             });
         }
 
