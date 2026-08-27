@@ -1,11 +1,11 @@
 const {
+    EmbedBuilder,
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle
 } = require("discord.js");
 
 const Embed = require("../../models/Embed");
-const embeds = require("../../embeds/embeds");
 const helpEmbed = require("../../embeds/help/embed");
 const globalEmbeds = require("../../embeds/global");
 
@@ -96,7 +96,7 @@ module.exports = {
         if (!existing) {
             return message.channel.send({
                 embeds: [
-                    embeds.error(
+                    globalEmbeds.error(
                         message.author,
                         `I couldn't find an embed named **${name}**.`
                     )
@@ -108,8 +108,6 @@ module.exports = {
          * Open existing embed editor.
          *
          * Do not modify the saved embed here.
-         * The editor actions are responsible for
-         * modifying the existing data.
          */
 
         const row =
@@ -121,16 +119,13 @@ module.exports = {
                         )
                         .setLabel("Open Editor")
                         .setStyle(
-                            ButtonStyle.Primary
+                            ButtonStyle.Secondary
                         )
                 );
 
         return message.channel.send({
             embeds: [
-                embeds.success(
-                    message.author,
-                    `Editing embed **${name}**. Existing information will be preserved unless you explicitly remove it.`
-                )
+                new EmbedBuilder()
             ],
             components: [
                 row
