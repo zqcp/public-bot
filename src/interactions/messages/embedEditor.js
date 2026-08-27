@@ -200,43 +200,47 @@ module.exports = {
 
                     );
 
+            /*
+             * Render the current saved embed.
+             *
+             * If it is completely empty, do not send an
+             * invalid empty Discord embed. The editor can
+             * still be opened with the private controls.
+             */
+
             const data =
                 saved.toObject();
 
-            let preview =
+            const preview =
                 renderer.render(data);
 
-            /*
-             * Discord does not accept an empty embed object.
-             * Use a blank description only when there is
-             * currently no embed content.
-             */
-
-            if (
-                !preview.embeds ||
-                !preview.embeds.length
-            ) {
-
-                preview = {
-                    ...preview,
-                    embeds: [
-                        {
-                            description: " "
-                        }
-                    ]
-                };
-
-            }
-
-            return interaction.reply({
-                ...preview,
+            const response = {
                 components: [
                     row1,
                     row2,
                     row3
                 ],
                 flags: 64
-            });
+            };
+
+            /*
+             * Only include embeds when there is valid
+             * embed content to display.
+             */
+
+            if (
+                Array.isArray(preview.embeds) &&
+                preview.embeds.length
+            ) {
+
+                response.embeds =
+                    preview.embeds;
+
+            }
+
+            return interaction.reply(
+                response
+            );
         }
 
         if (action === "save") {
@@ -282,8 +286,7 @@ module.exports = {
         if (action === "cancel") {
 
             return interaction.update({
-                components: [],
-                embeds: []
+                components: []
             });
 
         }
