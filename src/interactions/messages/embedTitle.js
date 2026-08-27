@@ -24,15 +24,19 @@ module.exports = {
             interaction.customId.split(":");
 
         if (!name) {
-            return interaction.reply({
-                embeds: [
-                    embeds.error(
-                        interaction.user,
-                        "I couldn't determine which embed you're editing."
-                    )
-                ],
-                flags: 64
-            });
+            if (interaction.isRepliable()) {
+                return interaction.reply({
+                    embeds: [
+                        embeds.error(
+                            interaction.user,
+                            "I couldn't determine which embed you're editing."
+                        )
+                    ],
+                    flags: 64
+                });
+            }
+
+            return;
         }
 
         const saved =
@@ -42,15 +46,19 @@ module.exports = {
             });
 
         if (!saved) {
-            return interaction.reply({
-                embeds: [
-                    embeds.error(
-                        interaction.user,
-                        `I couldn't find an embed named **${name}**.`
-                    )
-                ],
-                flags: 64
-            });
+            if (interaction.isRepliable()) {
+                return interaction.reply({
+                    embeds: [
+                        embeds.error(
+                            interaction.user,
+                            `I couldn't find an embed named **${name}**.`
+                        )
+                    ],
+                    flags: 64
+                });
+            }
+
+            return;
         }
 
         const currentTitle =
@@ -69,13 +77,6 @@ module.exports = {
                 )
                 .setRequired(false)
                 .setMaxLength(256);
-
-        /*
-         * Discord does not allow setValue("")
-         * on an optional text input.
-         *
-         * Only set the value when a title exists.
-         */
 
         if (currentTitle) {
             input.setValue(
