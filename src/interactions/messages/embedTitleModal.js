@@ -1,5 +1,6 @@
 const Embed = require("../../models/Embed");
 const embeds = require("../../embeds/embeds");
+const renderer = require("../../systems/messages/renderer");
 
 module.exports = {
 
@@ -100,6 +101,48 @@ module.exports = {
         await saved.save();
 
         /*
+         * LIVE PREVIEW
+         *
+         * Update the existing embed edit message
+         * immediately after changing the data.
+         *
+         * This does NOT update the sent embed messages.
+         * Those are still updated when Save is pressed.
+         */
+
+        if (editorMessageId) {
+
+            try {
+
+                const editorMessage =
+                    await interaction.message.channel.messages.fetch(
+                        editorMessageId
+                    );
+
+                const payload =
+                    renderer.render(
+                        saved.toObject()
+                    );
+
+                await editorMessage.edit({
+                    embeds:
+                        Array.isArray(payload.embeds)
+                            ? payload.embeds
+                            : []
+                });
+
+            } catch (error) {
+
+                console.error(
+                    `[EMBED TITLE PREVIEW] Failed to update ${name}:`,
+                    error
+                );
+
+            }
+
+        }
+
+        /*
          * Confirm the data actually persisted.
          */
 
@@ -115,8 +158,7 @@ module.exports = {
         );
 
         /*
-         * The actual editor preview update is handled
-         * separately. Saving the database comes first.
+         * The editor preview has already been updated above.
          */
 
         return interaction.reply({
