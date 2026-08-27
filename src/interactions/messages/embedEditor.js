@@ -290,6 +290,16 @@ module.exports = {
             try {
 
                 /*
+                 * Acknowledge the interaction immediately
+                 * so Discord does not expire the button
+                 * while the existing messages are updated.
+                 */
+
+                await interaction.deferReply({
+                    flags: 64
+                });
+
+                /*
                  * Apply the saved embed data to every
                  * message created with ,embed send.
                  */
@@ -328,14 +338,13 @@ module.exports = {
 
                 }
 
-                return interaction.reply({
+                return interaction.editReply({
                     embeds: [
                         embeds.success(
                             interaction.user,
                             `Embed **${name}** has been saved and existing messages have been updated.`
                         )
-                    ],
-                    flags: 64
+                    ]
                 });
 
             } catch (error) {
@@ -344,6 +353,20 @@ module.exports = {
                     `[EMBED SAVE] Failed to update ${name}:`,
                     error
                 );
+
+                if (
+                    interaction.deferred ||
+                    interaction.replied
+                ) {
+                    return interaction.editReply({
+                        embeds: [
+                            embeds.error(
+                                interaction.user,
+                                `I couldn't update the existing messages for **${name}**.`
+                            )
+                        ]
+                    });
+                }
 
                 return interaction.reply({
                     embeds: [
