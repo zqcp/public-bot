@@ -123,15 +123,35 @@ module.exports = {
                         )
                 );
 
-        return message.channel.send({
-            embeds: [
-                new EmbedBuilder()
-                    .setDescription("\u200B")
-            ],
-            components: [
-                row
-            ]
-        });
+        try {
+
+            return await message.channel.send({
+                embeds: [
+                    new EmbedBuilder()
+                        .setDescription("\u200B")
+                ],
+                components: [
+                    row
+                ]
+            });
+
+        } catch (error) {
+
+            console.error(
+                `[EMBED EDIT] Failed to open editor for ${name}:`,
+                error
+            );
+
+            return message.channel.send({
+                embeds: [
+                    globalEmbeds.error(
+                        message.author,
+                        `I couldn't open the editor for **${name}**.`
+                    )
+                ]
+            });
+
+        }
 
     }
 
