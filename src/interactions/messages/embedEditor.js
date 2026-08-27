@@ -7,6 +7,7 @@ const {
 const Embed = require("../../models/Embed");
 const embeds = require("../../embeds/embeds");
 const editor = require("../../systems/messages/editor");
+const renderer = require("../../systems/messages/renderer");
 
 module.exports = {
 
@@ -199,19 +200,18 @@ module.exports = {
 
                     );
 
-            return interaction.reply({
-                embeds: [
-                    embeds.regular(
-                        interaction.user,
-                        `Editing embed **${name}**.`
-                    )
-                ],
+            const preview =
+                renderer.render(
+                    saved.toObject()
+                );
+
+            return interaction.update({
+                ...preview,
                 components: [
                     row1,
                     row2,
                     row3
-                ],
-                flags: 64
+                ]
             });
         }
 
