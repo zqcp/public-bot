@@ -290,6 +290,16 @@ module.exports = {
             try {
 
                 /*
+                 * Acknowledge the button immediately so
+                 * Discord does not expire the interaction
+                 * while the existing messages are updated.
+                 */
+
+                await interaction.deferReply({
+                    flags: 64
+                });
+
+                /*
                  * Apply the saved embed data to every
                  * message created with ,embed send.
                  */
@@ -328,14 +338,13 @@ module.exports = {
 
                 }
 
-                return interaction.reply({
+                return interaction.editReply({
                     embeds: [
                         embeds.success(
                             interaction.user,
                             `Embed **${name}** has been saved and existing messages have been updated.`
                         )
-                    ],
-                    flags: 64
+                    ]
                 });
 
             } catch (error) {
@@ -345,16 +354,30 @@ module.exports = {
                     error
                 );
 
-                return interaction.reply({
-                    embeds: [
-                        embeds.error(
-                            interaction.user,
-                            `I couldn't update the existing messages for **${name}**.`
-                        )
-                    ],
-                    flags: 64
-                });
+                if (interaction.deferred) {
+                    return interaction.editReply({
+                        embeds: [
+                            embeds.error(
+                                interaction.user,
+                                `I couldn't update the existing messages for **${name}**.`
+                            )
+                        ]
+                    });
+                }
 
+                if (!interaction.replied) {
+                    return interaction.reply({
+                        embeds: [
+                            embeds.error(
+                                interaction.user,
+                                `I couldn't update the existing messages for **${name}**.`
+                            )
+                        ],
+                        flags: 64
+                    });
+                }
+
+                return;
             }
         }
 
