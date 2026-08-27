@@ -105,21 +105,11 @@ module.exports = {
         }
 
         /*
-         * Make sure there is a blank embed
-         * available for the editor to modify.
-         */
-
-        if (!Array.isArray(existing.embeds)) {
-            existing.embeds = [];
-        }
-
-        if (!existing.embeds.length) {
-            existing.embeds.push({});
-            await existing.save();
-        }
-
-        /*
-         * Open existing embed editor
+         * Open existing embed editor.
+         *
+         * Do not modify the saved embed here.
+         * The editor actions are responsible for
+         * modifying the existing data.
          */
 
         const row =
