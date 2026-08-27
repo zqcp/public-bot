@@ -26,6 +26,10 @@ module.exports = {
 
             payload.embeds = messageData.embeds
                 .filter(Boolean)
+                .filter(embed =>
+                    embed instanceof EmbedBuilder ||
+                    Object.keys(embed).length > 0
+                )
                 .map(embed => {
 
                     if (embed instanceof EmbedBuilder) {
