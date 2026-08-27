@@ -200,10 +200,38 @@ module.exports = {
 
                     );
 
-            const preview =
-                renderer.render(
-                    saved.toObject()
+            const data =
+                saved.toObject();
+
+            const hasEmbedContent =
+                data.embeds?.some(
+                    embed =>
+                        embed &&
+                        typeof embed === "object" &&
+                        Object.keys(embed).some(
+                            key =>
+                                embed[key] !== undefined &&
+                                embed[key] !== null &&
+                                embed[key] !== ""
+                        )
                 );
+
+            let preview;
+
+            if (hasEmbedContent) {
+
+                preview =
+                    renderer.render(data);
+
+            } else {
+
+                preview = {
+                    embeds: [
+                        {}
+                    ]
+                };
+
+            }
 
             return interaction.update({
                 ...preview,
