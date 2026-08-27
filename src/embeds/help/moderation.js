@@ -165,26 +165,6 @@ ${config.prefix}warn @user spam
     },
 
 
-    unwarn(user) {
-        return new EmbedBuilder()
-            .setTitle("Command: unwarn")
-            .setAuthor({
-                name: user.username,
-                iconURL: user.displayAvatarURL({ dynamic: true })
-            })
-            .setColor(config.colors.regular)
-            .setDescription(
-`Remove a warning from a user.
-\`\`\`
-Syntax:
-${config.prefix}unwarn [member]
-Example:
-${config.prefix}unwarn @user
-\`\`\``
-            );
-    },
-
-
     warnings(user) {
         return new EmbedBuilder()
             .setTitle("Command: warnings")
@@ -205,9 +185,9 @@ ${config.prefix}warnings @user
     },
 
 
-    clearwarnings(user) {
+    clearwarns(user) {
         return new EmbedBuilder()
-            .setTitle("Command: clearwarnings")
+            .setTitle("Command: clearwarns")
             .setAuthor({
                 name: user.username,
                 iconURL: user.displayAvatarURL({ dynamic: true })
@@ -217,9 +197,9 @@ ${config.prefix}warnings @user
 `Clear all warnings from a user.
 \`\`\`
 Syntax:
-${config.prefix}clearwarnings [member]
+${config.prefix}clearwarns [member]
 Example:
-${config.prefix}clearwarnings @user
+${config.prefix}clearwarns @user
 \`\`\``
             );
     },
@@ -280,6 +260,126 @@ Syntax:
 ${config.prefix}slowmode [duration]
 Example:
 ${config.prefix}slowmode 10s
+\`\`\``
+            );
+    },
+
+
+    lock(user) {
+        return new EmbedBuilder()
+            .setTitle("Command: lock")
+            .setAuthor({
+                name: user.username,
+                iconURL: user.displayAvatarURL({ dynamic: true })
+            })
+            .setColor(config.colors.regular)
+            .setDescription(
+`Lock a channel.
+\`\`\`
+Syntax:
+${config.prefix}lock
+Example:
+${config.prefix}lock
+\`\`\``
+            );
+    },
+
+
+    unlock(user) {
+        return new EmbedBuilder()
+            .setTitle("Command: unlock")
+            .setAuthor({
+                name: user.username,
+                iconURL: user.displayAvatarURL({ dynamic: true })
+            })
+            .setColor(config.colors.regular)
+            .setDescription(
+`Unlock a channel.
+\`\`\`
+Syntax:
+${config.prefix}unlock
+Example:
+${config.prefix}unlock
+\`\`\``
+            );
+    },
+
+
+    hide(user) {
+        return new EmbedBuilder()
+            .setTitle("Command: hide")
+            .setAuthor({
+                name: user.username,
+                iconURL: user.displayAvatarURL({ dynamic: true })
+            })
+            .setColor(config.colors.regular)
+            .setDescription(
+`Hide a channel from @everyone.
+\`\`\`
+Syntax:
+${config.prefix}hide
+Example:
+${config.prefix}hide
+\`\`\``
+            );
+    },
+
+
+    unhide(user) {
+        return new EmbedBuilder()
+            .setTitle("Command: unhide")
+            .setAuthor({
+                name: user.username,
+                iconURL: user.displayAvatarURL({ dynamic: true })
+            })
+            .setColor(config.colors.regular)
+            .setDescription(
+`Unhide a channel for @everyone.
+\`\`\`
+Syntax:
+${config.prefix}unhide
+Example:
+${config.prefix}unhide
+\`\`\``
+            );
+    },
+
+
+    nuke(user) {
+        return new EmbedBuilder()
+            .setTitle("Command: nuke")
+            .setAuthor({
+                name: user.username,
+                iconURL: user.displayAvatarURL({ dynamic: true })
+            })
+            .setColor(config.colors.regular)
+            .setDescription(
+`Clear all messages from a channel.
+\`\`\`
+Syntax:
+${config.prefix}nuke
+Example:
+${config.prefix}nuke
+\`\`\``
+            );
+    },
+
+
+    strip(user) {
+        return new EmbedBuilder()
+            .setTitle("Command: strip")
+            .setAuthor({
+                name: user.username,
+                iconURL: user.displayAvatarURL({ dynamic: true })
+            })
+            .setColor(config.colors.regular)
+            .setDescription(
+`Remove all removable roles from a user.
+\`\`\`
+Syntax:
+${config.prefix}strip [member]
+Example:
+${config.prefix}strip @user
 \`\`\``
             );
     },
