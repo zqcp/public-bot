@@ -57,14 +57,25 @@ module.exports = {
 
         if (action === "open") {
 
+            /*
+             * Keep the existing saved embed data.
+             *
+             * Never replace the existing embeds array
+             * with a blank object when opening the editor.
+             */
+
             if (!Array.isArray(saved.embeds)) {
                 saved.embeds = [];
             }
 
             if (!saved.embeds.length) {
+
                 saved.embeds.push({});
+
                 saved.markModified("embeds");
+
                 await saved.save();
+
             }
 
             const row1 =
@@ -80,9 +91,18 @@ module.exports = {
                                 ButtonStyle.Secondary
                             ),
 
+                        /*
+                         * Pass the ORIGINAL ,embed edit
+                         * command message ID to the title
+                         * button.
+                         *
+                         * This prevents the modal from trying
+                         * to update the ephemeral editor message.
+                         */
+
                         new ButtonBuilder()
                             .setCustomId(
-                                `embedTitle:${name}`
+                                `embedTitle:${name}:${interaction.message.id}`
                             )
                             .setLabel("Title")
                             .setStyle(
@@ -204,9 +224,12 @@ module.exports = {
 
             /*
              * Render the current saved embed.
+             *
+             * This is ONLY a preview for the private editor.
+             * It is NOT the message that should be updated.
              */
 
-            let preview;
+            let preview = null;
 
             try {
 
@@ -222,16 +245,11 @@ module.exports = {
                     error
                 );
 
-                preview = null;
-
             }
 
             /*
-             * Discord requires the interaction response
-             * to contain actual message content.
-             *
-             * Start with an invisible embed so an empty
-             * embed configuration is still valid.
+             * Discord cannot send a completely empty
+             * interaction response.
              */
 
             let previewEmbed =
@@ -239,8 +257,8 @@ module.exports = {
                     .setDescription("\u200B");
 
             /*
-             * If the renderer produced an embed,
-             * use the saved embed instead.
+             * Use the saved embed for the preview when
+             * the renderer produced one.
              */
 
             if (
@@ -268,47 +286,15 @@ module.exports = {
             }
 
             /*
-             * Send the private editor message.
-             */
-
-            const response =
-                await interaction.reply({
-                    embeds: [
-                        previewEmbed
-                    ],
-                    components: [
-                        row1,
-                        row2,
-                        row3
-                    ],
-                    flags: 64,
-                    fetchReply: true
-                });
-
-            /*
-             * Store the editor message ID in the Title
-             * button so the modal knows exactly which
-             * private preview message to update.
+             * Open the private editor.
              *
-             * Keep every other button unchanged.
+             * IMPORTANT:
+             * Do NOT response.edit() this message.
+             * Ephemeral editor messages should simply be
+             * returned from the interaction response.
              */
 
-            row1.components[1] =
-                new ButtonBuilder()
-                    .setCustomId(
-                        `embedTitle:${name}:${response.id}`
-                    )
-                    .setLabel("Title")
-                    .setStyle(
-                        ButtonStyle.Secondary
-                    );
-
-            /*
-             * Update the private editor message with
-             * the corrected Title button.
-             */
-
-            return response.edit({
+            return interaction.reply({
                 embeds: [
                     previewEmbed
                 ],
@@ -316,8 +302,10 @@ module.exports = {
                     row1,
                     row2,
                     row3
-                ]
+                ],
+                flags: 64
             });
+
         }
 
         if (action === "save") {
