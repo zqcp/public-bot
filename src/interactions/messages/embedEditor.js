@@ -1,14 +1,12 @@
 const {
     ActionRowBuilder,
     ButtonBuilder,
-    ButtonStyle,
-    EmbedBuilder
+    ButtonStyle
 } = require("discord.js");
 
 const Embed = require("../../models/Embed");
 const embeds = require("../../embeds/embeds");
 const editor = require("../../systems/messages/editor");
-const renderer = require("../../systems/messages/renderer");
 
 module.exports = {
 
@@ -57,25 +55,14 @@ module.exports = {
 
         if (action === "open") {
 
-            /*
-             * Keep the existing saved embed data.
-             *
-             * Never replace the existing embeds array
-             * with a blank object when opening the editor.
-             */
-
             if (!Array.isArray(saved.embeds)) {
                 saved.embeds = [];
             }
 
             if (!saved.embeds.length) {
-
                 saved.embeds.push({});
-
                 saved.markModified("embeds");
-
                 await saved.save();
-
             }
 
             const row1 =
@@ -90,15 +77,6 @@ module.exports = {
                             .setStyle(
                                 ButtonStyle.Secondary
                             ),
-
-                        /*
-                         * Pass the ORIGINAL ,embed edit
-                         * command message ID to the title
-                         * button.
-                         *
-                         * This prevents the modal from trying
-                         * to update the ephemeral editor message.
-                         */
 
                         new ButtonBuilder()
                             .setCustomId(
@@ -223,94 +201,69 @@ module.exports = {
                     );
 
             /*
-             * Render the current saved embed.
+             * IMPORTANT:
              *
-             * This is ONLY a preview for the private editor.
-             * It is NOT the message that should be updated.
+             * Do NOT create another embed here.
+             *
+             * The message created by:
+             *
+             *     ,embed edit <name>
+             *
+             * is the editor message.
+             *
+             * We replace its components with the editor
+             * controls. This prevents the extra preview
+             * message and prevents trying to edit a stale
+             * preview message.
              */
-
-            let preview = null;
 
             try {
 
-                preview =
-                    renderer.render(
-                        saved.toObject()
-                    );
+                return interaction.update({
+                    components: [
+                        row1,
+                        row2,
+                        row3
+                    ]
+                });
 
             } catch (error) {
 
                 console.error(
-                    `[EMBED EDITOR PREVIEW] Failed to render ${name}:`,
+                    `[EMBED EDITOR OPEN] Failed to open ${name}:`,
                     error
                 );
 
-            }
+                if (!interaction.replied &&
+                    !interaction.deferred) {
 
-            /*
-             * Discord cannot send a completely empty
-             * interaction response.
-             */
-
-            let previewEmbed =
-                new EmbedBuilder()
-                    .setDescription("\u200B");
-
-            /*
-             * Use the saved embed for the preview when
-             * the renderer produced one.
-             */
-
-            if (
-                preview &&
-                Array.isArray(preview.embeds) &&
-                preview.embeds.length
-            ) {
-
-                try {
-
-                    previewEmbed =
-                        EmbedBuilder.from(
-                            preview.embeds[0]
-                        );
-
-                } catch (error) {
-
-                    console.error(
-                        `[EMBED EDITOR PREVIEW] Invalid rendered embed for ${name}:`,
-                        error
-                    );
+                    return interaction.reply({
+                        embeds: [
+                            embeds.error(
+                                interaction.user,
+                                `I couldn't open the editor for **${name}**.`
+                            )
+                        ],
+                        flags: 64
+                    });
 
                 }
 
+                return;
             }
-
-            /*
-             * Open the private editor.
-             *
-             * IMPORTANT:
-             * Do NOT response.edit() this message.
-             * Ephemeral editor messages should simply be
-             * returned from the interaction response.
-             */
-
-            return interaction.reply({
-                embeds: [
-                    previewEmbed
-                ],
-                components: [
-                    row1,
-                    row2,
-                    row3
-                ],
-                flags: 64
-            });
-
         }
 
         if (action === "save") {
 
             try {
+
+                /*
+                 * Update every message registered for this
+                 * embed name.
+                 *
+                 * This keeps the already-sent embed messages
+                 * live without requiring ,embed send again.
+                 */
 
                 await editor.updateMessage(
                     client,
@@ -350,8 +303,28 @@ module.exports = {
 
         if (action === "cancel") {
 
+            /*
+             * Restore the original Open Editor button
+             * instead of deleting the public edit message.
+             */
+
+            const row =
+                new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(
+                                `embedEditor:${name}:open`
+                            )
+                            .setLabel("Open Editor")
+                            .setStyle(
+                                ButtonStyle.Secondary
+                            )
+                    );
+
             return interaction.update({
-                components: []
+                components: [
+                    row
+                ]
             });
 
         }
