@@ -203,9 +203,8 @@ module.exports = {
             /*
              * Render the current saved embed.
              *
-             * If it is completely empty, do not send an
-             * invalid empty Discord embed. The editor can
-             * still be opened with the private controls.
+             * If the embed is completely empty, use a
+             * zero-width space so Discord accepts it.
              */
 
             const data =
@@ -223,11 +222,6 @@ module.exports = {
                 flags: 64
             };
 
-            /*
-             * Only include embeds when there is valid
-             * embed content to display.
-             */
-
             if (
                 Array.isArray(preview.embeds) &&
                 preview.embeds.length
@@ -235,6 +229,14 @@ module.exports = {
 
                 response.embeds =
                     preview.embeds;
+
+            } else {
+
+                response.embeds = [
+                    {
+                        description: "\u200B"
+                    }
+                ];
 
             }
 
