@@ -13,8 +13,8 @@ module.exports = {
     aliases: ["n"],
 
     permissions: {
-        user: ["ManageMessages"],
-        bot: ["ManageMessages"]
+        user: ["ManageChannels"],
+        bot: ["ManageChannels"]
     },
 
     async execute(client, message, args) {
@@ -33,14 +33,14 @@ module.exports = {
 
         if (
             !message.member.permissions.has(
-                PermissionFlagsBits.ManageMessages
+                PermissionFlagsBits.ManageChannels
             )
         ) {
             return message.channel.send({
                 embeds: [
                     globalEmbeds.permission(
                         message.author,
-                        "Manage Messages"
+                        "Manage Channels"
                     )
                 ]
             });
@@ -52,49 +52,61 @@ module.exports = {
 
         if (
             !message.guild.members.me.permissions.has(
-                PermissionFlagsBits.ManageMessages
+                PermissionFlagsBits.ManageChannels
             )
         ) {
             return message.channel.send({
                 embeds: [
                     globalEmbeds.botPermission(
                         message.author,
-                        ["ManageMessages"]
+                        ["ManageChannels"]
                     )
                 ]
             });
         }
 
         /*
-         * Clear channel
+         * Save channel information
          */
+
+        const channel = message.channel;
+        const position = channel.rawPosition;
 
         try {
 
-            let deleted;
+            /*
+             * Clone channel
+             */
 
-            do {
+            const newChannel =
+                await channel.clone({
+                    name: channel.name
+                });
 
-                deleted =
-                    await message.channel.bulkDelete(
-                        100,
-                        true
-                    );
+            /*
+             * Keep same position
+             */
 
-            } while (deleted.size === 100);
+            await newChannel.setPosition(position);
+
+            /*
+             * Delete old channel
+             */
+
+            await channel.delete();
 
             /*
              * First message
              */
 
-            return message.channel.send({
+            return newChannel.send({
                 content: "First"
             });
 
         } catch (error) {
 
             console.error(
-                "[NUKE] Failed to clear channel:",
+                "[NUKE] Failed to nuke channel:",
                 error
             );
 
@@ -102,15 +114,17 @@ module.exports = {
              * Failed embed
              */
 
-            return message.channel.send({
-                embeds: [
-                    new EmbedBuilder()
-                        .setColor(config.colors.failed)
-                        .setDescription(
-                            `${config.emojis.failed} ${message.author}: Nuke failed. Please try again.`
-                        )
-                ]
-            }).catch(() => {});
+            if (!channel.deleted) {
+                return channel.send({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor(config.colors.failed)
+                            .setDescription(
+                                `${config.emojis.failed} ${message.author}: Nuke failed. Please try again.`
+                            )
+                    ]
+                }).catch(() => {});
+            }
 
         }
 
