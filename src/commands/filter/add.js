@@ -5,16 +5,16 @@ const {
 } = require("discord.js");
 
 const Filter =
-    require("../../../models/TextFilter");
+    require("../../models/TextFilter");
 
 const globalEmbeds =
-    require("../../../embeds/global");
+    require("../../embeds/global");
 
 const filterEmbeds =
-    require("../../../embeds/filter");
+    require("../../embeds/filter");
 
 const helpEmbeds =
-    require("../../../embeds/help/filter");
+    require("../../embeds/help/filter");
 
 module.exports = {
 
