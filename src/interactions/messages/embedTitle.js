@@ -75,7 +75,7 @@ module.exports = {
         const modal =
             new ModalBuilder()
                 .setCustomId(
-                    `embedTitleModal:${name}`
+                    `embedTitleModal:${name}:${interaction.message.id}`
                 )
                 .setTitle("Edit Title");
 
