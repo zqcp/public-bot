@@ -7,6 +7,7 @@ const {
 const Embed = require("../../models/Embed");
 const embeds = require("../../embeds/embeds");
 const editor = require("../../systems/messages/editor");
+const renderer = require("../../systems/messages/renderer");
 
 module.exports = {
 
@@ -201,13 +202,56 @@ module.exports = {
                     );
 
             /*
-             * Only update the original ,embed edit message.
-             * No second preview embed/message is created.
+             * Render the current saved embed data.
+             *
+             * This uses the same saved data that
+             * ,embed send uses.
+             */
+
+            let payload;
+
+            try {
+
+                payload =
+                    renderer.render(
+                        saved.toObject()
+                    );
+
+            } catch (error) {
+
+                console.error(
+                    `[EMBED EDITOR OPEN] Failed to render ${name}:`,
+                    error
+                );
+
+                return interaction.reply({
+                    embeds: [
+                        embeds.error(
+                            interaction.user,
+                            `I couldn't render the embed **${name}**.`
+                        )
+                    ],
+                    flags: 64
+                });
+
+            }
+
+            /*
+             * Edit the ORIGINAL ,embed edit message.
+             *
+             * The saved embed is placed into that same
+             * message along with the editor buttons.
+             *
+             * No second message is created.
              */
 
             try {
 
                 return await interaction.update({
+                    embeds:
+                        Array.isArray(payload.embeds)
+                            ? payload.embeds
+                            : [],
                     components: [
                         row1,
                         row2,
@@ -246,11 +290,8 @@ module.exports = {
             try {
 
                 /*
-                 * The individual editor modals save directly
-                 * into the Embed document.
-                 *
-                 * This then pushes the current saved data
-                 * to every message created with ,embed send.
+                 * Apply the saved embed data to every
+                 * message created with ,embed send.
                  */
 
                 await editor.updateMessage(
@@ -258,6 +299,34 @@ module.exports = {
                     interaction.guild.id,
                     name
                 );
+
+                /*
+                 * Also refresh this editor message so
+                 * it immediately shows the latest data.
+                 */
+
+                const updated =
+                    await Embed.findOne({
+                        guildId: interaction.guild.id,
+                        name
+                    });
+
+                if (updated) {
+
+                    const payload =
+                        require("../../systems/messages/renderer")
+                            .render(
+                                updated.toObject()
+                            );
+
+                    await interaction.message.edit({
+                        embeds:
+                            Array.isArray(payload.embeds)
+                                ? payload.embeds
+                                : []
+                    });
+
+                }
 
                 return interaction.reply({
                     embeds: [
@@ -290,11 +359,6 @@ module.exports = {
         }
 
         if (action === "cancel") {
-
-            /*
-             * Return the original edit message to its
-             * single Open Editor button.
-             */
 
             const row =
                 new ActionRowBuilder()
