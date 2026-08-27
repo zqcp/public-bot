@@ -167,7 +167,70 @@ module.exports = {
 
                     );
 
-            const row3 =
+            /*
+             * The preview is the actual private editor message.
+             *
+             * Send it first so we can get its message ID.
+             */
+
+            let previewPayload = {
+                components: [],
+                flags: 64
+            };
+
+            try {
+
+                const rendered =
+                    renderer.render(
+                        saved.toObject()
+                    );
+
+                if (
+                    rendered &&
+                    Array.isArray(rendered.embeds) &&
+                    rendered.embeds.length
+                ) {
+                    previewPayload.embeds =
+                        rendered.embeds;
+                }
+
+            } catch (error) {
+
+                console.error(
+                    `[EMBED EDITOR PREVIEW] Failed to render ${name}:`,
+                    error
+                );
+
+            }
+
+            const previewMessage =
+                await interaction.reply({
+                    ...previewPayload,
+                    fetchReply: true
+                });
+
+            /*
+             * Now that we have the private editor
+             * message ID, attach it to the buttons
+             * that need to update the preview.
+             */
+
+            const titleButton =
+                new ButtonBuilder()
+                    .setCustomId(
+                        `embedTitle:${name}:${previewMessage.id}`
+                    )
+                    .setLabel("Title")
+                    .setStyle(
+                        ButtonStyle.Secondary
+                    );
+
+            row1.components[1] =
+                titleButton;
+
+            const finalRows = [
+                row1,
+                row2,
                 new ActionRowBuilder()
                     .addComponents(
 
@@ -198,51 +261,17 @@ module.exports = {
                                 ButtonStyle.Danger
                             )
 
-                    );
+                    )
+            ];
 
             /*
-             * Render the current saved embed.
-             *
-             * If the embed is completely empty, use a
-             * zero-width space so Discord accepts it.
+             * Update the private editor message with
+             * the complete button layout.
              */
 
-            const data =
-                saved.toObject();
-
-            const preview =
-                renderer.render(data);
-
-            const response = {
-                components: [
-                    row1,
-                    row2,
-                    row3
-                ],
-                flags: 64
-            };
-
-            if (
-                Array.isArray(preview.embeds) &&
-                preview.embeds.length
-            ) {
-
-                response.embeds =
-                    preview.embeds;
-
-            } else {
-
-                response.embeds = [
-                    {
-                        description: "\u200B"
-                    }
-                ];
-
-            }
-
-            return interaction.reply(
-                response
-            );
+            return previewMessage.edit({
+                components: finalRows
+            });
         }
 
         if (action === "save") {
