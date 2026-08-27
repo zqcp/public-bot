@@ -5,28 +5,6 @@ const config = require("../../config");
 
 module.exports = {
 
-    filter(user) {
-        return new EmbedBuilder()
-            .setTitle("Command: filter")
-            .setAuthor({
-                name: user.username,
-                iconURL: user.displayAvatarURL({ dynamic: true })
-            })
-            .setColor(config.colors.regular)
-            .setDescription(
-`Manage the server's word filter.
-\`\`\`r
-Syntax:
-${config.prefix}filter [option]
-Example:
-${config.prefix}filter add spam
-Options:
-add, remove, list, clear, toggle
-\`\`\``
-            );
-    },
-
-
     add(user) {
         return new EmbedBuilder()
             .setTitle("Command: filter add")
@@ -87,42 +65,41 @@ ${config.prefix}filter list
     },
 
 
-    clear(user) {
+    enable(user) {
         return new EmbedBuilder()
-            .setTitle("Command: filter clear")
+            .setTitle("Command: filter enable")
             .setAuthor({
                 name: user.username,
                 iconURL: user.displayAvatarURL({ dynamic: true })
             })
             .setColor(config.colors.regular)
             .setDescription(
-`Clear all filtered words from the server.
+`Enable the server's word filter.
 \`\`\`
 Syntax:
-${config.prefix}filter clear
+${config.prefix}filter enable
 Example:
-${config.prefix}filter clear
+${config.prefix}filter enable
 \`\`\``
             );
     },
 
 
-    toggle(user) {
+    disable(user) {
         return new EmbedBuilder()
-            .setTitle("Command: filter toggle")
+            .setTitle("Command: filter disable")
             .setAuthor({
                 name: user.username,
                 iconURL: user.displayAvatarURL({ dynamic: true })
             })
             .setColor(config.colors.regular)
             .setDescription(
-`Enable or disable the server's word filter.
+`Disable the server's word filter.
 \`\`\`
 Syntax:
-${config.prefix}filter toggle [on/off]
+${config.prefix}filter disable
 Example:
-${config.prefix}filter toggle on
-${config.prefix}filter toggle off
+${config.prefix}filter disable
 \`\`\``
             );
     }
