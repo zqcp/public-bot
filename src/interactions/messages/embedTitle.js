@@ -1,3 +1,5 @@
+Alright apply the fix for title
+
 const {
     ModalBuilder,
     TextInputBuilder,
@@ -35,6 +37,31 @@ module.exports = {
             });
         }
 
+        const saved =
+            await Embed.findOne({
+                guildId: interaction.guild.id,
+                name
+            });
+
+        if (!saved) {
+            return interaction.reply({
+                embeds: [
+                    embeds.error(
+                        interaction.user,
+                        `I couldn't find an embed named **${name}**.`
+                    )
+                ],
+                flags: 64
+            });
+        }
+
+        const currentTitle =
+            Array.isArray(saved.embeds) &&
+            saved.embeds[0] &&
+            saved.embeds[0].title
+                ? String(saved.embeds[0].title)
+                : "";
+
         const input =
             new TextInputBuilder()
                 .setCustomId("title")
@@ -44,6 +71,19 @@ module.exports = {
                 )
                 .setRequired(false)
                 .setMaxLength(256);
+
+        /*
+         * Discord does not allow setValue("")
+         * on an optional text input.
+         *
+         * Only set the value when a title exists.
+         */
+
+        if (currentTitle) {
+            input.setValue(
+                currentTitle
+            );
+        }
 
         const modal =
             new ModalBuilder()
