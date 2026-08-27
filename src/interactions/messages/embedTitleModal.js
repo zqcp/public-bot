@@ -1,6 +1,10 @@
-const EmbedBuilder = require("discord.js").EmbedBuilder;
+const {
+    EmbedBuilder
+} = require("discord.js");
+
 const Embed = require("../../models/Embed");
 const embeds = require("../../embeds/embeds");
+const renderer = require("../../systems/messages/renderer");
 
 module.exports = {
 
@@ -17,8 +21,11 @@ module.exports = {
         const parts =
             interaction.customId.split(":");
 
-        const name = parts[1];
-        const editorMessageId = parts[2];
+        const name =
+            parts[1];
+
+        const editorMessageId =
+            parts[2];
 
         if (!name) {
             return interaction.reply({
@@ -63,43 +70,62 @@ module.exports = {
             saved.embeds.push({});
         }
 
+        /*
+         * Update the existing embed data.
+         * This keeps the current architecture intact.
+         */
+
         if (title) {
-            saved.embeds[0].title = title;
+
+            saved.embeds[0].title =
+                title;
+
         } else {
+
             delete saved.embeds[0].title;
+
         }
 
         await saved.save();
 
         /*
-         * Update the editor preview immediately.
+         * Update the private editor preview.
+         *
+         * Do NOT fetch the ephemeral message from the channel.
+         * Ephemeral messages are accessed through the interaction
+         * webhook instead.
          */
 
         if (editorMessageId) {
 
             try {
 
-                const editorMessage =
-                    await interaction.channel.messages.fetch(
-                        editorMessageId
-                    );
+                const data =
+                    saved.toObject();
 
-                if (editorMessage) {
+                let preview =
+                    renderer.render(data);
 
-                    const preview =
-                        new EmbedBuilder();
+                if (
+                    !preview.embeds ||
+                    !preview.embeds.length
+                ) {
 
-                    if (title) {
-                        preview.setTitle(title);
-                    }
-
-                    await editorMessage.edit({
+                    preview = {
+                        ...preview,
                         embeds: [
-                            preview
+                            {
+                                description: " "
+                            }
                         ]
-                    });
+                    };
 
                 }
+
+                await interaction.webhook.editMessage(
+                    editorMessageId,
+                    preview
+                );
 
             } catch (error) {
 
