@@ -1,3 +1,4 @@
+const EmbedBuilder = require("discord.js").EmbedBuilder;
 const Embed = require("../../models/Embed");
 const embeds = require("../../embeds/embeds");
 
@@ -13,8 +14,11 @@ module.exports = {
             return;
         }
 
-        const [, name] =
+        const parts =
             interaction.customId.split(":");
+
+        const name = parts[1];
+        const editorMessageId = parts[2];
 
         if (!name) {
             return interaction.reply({
@@ -66,6 +70,47 @@ module.exports = {
         }
 
         await saved.save();
+
+        /*
+         * Update the editor preview immediately.
+         */
+
+        if (editorMessageId) {
+
+            try {
+
+                const editorMessage =
+                    await interaction.channel.messages.fetch(
+                        editorMessageId
+                    );
+
+                if (editorMessage) {
+
+                    const preview =
+                        new EmbedBuilder();
+
+                    if (title) {
+                        preview.setTitle(title);
+                    }
+
+                    await editorMessage.edit({
+                        embeds: [
+                            preview
+                        ]
+                    });
+
+                }
+
+            } catch (error) {
+
+                console.error(
+                    `[EMBED TITLE PREVIEW] Failed to update editor for ${name}:`,
+                    error
+                );
+
+            }
+
+        }
 
         return interaction.reply({
             embeds: [
