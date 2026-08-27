@@ -201,25 +201,13 @@ module.exports = {
                     );
 
             /*
-             * IMPORTANT:
-             *
-             * Do NOT create another embed here.
-             *
-             * The message created by:
-             *
-             *     ,embed edit <name>
-             *
-             * is the editor message.
-             *
-             * We replace its components with the editor
-             * controls. This prevents the extra preview
-             * message and prevents trying to edit a stale
-             * preview message.
+             * Only update the original ,embed edit message.
+             * No second preview embed/message is created.
              */
 
             try {
 
-                return interaction.update({
+                return await interaction.update({
                     components: [
                         row1,
                         row2,
@@ -234,9 +222,10 @@ module.exports = {
                     error
                 );
 
-                if (!interaction.replied &&
-                    !interaction.deferred) {
-
+                if (
+                    !interaction.replied &&
+                    !interaction.deferred
+                ) {
                     return interaction.reply({
                         embeds: [
                             embeds.error(
@@ -246,7 +235,6 @@ module.exports = {
                         ],
                         flags: 64
                     });
-
                 }
 
                 return;
@@ -258,11 +246,11 @@ module.exports = {
             try {
 
                 /*
-                 * Update every message registered for this
-                 * embed name.
+                 * The individual editor modals save directly
+                 * into the Embed document.
                  *
-                 * This keeps the already-sent embed messages
-                 * live without requiring ,embed send again.
+                 * This then pushes the current saved data
+                 * to every message created with ,embed send.
                  */
 
                 await editor.updateMessage(
@@ -304,8 +292,8 @@ module.exports = {
         if (action === "cancel") {
 
             /*
-             * Restore the original Open Editor button
-             * instead of deleting the public edit message.
+             * Return the original edit message to its
+             * single Open Editor button.
              */
 
             const row =
