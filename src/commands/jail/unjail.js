@@ -1,3 +1,5 @@
+// src/commands/jail/unjail.js
+
 const {
     PermissionFlagsBits
 } = require("discord.js");
@@ -28,9 +30,17 @@ module.exports = {
         args
     ) {
 
+        /*
+         * Guild only
+         */
+
         if (!message.guild) {
             return;
         }
+
+        /*
+         * User permission
+         */
 
         if (
             !message.member.permissions.has(
@@ -46,6 +56,10 @@ module.exports = {
                 ]
             });
         }
+
+        /*
+         * Find jail setup
+         */
 
         const jail =
             await Jail.findOne({
@@ -63,15 +77,92 @@ module.exports = {
             });
         }
 
-        const target =
-            message.mentions.members.first() ||
-            await message.guild.members.fetch(
-                args[0]
-            ).catch(() => null);
+        /*
+         * Find target
+         *
+         * Supports:
+         * @mention
+         * User ID
+         * Username
+         * Display name
+         */
+
+        let target = null;
+
+        const mention =
+            message.mentions.members.first();
+
+        if (mention) {
+
+            target = mention;
+
+        } else if (args[0]) {
+
+            const input =
+                args[0].toLowerCase();
+
+            /*
+             * Try user ID
+             */
+
+            if (/^\d{17,20}$/.test(args[0])) {
+
+                target =
+                    await message.guild.members
+                        .fetch(args[0])
+                        .catch(() => null);
+
+            }
+
+            /*
+             * Try username / display name
+             */
+
+            if (!target) {
+
+                target =
+                    message.guild.members.cache.find(
+                        member =>
+                            member.user.username
+                                .toLowerCase() === input ||
+                            member.displayName
+                                .toLowerCase() === input
+                    );
+
+            }
+
+            /*
+             * Try partial username/display name
+             */
+
+            if (!target) {
+
+                target =
+                    message.guild.members.cache.find(
+                        member =>
+                            member.user.username
+                                .toLowerCase()
+                                .includes(input) ||
+                            member.displayName
+                                .toLowerCase()
+                                .includes(input)
+                    );
+
+            }
+
+        }
+
+        /*
+         * No target
+         */
 
         if (!target) {
             return;
         }
+
+        /*
+         * Find jail record
+         */
 
         const recordIndex =
             jail.members.findIndex(
@@ -99,29 +190,46 @@ module.exports = {
             ];
 
         /*
-         * Restore previous roles.
+         * Find Jailed role
+         */
+
+        const jailRole =
+            message.guild.roles.cache.get(
+                jail.roleId
+            );
+
+        /*
+         * Restore previous roles
          *
-         * Only restore roles that still exist
-         * and that the bot can manage.
+         * Only restore roles that:
+         * - still exist
+         * - are editable by the bot
          */
 
         const rolesToRestore =
-            record.roles
-                .map(
-                    roleId =>
-                        message.guild.roles.cache.get(
-                            roleId
-                        )
-                )
-                .filter(
-                    role =>
-                        role &&
-                        role.editable
-                )
-                .map(
-                    role =>
-                        role.id
-                );
+            Array.isArray(record.roles)
+                ? record.roles
+                    .map(
+                        roleId =>
+                            message.guild.roles.cache.get(
+                                roleId
+                            )
+                    )
+                    .filter(
+                        role =>
+                            role &&
+                            role.editable
+                    )
+                    .map(
+                        role =>
+                            role.id
+                    )
+                : [];
+
+        /*
+         * Remove Jailed role and restore
+         * previous roles.
+         */
 
         try {
 
@@ -151,7 +259,11 @@ module.exports = {
 
         await jail.save();
 
-        return message.channel.send({
+        /*
+         * User-facing response
+         */
+
+        await message.channel.send({
             embeds: [
                 jailEmbeds.unjailed(
                     message.author,
@@ -159,6 +271,32 @@ module.exports = {
                 )
             ]
         });
+
+        /*
+         * Send unjail log event
+         */
+
+        client.emit(
+            "jail",
+            {
+                action:
+                    "unjail",
+
+                guildId:
+                    message.guild.id,
+
+                member:
+                    target,
+
+                moderator:
+                    message.author,
+
+                caseNumber:
+                    record.caseNumber || "N/A"
+            }
+        );
+
+        return true;
 
     }
 
