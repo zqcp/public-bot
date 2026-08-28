@@ -1,3 +1,5 @@
+// src/models/Jail.js
+
 const mongoose = require("mongoose");
 
 const jailedMemberSchema =
