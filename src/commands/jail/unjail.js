@@ -3,7 +3,7 @@ const {
 } = require("discord.js");
 
 const Jail =
-    require("../../../models/Jail");
+    require("../../models/Jail");
 
 const globalEmbeds =
     require("../../../embeds/global");
@@ -15,7 +15,7 @@ module.exports = {
 
     name: "unjail",
 
-    aliases: [],
+    aliases: ["unj"],
 
     permissions: {
         user: ["ManageGuild"],
