@@ -8,6 +8,9 @@ const {
 const Jail =
     require("../../models/Jail");
 
+const JailSystem =
+    require("../../systems/Jail");
+
 const globalEmbeds =
     require("../../embeds/global");
 
@@ -59,7 +62,7 @@ module.exports = {
         }
 
         /*
-         * Bot permissions
+         * Get bot member
          */
 
         const botMember =
@@ -67,6 +70,10 @@ module.exports = {
             await message.guild.members.fetch(
                 client.user.id
             );
+
+        /*
+         * Bot permissions
+         */
 
         if (
             !botMember.permissions.has(
@@ -107,19 +114,39 @@ module.exports = {
         }
 
         /*
-         * Create Jailed role
+         * Create Jailed role.
+         *
+         * No custom color.
+         * Discord's default role color is used.
          */
 
-        const jailRole =
-            await message.guild.roles.create({
-                name: "Jailed",
-                color: 0x2B2D31,
-                reason:
-                    "Jail system setup"
-            });
+        let jailRole;
+
+        try {
+
+            jailRole =
+                await message.guild.roles.create({
+
+                    name:
+                        "Jailed",
+
+                    reason:
+                        "Jail system setup"
+
+                });
+
+        } catch (error) {
+
+            console.error(
+                "[JAIL] Failed to create Jailed role:",
+                error
+            );
+
+            return;
+        }
 
         /*
-         * Make sure the bot can manage
+         * Make sure bot can manage
          * the Jailed role.
          */
 
@@ -142,141 +169,184 @@ module.exports = {
         }
 
         /*
-         * Create Jail category
+         * Create Jail category.
          */
 
-        const jailCategory =
-            await message.guild.channels.create({
-                name: "Jail",
-                type: ChannelType.GuildCategory,
-                reason:
-                    "Jail system setup"
-            });
+        let jailCategory;
+
+        try {
+
+            jailCategory =
+                await message.guild.channels.create({
+
+                    name:
+                        "Jail",
+
+                    type:
+                        ChannelType.GuildCategory,
+
+                    reason:
+                        "Jail system setup"
+
+                });
+
+        } catch (error) {
+
+            console.error(
+                "[JAIL] Failed to create Jail category:",
+                error
+            );
+
+            await jailRole.delete().catch(() => {});
+
+            return;
+        }
 
         /*
-         * CATEGORY PERMISSIONS
-         *
-         * @everyone cannot see the category.
-         *
-         * Jailed can see the category and
-         * access channels inside it.
+         * Create Jail channel.
          */
 
-        await jailCategory.permissionOverwrites.edit(
-            message.guild.roles.everyone,
-            {
-                ViewChannel: false
-            }
-        );
+        let jailChannel;
 
-        await jailCategory.permissionOverwrites.edit(
-            jailRole,
-            {
-                ViewChannel: true,
-                ReadMessageHistory: true,
-                SendMessages: true
-            }
-        );
+        try {
+
+            jailChannel =
+                await message.guild.channels.create({
+
+                    name:
+                        "jail",
+
+                    type:
+                        ChannelType.GuildText,
+
+                    parent:
+                        jailCategory.id,
+
+                    reason:
+                        "Jail system setup"
+
+                });
+
+        } catch (error) {
+
+            console.error(
+                "[JAIL] Failed to create jail channel:",
+                error
+            );
+
+            await jailCategory.delete().catch(() => {});
+            await jailRole.delete().catch(() => {});
+
+            return;
+        }
 
         /*
-         * Create Jail channel
+         * Create Jail logs channel.
          */
 
-        const jailChannel =
-            await message.guild.channels.create({
-                name: "jail",
-                type: ChannelType.GuildText,
-                parent:
+        let logChannel;
+
+        try {
+
+            logChannel =
+                await message.guild.channels.create({
+
+                    name:
+                        "jail-logs",
+
+                    type:
+                        ChannelType.GuildText,
+
+                    parent:
+                        jailCategory.id,
+
+                    reason:
+                        "Jail system setup"
+
+                });
+
+        } catch (error) {
+
+            console.error(
+                "[JAIL] Failed to create jail logs:",
+                error
+            );
+
+            await jailChannel.delete().catch(() => {});
+            await jailCategory.delete().catch(() => {});
+            await jailRole.delete().catch(() => {});
+
+            return;
+        }
+
+        /*
+         * Save guild configuration.
+         */
+
+        try {
+
+            await Jail.create({
+
+                guildId:
+                    message.guild.id,
+
+                roleId:
+                    jailRole.id,
+
+                categoryId:
                     jailCategory.id,
-                reason:
-                    "Jail system setup"
+
+                channelId:
+                    jailChannel.id,
+
+                logChannelId:
+                    logChannel.id,
+
+                nextCase:
+                    1,
+
+                members:
+                    []
+
             });
 
+        } catch (error) {
+
+            console.error(
+                "[JAIL] Failed to save jail configuration:",
+                error
+            );
+
+            await logChannel.delete().catch(() => {});
+            await jailChannel.delete().catch(() => {});
+            await jailCategory.delete().catch(() => {});
+            await jailRole.delete().catch(() => {});
+
+            return;
+        }
+
         /*
-         * Jail channel permissions
+         * Apply jail permissions.
+         *
+         * This synchronizes the Jailed role
+         * with the jail category and channels.
          */
 
-        await jailChannel.permissionOverwrites.edit(
-            message.guild.roles.everyone,
-            {
-                ViewChannel: false
-            }
-        );
+        const synced =
+            await JailSystem.sync(
+                message.guild
+            );
 
-        await jailChannel.permissionOverwrites.edit(
-            jailRole,
-            {
-                ViewChannel: true,
-                SendMessages: true,
-                ReadMessageHistory: true
-            }
-        );
+        if (!synced) {
+
+            console.error(
+                "[JAIL] Failed to synchronize jail permissions."
+            );
+
+        }
 
         /*
-         * Create Jail logs channel
-         */
-
-        const logChannel =
-            await message.guild.channels.create({
-                name: "jail-logs",
-                type: ChannelType.GuildText,
-                parent:
-                    jailCategory.id,
-                reason:
-                    "Jail system setup"
-            });
-
-        /*
-         * Hide logs from @everyone
-         */
-
-        await logChannel.permissionOverwrites.edit(
-            message.guild.roles.everyone,
-            {
-                ViewChannel: false
-            }
-        );
-
-        /*
-         * Jailed members cannot see logs.
-         */
-
-        await logChannel.permissionOverwrites.edit(
-            jailRole,
-            {
-                ViewChannel: false
-            }
-        );
-
-        /*
-         * Save guild configuration
-         */
-
-        await Jail.create({
-
-            guildId:
-                message.guild.id,
-
-            roleId:
-                jailRole.id,
-
-            categoryId:
-                jailCategory.id,
-
-            channelId:
-                jailChannel.id,
-
-            logChannelId:
-                logChannel.id,
-
-            nextCase: 1,
-
-            members: []
-
-        });
-
-        /*
-         * Success
+         * Success.
          */
 
         return message.channel.send({
