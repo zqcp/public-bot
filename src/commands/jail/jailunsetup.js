@@ -1,7 +1,8 @@
 // src/commands/jail/jailunsetup.js
 
 const {
-    PermissionFlagsBits
+    PermissionFlagsBits,
+    ChannelType
 } = require("discord.js");
 
 const Jail =
@@ -101,7 +102,83 @@ module.exports = {
         }
 
         /*
-         * Delete jail channel
+         * Find configured Jailed role.
+         */
+
+        const jailRole =
+            message.guild.roles.cache.get(
+                jail.roleId
+            );
+
+        /*
+         * Make sure the bot can delete
+         * the Jailed role.
+         */
+
+        if (
+            jailRole &&
+            !jailRole.editable
+        ) {
+            return message.channel.send({
+                embeds: [
+                    globalEmbeds.botPermission(
+                        message.author,
+                        "Manage Roles"
+                    )
+                ]
+            });
+        }
+
+        /*
+         * Remove Jailed role overwrites
+         * from every category first.
+         *
+         * This cleans up the permissions
+         * created by the jail system.
+         */
+
+        if (jailRole) {
+
+            const categories =
+                message.guild.channels.cache.filter(
+                    channel =>
+                        channel.type ===
+                        ChannelType.GuildCategory
+                );
+
+            for (
+                const category
+                of categories.values()
+            ) {
+
+                const overwrite =
+                    category.permissionOverwrites.cache.get(
+                        jailRole.id
+                    );
+
+                if (!overwrite) {
+                    continue;
+                }
+
+                await category.permissionOverwrites
+                    .delete(
+                        jailRole.id
+                    )
+                    .catch(error => {
+
+                        console.error(
+                            `[JAIL] Failed to remove Jailed permission from category ${category.id}:`,
+                            error
+                        );
+
+                    });
+
+            }
+
+        }
+
+        /*
+         * Delete jail channel.
          */
 
         const jailChannel =
@@ -127,7 +204,7 @@ module.exports = {
         }
 
         /*
-         * Delete jail logs channel
+         * Delete jail logs channel.
          */
 
         const logChannel =
@@ -153,7 +230,12 @@ module.exports = {
         }
 
         /*
-         * Delete jail category
+         * Delete jail category.
+         *
+         * Any remaining child channels will
+         * be handled by Discord if applicable,
+         * but normally the two jail channels
+         * were already deleted above.
          */
 
         const category =
@@ -161,7 +243,11 @@ module.exports = {
                 jail.categoryId
             );
 
-        if (category) {
+        if (
+            category &&
+            category.type ===
+                ChannelType.GuildCategory
+        ) {
 
             await category
                 .delete(
@@ -179,13 +265,8 @@ module.exports = {
         }
 
         /*
-         * Delete Jailed role
+         * Delete Jailed role.
          */
-
-        const jailRole =
-            message.guild.roles.cache.get(
-                jail.roleId
-            );
 
         if (
             jailRole &&
@@ -208,7 +289,7 @@ module.exports = {
         }
 
         /*
-         * Remove MongoDB configuration
+         * Remove MongoDB configuration.
          */
 
         await Jail.deleteOne({
@@ -217,7 +298,7 @@ module.exports = {
         });
 
         /*
-         * Success
+         * Success.
          */
 
         return message.channel.send({
