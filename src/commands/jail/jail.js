@@ -3,13 +3,13 @@ const {
 } = require("discord.js");
 
 const Jail =
-    require("../../../models/Jail");
+    require("../../models/Jail");
 
 const globalEmbeds =
-    require("../../../embeds/global");
+    require("../../embeds/global");
 
 const jailEmbeds =
-    require("../../../embeds/jail");
+    require("../../embeds/jail");
 
 module.exports = {
 
