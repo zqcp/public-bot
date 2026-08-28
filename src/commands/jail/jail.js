@@ -7,6 +7,9 @@ const {
 const Jail =
     require("../../models/Jail");
 
+const JailSystem =
+    require("../../systems/Jail");
+
 const globalEmbeds =
     require("../../embeds/global");
 
@@ -102,10 +105,14 @@ module.exports = {
                 args[0].toLowerCase();
 
             /*
-             * Try user ID
+             * Try ID
              */
 
-            if (/^\d{17,20}$/.test(args[0])) {
+            if (
+                /^\d{17,20}$/.test(
+                    args[0]
+                )
+            ) {
 
                 target =
                     await message.guild.members
@@ -115,7 +122,7 @@ module.exports = {
             }
 
             /*
-             * Try username / display name
+             * Try exact username/display name
              */
 
             if (!target) {
@@ -124,9 +131,11 @@ module.exports = {
                     message.guild.members.cache.find(
                         member =>
                             member.user.username
-                                .toLowerCase() === input ||
+                                .toLowerCase() ===
+                                input ||
                             member.displayName
-                                .toLowerCase() === input
+                                .toLowerCase() ===
+                                input
                     );
 
             }
@@ -205,6 +214,16 @@ module.exports = {
         }
 
         /*
+         * Get bot member
+         */
+
+        const botMember =
+            message.guild.members.me ||
+            await message.guild.members.fetch(
+                client.user.id
+            );
+
+        /*
          * Moderator hierarchy
          */
 
@@ -226,12 +245,6 @@ module.exports = {
          * Bot hierarchy
          */
 
-        const botMember =
-            message.guild.members.me ||
-            await message.guild.members.fetch(
-                client.user.id
-            );
-
         if (
             target.roles.highest.position >=
             botMember.roles.highest.position
@@ -247,7 +260,7 @@ module.exports = {
         }
 
         /*
-         * Find jail role
+         * Find Jailed role
          */
 
         const jailRole =
@@ -266,7 +279,8 @@ module.exports = {
         }
 
         /*
-         * Bot must be above jail role
+         * Make sure the bot can manage
+         * the Jailed role.
          */
 
         if (!jailRole.editable) {
@@ -281,9 +295,10 @@ module.exports = {
         }
 
         /*
-         * Get reason
+         * Reason is optional.
          *
-         * First argument is always the target.
+         * First argument = target.
+         * Everything after it = reason.
          */
 
         const reason =
@@ -294,10 +309,8 @@ module.exports = {
             "No reason provided";
 
         /*
-         * Save current roles.
-         *
-         * @everyone and the Jailed role
-         * are never saved.
+         * Save the member's current
+         * manageable roles.
          */
 
         const roles =
@@ -316,18 +329,14 @@ module.exports = {
                 );
 
         /*
-         * Get case number
+         * Get persistent case number.
          */
 
         const caseNumber =
             jail.nextCase || 1;
 
         /*
-         * Apply Jailed role
-         *
-         * This removes the member's
-         * manageable roles and gives
-         * them the Jailed role.
+         * Apply Jailed role.
          */
 
         try {
@@ -340,7 +349,7 @@ module.exports = {
         } catch (error) {
 
             console.error(
-                "[JAIL] Failed to assign jail role:",
+                "[JAIL] Failed to jail member:",
                 error
             );
 
@@ -348,7 +357,7 @@ module.exports = {
         }
 
         /*
-         * Save jail record
+         * Save jail record.
          */
 
         jail.members.push({
@@ -371,13 +380,25 @@ module.exports = {
         });
 
         /*
-         * Increment case number
+         * Increment case number.
          */
 
         jail.nextCase =
             caseNumber + 1;
 
         await jail.save();
+
+        /*
+         * Synchronize jail permissions.
+         *
+         * This applies the Jailed role to
+         * all categories and keeps the Jail
+         * category accessible.
+         */
+
+        await JailSystem.sync(
+            message.guild
+        );
 
         /*
          * User-facing response
@@ -394,7 +415,7 @@ module.exports = {
         });
 
         /*
-         * Send jail log event
+         * Jail log event
          */
 
         client.emit(
