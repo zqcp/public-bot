@@ -1,11 +1,111 @@
 // src/systems/textFilter.js
 
 const {
-    PermissionFlagsBits
+    PermissionFlagsBits,
+    EmbedBuilder
 } = require("discord.js");
 
 const Filter =
     require("../models/TextFilter");
+
+const config =
+    require("../config");
+
+/*
+ * Normalize text so common filter bypasses
+ * are easier to detect.
+ */
+function normalizeText(text) {
+
+    if (!text) {
+        return "";
+    }
+
+    return text
+        .normalize("NFKD")
+        .toLowerCase()
+
+        /*
+         * Common leetspeak substitutions
+         */
+        .replace(/[@4]/g, "a")
+        .replace(/[8]/g, "b")
+        .replace(/[3]/g, "e")
+        .replace(/[6]/g, "g")
+        .replace(/[1!|]/g, "i")
+        .replace(/[0]/g, "o")
+        .replace(/[5$]/g, "s")
+        .replace(/[7]/g, "t")
+        .replace(/[2]/g, "z")
+
+        /*
+         * Remove combining Unicode marks
+         */
+        .replace(/[\u0300-\u036f]/g, "")
+
+        /*
+         * Remove punctuation, symbols and spaces
+         */
+        .replace(/[\W_]+/g, "")
+
+        /*
+         * Collapse repeated characters.
+         *
+         * Example:
+         * baaad -> bad
+         * heyyy -> hey
+         */
+        .replace(/(.)\1{2,}/g, "$1");
+
+}
+
+
+/*
+ * Create a version that keeps spaces between
+ * characters but removes punctuation.
+ *
+ * This helps catch:
+ *
+ * b a d
+ * b.a.d
+ * b-a-d
+ */
+function normalizeLooseText(text) {
+
+    if (!text) {
+        return "";
+    }
+
+    return text
+        .normalize("NFKD")
+        .toLowerCase()
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[@4]/g, "a")
+        .replace(/[8]/g, "b")
+        .replace(/[3]/g, "e")
+        .replace(/[6]/g, "g")
+        .replace(/[1!|]/g, "i")
+        .replace(/[0]/g, "o")
+        .replace(/[5$]/g, "s")
+        .replace(/[7]/g, "t")
+        .replace(/[2]/g, "z")
+        .replace(/[^\p{L}\p{N}\s]/gu, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+}
+
+
+/*
+ * Build a version with whitespace removed.
+ */
+function removeSpaces(text) {
+
+    return text
+        .replace(/\s+/g, "");
+
+}
+
 
 module.exports = {
 
@@ -19,9 +119,11 @@ module.exports = {
          */
 
         if (
+            !message ||
+            !message.author ||
             message.author.bot
         ) {
-            return;
+            return false;
         }
 
         /*
@@ -31,7 +133,18 @@ module.exports = {
         if (
             !message.guild
         ) {
-            return;
+            return false;
+        }
+
+        /*
+         * Ignore empty messages
+         */
+
+        if (
+            !message.content ||
+            !message.content.trim()
+        ) {
+            return false;
         }
 
         /*
@@ -55,41 +168,135 @@ module.exports = {
                 error
             );
 
-            return;
+            return false;
         }
 
         /*
          * Filter doesn't exist
+         * or is disabled
          */
 
         if (
             !filter ||
             !filter.enabled ||
+            !Array.isArray(filter.words) ||
             !filter.words.length
         ) {
-            return;
+            return false;
         }
 
         /*
-         * Check message
+         * Prepare message
          */
 
-        const content =
-            message.content
-                .toLowerCase();
+        const originalContent =
+            message.content.toLowerCase();
+
+        const normalizedContent =
+            normalizeText(
+                message.content
+            );
+
+        const looseContent =
+            normalizeLooseText(
+                message.content
+            );
+
+        const spaceFreeContent =
+            removeSpaces(
+                looseContent
+            );
+
+        /*
+         * Find matching blocked word
+         */
 
         const matchedWord =
             filter.words.find(
-                word =>
-                    content.includes(
-                        word.toLowerCase()
-                    )
+                storedWord => {
+
+                    if (
+                        !storedWord ||
+                        !storedWord.trim()
+                    ) {
+                        return false;
+                    }
+
+                    const word =
+                        storedWord
+                            .trim()
+                            .toLowerCase();
+
+                    /*
+                     * Normalize the blocked word
+                     */
+
+                    const normalizedWord =
+                        normalizeText(
+                            word
+                        );
+
+                    const looseWord =
+                        normalizeLooseText(
+                            word
+                        );
+
+                    const spaceFreeWord =
+                        removeSpaces(
+                            looseWord
+                        );
+
+                    /*
+                     * Exact normal match
+                     */
+
+                    if (
+                        originalContent.includes(
+                            word
+                        )
+                    ) {
+                        return true;
+                    }
+
+                    /*
+                     * Aggressive normalized match
+                     */
+
+                    if (
+                        normalizedWord &&
+                        normalizedContent.includes(
+                            normalizedWord
+                        )
+                    ) {
+                        return true;
+                    }
+
+                    /*
+                     * Punctuation / spacing bypass
+                     */
+
+                    if (
+                        spaceFreeWord &&
+                        spaceFreeContent.includes(
+                            spaceFreeWord
+                        )
+                    ) {
+                        return true;
+                    }
+
+                    return false;
+
+                }
             );
+
+        /*
+         * Nothing detected
+         */
 
         if (
             !matchedWord
         ) {
-            return;
+            return false;
         }
 
         /*
@@ -107,7 +314,7 @@ module.exports = {
                 error
             );
 
-            return;
+            return false;
         }
 
         /*
@@ -121,6 +328,10 @@ module.exports = {
                 await message.guild.members.fetch(
                     message.author.id
                 );
+
+            /*
+             * Don't timeout administrators.
+             */
 
             if (
                 member &&
@@ -147,14 +358,24 @@ module.exports = {
         }
 
         /*
-         * Warning message
+         * Warning embed
          */
 
         try {
 
+            const embed =
+                new EmbedBuilder()
+                    .setColor(
+                        config.colors.error
+                    )
+                    .setDescription(
+                        `${config.emojis.error} ${message.author}: Your message was removed because it contained a blocked word. You have been timed out for 10 minutes.`
+                    );
+
             await message.channel.send({
-                content:
-                    `⚠️ ${message.author}: Your message was removed because it contained a blocked word. You have been timed out for 10 minutes.`
+                embeds: [
+                    embed
+                ]
             });
 
         } catch (error) {
@@ -165,6 +386,8 @@ module.exports = {
             );
 
         }
+
+        return true;
 
     }
 
