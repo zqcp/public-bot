@@ -22,10 +22,10 @@ module.exports = {
             )
             .setAuthor({
                 name:
-                    moderator.username,
+                    member.user.username,
 
                 iconURL:
-                    moderator.displayAvatarURL({
+                    member.user.displayAvatarURL({
                         dynamic: true
                     })
             })
@@ -71,10 +71,10 @@ ${reason || "n/a"}`
             )
             .setAuthor({
                 name:
-                    moderator.username,
+                    member.user.username,
 
                 iconURL:
-                    moderator.displayAvatarURL({
+                    member.user.displayAvatarURL({
                         dynamic: true
                     })
             })
