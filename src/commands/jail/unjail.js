@@ -7,6 +7,9 @@ const {
 const Jail =
     require("../../models/Jail");
 
+const JailSystem =
+    require("../../systems/Jail");
+
 const globalEmbeds =
     require("../../embeds/global");
 
@@ -105,7 +108,11 @@ module.exports = {
              * Try user ID
              */
 
-            if (/^\d{17,20}$/.test(args[0])) {
+            if (
+                /^\d{17,20}$/.test(
+                    args[0]
+                )
+            ) {
 
                 target =
                     await message.guild.members
@@ -115,7 +122,7 @@ module.exports = {
             }
 
             /*
-             * Try username / display name
+             * Try exact username/display name
              */
 
             if (!target) {
@@ -124,9 +131,11 @@ module.exports = {
                     message.guild.members.cache.find(
                         member =>
                             member.user.username
-                                .toLowerCase() === input ||
+                                .toLowerCase() ===
+                                input ||
                             member.displayName
-                                .toLowerCase() === input
+                                .toLowerCase() ===
+                                input
                     );
 
             }
@@ -199,7 +208,37 @@ module.exports = {
             );
 
         /*
-         * Restore previous roles
+         * Make sure the Jailed role exists.
+         */
+
+        if (!jailRole) {
+            return message.channel.send({
+                embeds: [
+                    jailEmbeds.noSetup(
+                        message.author
+                    )
+                ]
+            });
+        }
+
+        /*
+         * Make sure the bot can manage
+         * the Jailed role.
+         */
+
+        if (!jailRole.editable) {
+            return message.channel.send({
+                embeds: [
+                    globalEmbeds.botPermission(
+                        message.author,
+                        "Manage Roles"
+                    )
+                ]
+            });
+        }
+
+        /*
+         * Find previous roles.
          *
          * Only restore roles that:
          * - still exist
@@ -218,6 +257,10 @@ module.exports = {
                     .filter(
                         role =>
                             role &&
+                            role.id !==
+                                message.guild.id &&
+                            role.id !==
+                                jailRole.id &&
                             role.editable
                     )
                     .map(
@@ -227,8 +270,10 @@ module.exports = {
                 : [];
 
         /*
-         * Remove Jailed role and restore
-         * previous roles.
+         * Restore previous roles.
+         *
+         * @everyone is automatically kept
+         * by Discord.
          */
 
         try {
@@ -249,7 +294,7 @@ module.exports = {
         }
 
         /*
-         * Remove jail record
+         * Remove jail record.
          */
 
         jail.members.splice(
@@ -260,7 +305,15 @@ module.exports = {
         await jail.save();
 
         /*
-         * User-facing response
+         * Re-sync jail permissions.
+         */
+
+        await JailSystem.sync(
+            message.guild
+        );
+
+        /*
+         * User-facing response.
          */
 
         await message.channel.send({
@@ -273,7 +326,7 @@ module.exports = {
         });
 
         /*
-         * Send unjail log event
+         * Send unjail log event.
          */
 
         client.emit(
