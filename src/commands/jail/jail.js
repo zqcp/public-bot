@@ -7,14 +7,14 @@ const {
 const Jail =
     require("../../models/Jail");
 
-const JailSystem =
-    require("../../systems/Jail");
-
 const globalEmbeds =
     require("../../embeds/global");
 
 const jailEmbeds =
     require("../../embeds/jail");
+
+const jailHelp =
+    require("../../embeds/help/jail");
 
 module.exports = {
 
@@ -61,6 +61,27 @@ module.exports = {
         }
 
         /*
+         * Target
+         */
+
+        const targetInput =
+            args.shift();
+
+        /*
+         * No target = Jail help
+         */
+
+        if (!targetInput) {
+            return message.channel.send({
+                embeds: [
+                    jailHelp.jail(
+                        message.author
+                    )
+                ]
+            });
+        }
+
+        /*
          * Find jail setup
          */
 
@@ -81,118 +102,162 @@ module.exports = {
         }
 
         /*
-         * Find target
+         * Resolve target
          *
          * Supports:
-         * @mention
-         * User ID
-         * Username
-         * Display name
+         * - Mention
+         * - ID
+         * - Username
          */
 
         let target = null;
 
-        const mention =
-            message.mentions.members.first();
+        try {
 
-        if (mention) {
-
-            target = mention;
-
-        } else if (args[0]) {
-
-            const input =
-                args[0].toLowerCase();
+            const id =
+                targetInput.replace(
+                    /[<@!>]/g,
+                    ""
+                );
 
             /*
-             * Try ID
+             * ID
              */
 
             if (
-                /^\d{17,20}$/.test(
-                    args[0]
-                )
+                /^\d{17,20}$/.test(id)
             ) {
 
                 target =
                     await message.guild.members
-                        .fetch(args[0])
+                        .fetch(id)
                         .catch(() => null);
 
             }
 
             /*
-             * Try exact username/display name
+             * Mention
              */
 
             if (!target) {
 
                 target =
-                    message.guild.members.cache.find(
-                        member =>
-                            member.user.username
-                                .toLowerCase() ===
-                                input ||
-                            member.displayName
-                                .toLowerCase() ===
-                                input
-                    );
+                    message.mentions.members.first() ||
+                    null;
 
             }
 
             /*
-             * Try partial username/display name
+             * Cached username
              */
 
             if (!target) {
+
+                const input =
+                    targetInput.toLowerCase();
 
                 target =
                     message.guild.members.cache.find(
                         member =>
                             member.user.username
-                                .toLowerCase()
-                                .includes(input) ||
-                            member.displayName
-                                .toLowerCase()
-                                .includes(input)
-                    );
+                                .toLowerCase() ===
+                            input
+                    ) || null;
 
             }
 
+            /*
+             * Discord username search
+             */
+
+            if (!target) {
+
+                const members =
+                    await message.guild.members
+                        .fetch({
+                            query:
+                                targetInput,
+                            limit: 10
+                        })
+                        .catch(() => []);
+
+                target =
+                    members.find(
+                        member =>
+                            member.user.username
+                                .toLowerCase() ===
+                            targetInput.toLowerCase()
+                    ) || null;
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "[JAIL] Failed to resolve target:",
+                error
+            );
+
+            return message.channel.send({
+                embeds: [
+                    globalEmbeds.notFound(
+                        message.author
+                    )
+                ]
+            });
+
         }
 
         /*
-         * No target
+         * Not found
          */
 
         if (!target) {
-            return;
+            return message.channel.send({
+                embeds: [
+                    globalEmbeds.notFound(
+                        message.author
+                    )
+                ]
+            });
         }
 
         /*
-         * Can't jail yourself
+         * Self
          */
 
         if (
             target.id ===
             message.author.id
         ) {
-            return;
+            return message.channel.send({
+                embeds: [
+                    globalEmbeds.self(
+                        message.author
+                    )
+                ]
+            });
         }
 
         /*
-         * Can't jail the bot
+         * Bot
          */
 
         if (
             target.id ===
             client.user.id
         ) {
-            return;
+            return message.channel.send({
+                embeds: [
+                    globalEmbeds.self(
+                        message.author
+                    )
+                ]
+            });
         }
 
         /*
-         * Check if already jailed
+         * Already jailed
          */
 
         const memberRecord =
@@ -214,22 +279,13 @@ module.exports = {
         }
 
         /*
-         * Get bot member
-         */
-
-        const botMember =
-            message.guild.members.me ||
-            await message.guild.members.fetch(
-                client.user.id
-            );
-
-        /*
          * Moderator hierarchy
          */
 
         if (
-            target.roles.highest.position >=
-            message.member.roles.highest.position
+            message.member.roles.highest.comparePositionTo(
+                target.roles.highest
+            ) <= 0
         ) {
             return message.channel.send({
                 embeds: [
@@ -245,9 +301,16 @@ module.exports = {
          * Bot hierarchy
          */
 
+        const botMember =
+            message.guild.members.me ||
+            await message.guild.members.fetch(
+                client.user.id
+            );
+
         if (
-            target.roles.highest.position >=
-            botMember.roles.highest.position
+            botMember.roles.highest.comparePositionTo(
+                target.roles.highest
+            ) <= 0
         ) {
             return message.channel.send({
                 embeds: [
@@ -279,8 +342,7 @@ module.exports = {
         }
 
         /*
-         * Make sure the bot can manage
-         * the Jailed role.
+         * Bot must manage Jailed role
          */
 
         if (!jailRole.editable) {
@@ -295,22 +357,16 @@ module.exports = {
         }
 
         /*
-         * Reason is optional.
-         *
-         * First argument = target.
-         * Everything after it = reason.
+         * Reason
          */
 
         const reason =
-            args
-                .slice(1)
-                .join(" ")
-                .trim() ||
-            "No reason provided";
+            args.length
+                ? args.join(" ").trim()
+                : "No reason provided";
 
         /*
-         * Save the member's current
-         * manageable roles.
+         * Save current manageable roles
          */
 
         const roles =
@@ -329,14 +385,14 @@ module.exports = {
                 );
 
         /*
-         * Get persistent case number.
+         * Case number
          */
 
         const caseNumber =
             jail.nextCase || 1;
 
         /*
-         * Apply Jailed role.
+         * Apply Jailed role
          */
 
         try {
@@ -357,7 +413,7 @@ module.exports = {
         }
 
         /*
-         * Save jail record.
+         * Save jail record
          */
 
         jail.members.push({
@@ -379,29 +435,11 @@ module.exports = {
 
         });
 
-        /*
-         * Increment case number.
-         */
-
         jail.nextCase =
             caseNumber + 1;
 
-        await jail.save();
-
         /*
-         * Synchronize jail permissions.
-         *
-         * This applies the Jailed role to
-         * all categories and keeps the Jail
-         * category accessible.
-         */
-
-        await JailSystem.sync(
-            message.guild
-        );
-
-        /*
-         * User-facing response
+         * Respond first.
          */
 
         await message.channel.send({
@@ -415,31 +453,48 @@ module.exports = {
         });
 
         /*
-         * Jail log event
+         * Save in background.
          */
 
-        client.emit(
-            "jail",
-            {
-                action:
-                    "jailed",
+        jail.save().catch(error => {
 
-                guildId:
-                    message.guild.id,
+            console.error(
+                "[JAIL] Failed to save jail record:",
+                error
+            );
 
-                member:
-                    target,
+        });
 
-                moderator:
-                    message.author,
+        /*
+         * Jail log event.
+         */
 
-                reason:
-                    reason,
+        setImmediate(() => {
 
-                caseNumber:
-                    caseNumber
-            }
-        );
+            client.emit(
+                "jail",
+                {
+                    action:
+                        "jailed",
+
+                    guildId:
+                        message.guild.id,
+
+                    member:
+                        target,
+
+                    moderator:
+                        message.author,
+
+                    reason:
+                        reason,
+
+                    caseNumber:
+                        caseNumber
+                }
+            );
+
+        });
 
         return true;
 
