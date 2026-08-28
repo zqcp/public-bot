@@ -8,8 +8,8 @@ module.exports = {
     name: "messageCreate",
 
     async execute(
-        client,
-        message
+        message,
+        client
     ) {
 
         await TextFilter.handle(
