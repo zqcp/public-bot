@@ -117,7 +117,8 @@ module.exports = {
          * Create Jailed role.
          *
          * No custom color.
-         * Discord's default role color is used.
+         * Discord's normal/default role
+         * appearance is used.
          */
 
         let jailRole;
@@ -146,7 +147,7 @@ module.exports = {
         }
 
         /*
-         * Make sure bot can manage
+         * Make sure the bot can manage
          * the Jailed role.
          */
 
@@ -169,41 +170,9 @@ module.exports = {
         }
 
         /*
-         * Create Jail category.
-         */
-
-        let jailCategory;
-
-        try {
-
-            jailCategory =
-                await message.guild.channels.create({
-
-                    name:
-                        "Jail",
-
-                    type:
-                        ChannelType.GuildCategory,
-
-                    reason:
-                        "Jail system setup"
-
-                });
-
-        } catch (error) {
-
-            console.error(
-                "[JAIL] Failed to create Jail category:",
-                error
-            );
-
-            await jailRole.delete().catch(() => {});
-
-            return;
-        }
-
-        /*
          * Create Jail channel.
+         *
+         * No category.
          */
 
         let jailChannel;
@@ -219,9 +188,6 @@ module.exports = {
                     type:
                         ChannelType.GuildText,
 
-                    parent:
-                        jailCategory.id,
-
                     reason:
                         "Jail system setup"
 
@@ -234,7 +200,6 @@ module.exports = {
                 error
             );
 
-            await jailCategory.delete().catch(() => {});
             await jailRole.delete().catch(() => {});
 
             return;
@@ -242,6 +207,8 @@ module.exports = {
 
         /*
          * Create Jail logs channel.
+         *
+         * No category.
          */
 
         let logChannel;
@@ -257,9 +224,6 @@ module.exports = {
                     type:
                         ChannelType.GuildText,
 
-                    parent:
-                        jailCategory.id,
-
                     reason:
                         "Jail system setup"
 
@@ -272,15 +236,23 @@ module.exports = {
                 error
             );
 
-            await jailChannel.delete().catch(() => {});
-            await jailCategory.delete().catch(() => {});
-            await jailRole.delete().catch(() => {});
+            await jailChannel
+                .delete()
+                .catch(() => {});
+
+            await jailRole
+                .delete()
+                .catch(() => {});
 
             return;
         }
 
         /*
          * Save guild configuration.
+         *
+         * categoryId is intentionally null
+         * because the jail system does not
+         * use a category.
          */
 
         try {
@@ -294,7 +266,7 @@ module.exports = {
                     jailRole.id,
 
                 categoryId:
-                    jailCategory.id,
+                    null,
 
                 channelId:
                     jailChannel.id,
@@ -317,10 +289,17 @@ module.exports = {
                 error
             );
 
-            await logChannel.delete().catch(() => {});
-            await jailChannel.delete().catch(() => {});
-            await jailCategory.delete().catch(() => {});
-            await jailRole.delete().catch(() => {});
+            await logChannel
+                .delete()
+                .catch(() => {});
+
+            await jailChannel
+                .delete()
+                .catch(() => {});
+
+            await jailRole
+                .delete()
+                .catch(() => {});
 
             return;
         }
@@ -328,8 +307,21 @@ module.exports = {
         /*
          * Apply jail permissions.
          *
-         * This synchronizes the Jailed role
-         * with the jail category and channels.
+         * This runs ONLY during setup.
+         *
+         * Normal existing channels:
+         * Jailed = ViewChannel false
+         *
+         * #jail:
+         * @everyone = hidden
+         * Jailed = visible + can send
+         *
+         * #jail-logs:
+         * @everyone = hidden
+         * Jailed = hidden
+         *
+         * Existing permissions for every
+         * other role are left untouched.
          */
 
         const synced =
@@ -346,7 +338,7 @@ module.exports = {
         }
 
         /*
-         * Success.
+         * Success
          */
 
         return message.channel.send({
