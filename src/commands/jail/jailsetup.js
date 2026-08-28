@@ -113,9 +113,33 @@ module.exports = {
         const jailRole =
             await message.guild.roles.create({
                 name: "Jailed",
+                color: 0x2B2D31,
                 reason:
                     "Jail system setup"
             });
+
+        /*
+         * Make sure the bot can manage
+         * the Jailed role.
+         */
+
+        if (
+            jailRole.position >=
+            botMember.roles.highest.position
+        ) {
+
+            await jailRole.delete().catch(() => {});
+
+            return message.channel.send({
+                embeds: [
+                    globalEmbeds.botPermission(
+                        message.author,
+                        "Manage Roles"
+                    )
+                ]
+            });
+
+        }
 
         /*
          * Create Jail category
@@ -130,26 +154,37 @@ module.exports = {
             });
 
         /*
+         * CATEGORY PERMISSIONS
+         *
+         * @everyone cannot see the category.
+         *
+         * Jailed can see the category and
+         * access channels inside it.
+         */
+
+        await jailCategory.permissionOverwrites.edit(
+            message.guild.roles.everyone,
+            {
+                ViewChannel: false
+            }
+        );
+
+        await jailCategory.permissionOverwrites.edit(
+            jailRole,
+            {
+                ViewChannel: true,
+                ReadMessageHistory: true,
+                SendMessages: true
+            }
+        );
+
+        /*
          * Create Jail channel
          */
 
         const jailChannel =
             await message.guild.channels.create({
                 name: "jail",
-                type: ChannelType.GuildText,
-                parent:
-                    jailCategory.id,
-                reason:
-                    "Jail system setup"
-            });
-
-        /*
-         * Create Jail logs channel
-         */
-
-        const logChannel =
-            await message.guild.channels.create({
-                name: "jail-logs",
                 type: ChannelType.GuildText,
                 parent:
                     jailCategory.id,
@@ -178,7 +213,21 @@ module.exports = {
         );
 
         /*
-         * Hide jail logs from @everyone
+         * Create Jail logs channel
+         */
+
+        const logChannel =
+            await message.guild.channels.create({
+                name: "jail-logs",
+                type: ChannelType.GuildText,
+                parent:
+                    jailCategory.id,
+                reason:
+                    "Jail system setup"
+            });
+
+        /*
+         * Hide logs from @everyone
          */
 
         await logChannel.permissionOverwrites.edit(
@@ -189,10 +238,22 @@ module.exports = {
         );
 
         /*
+         * Jailed members cannot see logs.
+         */
+
+        await logChannel.permissionOverwrites.edit(
+            jailRole,
+            {
+                ViewChannel: false
+            }
+        );
+
+        /*
          * Save guild configuration
          */
 
         await Jail.create({
+
             guildId:
                 message.guild.id,
 
@@ -211,6 +272,7 @@ module.exports = {
             nextCase: 1,
 
             members: []
+
         });
 
         /*
