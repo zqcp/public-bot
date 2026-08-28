@@ -1,3 +1,5 @@
+// src/commands/jail/jail.js
+
 const {
     PermissionFlagsBits
 } = require("discord.js");
@@ -28,9 +30,17 @@ module.exports = {
         args
     ) {
 
+        /*
+         * Guild only
+         */
+
         if (!message.guild) {
             return;
         }
+
+        /*
+         * User permission
+         */
 
         if (
             !message.member.permissions.has(
@@ -46,6 +56,10 @@ module.exports = {
                 ]
             });
         }
+
+        /*
+         * Find jail setup
+         */
 
         const jail =
             await Jail.findOne({
@@ -63,32 +77,120 @@ module.exports = {
             });
         }
 
-        const target =
-            message.mentions.members.first() ||
-            await message.guild.members.fetch(
-                args[0]
-            ).catch(() => null);
+        /*
+         * Find target
+         *
+         * Supports:
+         * @mention
+         * User ID
+         * Username
+         * Display name
+         */
+
+        let target = null;
+
+        const mention =
+            message.mentions.members.first();
+
+        if (mention) {
+
+            target = mention;
+
+        } else if (args[0]) {
+
+            const input =
+                args[0].toLowerCase();
+
+            /*
+             * Try user ID
+             */
+
+            if (/^\d{17,20}$/.test(args[0])) {
+
+                target =
+                    await message.guild.members
+                        .fetch(args[0])
+                        .catch(() => null);
+
+            }
+
+            /*
+             * Try username / display name
+             */
+
+            if (!target) {
+
+                target =
+                    message.guild.members.cache.find(
+                        member =>
+                            member.user.username
+                                .toLowerCase() === input ||
+                            member.displayName
+                                .toLowerCase() === input
+                    );
+
+            }
+
+            /*
+             * Try partial username/display name
+             */
+
+            if (!target) {
+
+                target =
+                    message.guild.members.cache.find(
+                        member =>
+                            member.user.username
+                                .toLowerCase()
+                                .includes(input) ||
+                            member.displayName
+                                .toLowerCase()
+                                .includes(input)
+                    );
+
+            }
+
+        }
+
+        /*
+         * No target
+         */
 
         if (!target) {
             return;
         }
 
+        /*
+         * Can't jail yourself
+         */
+
         if (
-            target.id === message.author.id
+            target.id ===
+            message.author.id
         ) {
             return;
         }
 
+        /*
+         * Can't jail the bot
+         */
+
         if (
-            target.id === client.user.id
+            target.id ===
+            client.user.id
         ) {
             return;
         }
+
+        /*
+         * Check if already jailed
+         */
 
         const memberRecord =
             jail.members.find(
                 member =>
-                    member.userId === target.id
+                    member.userId ===
+                    target.id
             );
 
         if (memberRecord) {
@@ -124,9 +226,15 @@ module.exports = {
          * Bot hierarchy
          */
 
+        const botMember =
+            message.guild.members.me ||
+            await message.guild.members.fetch(
+                client.user.id
+            );
+
         if (
             target.roles.highest.position >=
-            message.guild.members.me.roles.highest.position
+            botMember.roles.highest.position
         ) {
             return message.channel.send({
                 embeds: [
@@ -137,6 +245,10 @@ module.exports = {
                 ]
             });
         }
+
+        /*
+         * Find jail role
+         */
 
         const jailRole =
             message.guild.roles.cache.get(
@@ -153,6 +265,10 @@ module.exports = {
             });
         }
 
+        /*
+         * Bot must be above jail role
+         */
+
         if (!jailRole.editable) {
             return message.channel.send({
                 embeds: [
@@ -165,9 +281,23 @@ module.exports = {
         }
 
         /*
+         * Get reason
+         *
+         * First argument is always the target.
+         */
+
+        const reason =
+            args
+                .slice(1)
+                .join(" ")
+                .trim() ||
+            "No reason provided";
+
+        /*
          * Save current roles.
          *
-         * @everyone is never saved.
+         * @everyone and the Jailed role
+         * are never saved.
          */
 
         const roles =
@@ -175,25 +305,29 @@ module.exports = {
                 .filter(
                     role =>
                         role.id !==
-                        message.guild.id
+                            message.guild.id &&
+                        role.id !==
+                            jailRole.id &&
+                        role.editable
                 )
                 .map(
                     role =>
                         role.id
                 );
 
-        const reason =
-            args
-                .slice(
-                    message.mentions.members.first()
-                        ? 1
-                        : 1
-                )
-                .join(" ") ||
-            "No reason provided";
+        /*
+         * Get case number
+         */
+
+        const caseNumber =
+            jail.nextCase || 1;
 
         /*
-         * Remove manageable roles
+         * Apply Jailed role
+         *
+         * This removes the member's
+         * manageable roles and gives
+         * them the Jailed role.
          */
 
         try {
@@ -218,6 +352,7 @@ module.exports = {
          */
 
         jail.members.push({
+
             userId:
                 target.id,
 
@@ -227,9 +362,20 @@ module.exports = {
             reason:
                 reason,
 
+            caseNumber:
+                caseNumber,
+
             jailedAt:
                 new Date()
+
         });
+
+        /*
+         * Increment case number
+         */
+
+        jail.nextCase =
+            caseNumber + 1;
 
         await jail.save();
 
@@ -237,7 +383,7 @@ module.exports = {
          * User-facing response
          */
 
-        return message.channel.send({
+        await message.channel.send({
             embeds: [
                 jailEmbeds.jailed(
                     message.author,
@@ -246,6 +392,35 @@ module.exports = {
                 )
             ]
         });
+
+        /*
+         * Send jail log event
+         */
+
+        client.emit(
+            "jail",
+            {
+                action:
+                    "jailed",
+
+                guildId:
+                    message.guild.id,
+
+                member:
+                    target,
+
+                moderator:
+                    message.author,
+
+                reason:
+                    reason,
+
+                caseNumber:
+                    caseNumber
+            }
+        );
+
+        return true;
 
     }
 
