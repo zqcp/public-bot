@@ -163,6 +163,22 @@ module.exports = {
                 `${config.emojis.success} ${user}: The **jail system** has been removed.`
             );
 
+    },
+
+
+    unsetupBlocked(
+        user,
+        count
+    ) {
+
+        return new EmbedBuilder()
+            .setColor(
+                config.colors.error
+            )
+            .setDescription(
+                `${config.emojis.error} ${user}: You can't remove the **jail system** while **${count}** member${count === 1 ? "" : "s"} ${count === 1 ? "is" : "are"} still jailed.`
+            );
+
     }
 
 };
