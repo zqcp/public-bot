@@ -15,7 +15,7 @@ module.exports = {
 
     name: "jail",
 
-    aliases: [],
+    aliases: ["j"],
 
     permissions: {
         user: ["ManageGuild"],
