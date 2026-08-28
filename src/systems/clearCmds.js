@@ -3,9 +3,6 @@
 const ClearCmds =
     require("../models/ClearCmds");
 
-const config =
-    require("../config");
-
 module.exports = {
 
     async handle(
@@ -27,8 +24,7 @@ module.exports = {
         /*
          * Ignore bots
          *
-         * This is important:
-         * regular bot messages stay untouched.
+         * Bot messages are always kept.
          */
 
         if (
@@ -43,20 +39,6 @@ module.exports = {
 
         if (
             !message.guild
-        ) {
-            return;
-        }
-
-        /*
-         * Only check messages that
-         * start with the configured prefix.
-         */
-
-        if (
-            !message.content ||
-            !message.content.startsWith(
-                config.prefix
-            )
         ) {
             return;
         }
@@ -100,7 +82,7 @@ module.exports = {
         }
 
         /*
-         * Delete command message
+         * Delete every human message
          */
 
         try {
@@ -110,7 +92,7 @@ module.exports = {
         } catch (error) {
 
             console.error(
-                "[CLEARCMDS] Failed to delete command:",
+                "[CLEARCMDS] Failed to delete message:",
                 error
             );
 
