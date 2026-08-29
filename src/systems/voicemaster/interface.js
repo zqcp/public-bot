@@ -62,25 +62,22 @@ async function update(
             .setTitle(
                 "VoiceMaster Interface"
             )
-            .setURL(
-                "https://example.com"
-            )
             .setDescription(
                 "Use the controls below to manage your voice channel with ease."
             )
             .addFields({
-                name: "Quick Commands",
+                name: "\u200b",
                 value:
-`> <:vc_reject:1537241549304500315> **[reject](https://example.com)** - ban a member
-> <:vc_kick:1537241600650903654> **[kick](https://example.com)** - remove a member
-> <:vc_permit:1537242278991630437> **[permit](https://example.com)** - permit users or roles
-> <:vc_lock:1537242322285232158> **[lock](https://example.com)** - secure your channel
-> <:vc_unlock:1537242360935878797> **[unlock](https://example.com)** - open your channel
-> <:vc_transfer:1537242413045776394> **[transfer](https://example.com)** - hand off ownership
-> <:vc_claim:1537242443005698118> **[claim](https://example.com)** - claim ownership
-> <:vc_unmute:1537242487028977674> **[unmute](https://example.com)** - unmute yourself
-> <:vc_rename:1537242538413531279> **[rename](https://example.com)** - rename the channel
-> <:vc_limit:1537242633741799435> **[limit](https://example.com)** - adjust the user limit`
+`<:vc_lock:1543240964779278439> **Lock** the voice channel
+<:vc_unlock:1543240922941235290> **Unlock** the voice channel
+<:vc_hide:1543241001705930843> **Hide** the voice channel
+<:vc_reveal:1543241065438519306> **Reveal** the voice channel
+<:vc_disconnect:1543241366321238026> **Disconnect** a member
+<:vc_start:1543241403511996457> **Start** an activity
+<:vc_info:1543241450685202452> **View** channel information
+<:vc_increase:1543241492884365403> **Increase** the user limit
+<:vc_decrease:1543241527780835389> **Decrease** the user limit
+<:vc_claim:1543241117779099709> **Claim** the voice channel`
             })
             .setColor(
                 config.colors.regular
