@@ -9,27 +9,18 @@ module.exports = {
     name: "voiceStateUpdate",
 
     async execute(
-        client,
         oldState,
-        newState
+        newState,
+        client
     ) {
 
-        /*
-         * Ignore bots
-         */
-
         if (
-            !newState.member ||
+            !newState?.member ||
             newState.member.user.bot
         ) {
             return;
         }
 
-
-        /*
-         * Let the voice leaderboard system
-         * handle join / leave / channel changes.
-         */
 
         try {
 
@@ -41,7 +32,7 @@ module.exports = {
         } catch (error) {
 
             console.error(
-                "[VOICE LEADERBOARD] Event error:",
+                "[VOICE LEADERBOARD]",
                 error
             );
 
