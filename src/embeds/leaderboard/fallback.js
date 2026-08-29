@@ -8,91 +8,21 @@ const config =
 
 module.exports = {
 
-    /*
-     * ========================================================
-     * CHAT FALLBACK
-     * ========================================================
-     */
-
     chat(
         guild,
         entries,
         nextWipeAt
     ) {
 
-        const icon =
-            guild.iconURL({
-                dynamic: true,
-                size: 4096
-            });
-
-
-        const leaderboard =
-            buildChatLeaderboard(
-                entries
-            );
-
-
-        const footerTime =
-            getTimeUntil(
-                nextWipeAt
-            );
-
-
-        const day =
-            new Intl.DateTimeFormat(
-                "en-US",
-                {
-                    weekday: "long"
-                }
-            ).format(
-                new Date()
-            );
-
-
-        const embed =
-            new EmbedBuilder()
-                .setColor(
-                    config.colors.failed
-                )
-                .setTitle(
-                    "💬 Chat Leaderboard"
-                )
-                .setAuthor({
-                    name:
-                        guild.name
-                })
-                .setDescription(
-                    `${leaderboard}\n\n` +
-                    `${config.emojis.failed} Leaderboard temporarily unavailable. Showing the last saved data.`
-                )
-                .setFooter({
-                    text:
-                        `Last saved data • ${day} • Next wipe: in ${footerTime}`
-                });
-
-
-        if (
-            icon
-        ) {
-
-            embed.setThumbnail(
-                icon
-            );
-
-        }
-
-
-        return embed;
+        return create(
+            guild,
+            buildChat(entries),
+            nextWipeAt,
+            "💬 Chat Leaderboard"
+        );
 
     },
 
-
-    /*
-     * ========================================================
-     * VOICE FALLBACK
-     * ========================================================
-     */
 
     voice(
         guild,
@@ -100,221 +30,149 @@ module.exports = {
         nextWipeAt
     ) {
 
-        const icon =
-            guild.iconURL({
-                dynamic: true,
-                size: 4096
-            });
-
-
-        const leaderboard =
-            buildVoiceLeaderboard(
-                entries
-            );
-
-
-        const footerTime =
-            getTimeUntil(
-                nextWipeAt
-            );
-
-
-        const day =
-            new Intl.DateTimeFormat(
-                "en-US",
-                {
-                    weekday: "long"
-                }
-            ).format(
-                new Date()
-            );
-
-
-        const embed =
-            new EmbedBuilder()
-                .setColor(
-                    config.colors.failed
-                )
-                .setTitle(
-                    "🎙️ Voice Leaderboard"
-                )
-                .setAuthor({
-                    name:
-                        guild.name
-                })
-                .setDescription(
-                    `${leaderboard}\n\n` +
-                    `${config.emojis.failed} Leaderboard temporarily unavailable. Showing the last saved data.`
-                )
-                .setFooter({
-                    text:
-                        `Last saved data • ${day} • Next wipe: in ${footerTime}`
-                });
-
-
-        if (
-            icon
-        ) {
-
-            embed.setThumbnail(
-                icon
-            );
-
-        }
-
-
-        return embed;
+        return create(
+            guild,
+            buildVoice(entries),
+            nextWipeAt,
+            "🎙️ Voice Leaderboard"
+        );
 
     }
 
 };
 
 
-/*
- * ============================================================
- * CHAT LEADERBOARD
- * ============================================================
- */
+function create(
+    guild,
+    leaderboard,
+    nextWipeAt,
+    title
+) {
 
-function buildChatLeaderboard(
+    const day =
+        new Intl.DateTimeFormat(
+            "en-US",
+            {
+                weekday: "long"
+            }
+        ).format(
+            new Date()
+        );
+
+
+    const embed =
+        new EmbedBuilder()
+            .setColor(
+                config.colors.failed
+            )
+            .setTitle(
+                title
+            )
+            .setAuthor({
+                name:
+                    guild.name
+            })
+            .setDescription(
+                `${leaderboard}\n\n` +
+                `${config.emojis.failed} Leaderboard temporarily unavailable. Showing the last saved data.`
+            )
+            .setFooter({
+                text:
+                    `Last saved data • ${day} • Next wipe: in ${timeUntil(nextWipeAt)}`
+            });
+
+
+    const icon =
+        guild.iconURL({
+            dynamic: true,
+            size: 4096
+        });
+
+
+    if (icon) {
+        embed.setThumbnail(icon);
+    }
+
+
+    return embed;
+
+}
+
+
+function buildChat(
     entries
 ) {
 
-    if (
-        !entries ||
-        !entries.length
-    ) {
-
+    if (!entries?.length) {
         return "No messages recorded yet.";
-
     }
 
 
     return entries
         .slice(0, 10)
         .map(
-            (entry, index) => {
-
-                const position =
-                    index + 1;
-
-                const user =
-                    `<@${entry.userId}>`;
-
-                const messages =
-                    Number(
-                        entry.messages || 0
-                    ).toLocaleString();
-
-                let medal = "";
-
-                if (
-                    position === 1
-                ) {
-                    medal = "🥇 ";
-                } else if (
-                    position === 2
-                ) {
-                    medal = "🥈 ";
-                } else if (
-                    position === 3
-                ) {
-                    medal = "🥉 ";
-                }
-
-                return `${medal}${user} — ${messages} messages`;
-
-            }
+            (entry, index) =>
+                `${medal(index)} <@${entry.userId}> — **${Number(entry.messages || 0).toLocaleString()}**`
         )
         .join("\n");
 
 }
 
 
-/*
- * ============================================================
- * VOICE LEADERBOARD
- * ============================================================
- */
-
-function buildVoiceLeaderboard(
+function buildVoice(
     entries
 ) {
 
-    if (
-        !entries ||
-        !entries.length
-    ) {
-
+    if (!entries?.length) {
         return "No voice activity recorded yet.";
-
     }
 
 
     return entries
         .slice(0, 10)
         .map(
-            (entry, index) => {
-
-                const position =
-                    index + 1;
-
-                const user =
-                    `<@${entry.userId}>`;
-
-                const totalSeconds =
-                    Number(
-                        entry.totalSeconds || 0
-                    );
-
-                const duration =
-                    formatVoiceDuration(
-                        totalSeconds
-                    );
-
-                let medal = "";
-
-                if (
-                    position === 1
-                ) {
-                    medal = "🥇 ";
-                } else if (
-                    position === 2
-                ) {
-                    medal = "🥈 ";
-                } else if (
-                    position === 3
-                ) {
-                    medal = "🥉 ";
-                }
-
-                return `${medal}${user} — ${duration}`;
-
-            }
+            (entry, index) =>
+                `${medal(index)} <@${entry.userId}> — **${formatVoice(entry.totalSeconds)}**`
         )
         .join("\n");
 
 }
 
 
-/*
- * ============================================================
- * VOICE TIME FORMAT
- * ============================================================
- */
-
-function formatVoiceDuration(
-    totalSeconds
+function medal(
+    index
 ) {
+
+    if (index === 0) return "🥇";
+    if (index === 1) return "🥈";
+    if (index === 2) return "🥉";
+
+    return `${index + 1}.`;
+
+}
+
+
+function formatVoice(
+    seconds
+) {
+
+    seconds =
+        Math.max(
+            0,
+            Number(seconds) || 0
+        );
+
 
     const hours =
         Math.floor(
-            totalSeconds / 3600
+            seconds / 3600
         );
 
     const minutes =
         Math.floor(
-            (totalSeconds % 3600) / 60
+            (
+                seconds % 3600
+            ) / 60
         );
 
 
@@ -325,90 +183,52 @@ function formatVoiceDuration(
 }
 
 
-/*
- * ============================================================
- * WIPE COUNTDOWN
- * ============================================================
- */
-
-function getTimeUntil(
+function timeUntil(
     target
 ) {
 
-    if (
-        !target
-    ) {
-
+    if (!target) {
         return "unknown";
-
     }
 
 
-    let difference =
-        new Date(
-            target
-        ).getTime() -
+    const difference =
+        new Date(target).getTime() -
         Date.now();
 
 
-    if (
-        difference <= 0
-    ) {
-
+    if (difference <= 0) {
         return "now";
-
     }
-
-
-    const day =
-        24 * 60 * 60 * 1000;
-
-    const hour =
-        60 * 60 * 1000;
-
-    const minute =
-        60 * 1000;
 
 
     const days =
         Math.floor(
-            difference / day
+            difference / 86400000
         );
-
-    difference %=
-        day;
-
 
     const hours =
         Math.floor(
-            difference / hour
+            (
+                difference % 86400000
+            ) / 3600000
         );
-
-    difference %=
-        hour;
-
 
     const minutes =
         Math.floor(
-            difference / minute
+            (
+                difference % 3600000
+            ) / 60000
         );
 
 
-    if (
-        days > 0
-    ) {
-
+    if (days > 0) {
         return `${days}d ${hours}h`;
-
     }
 
 
-    if (
-        hours > 0
-    ) {
-
+    if (hours > 0) {
         return `${hours}h ${minutes}m`;
-
     }
 
 
