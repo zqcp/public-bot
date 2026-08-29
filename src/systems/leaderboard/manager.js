@@ -1,8 +1,4 @@
-// src/systems/leaderboard/manager.js
-
-const {
-    EmbedBuilder
-} = require("discord.js");
+// src/systems/leaderboard/update.js
 
 const LeaderboardConfig =
     require("../../models/LeaderboardConfig");
@@ -13,177 +9,83 @@ const ChatLeaderboard =
 const VoiceLeaderboard =
     require("../../models/VoiceLeaderboard");
 
-const config =
-    require("../../config");
+const ChatEmbed =
+    require("../../embeds/leaderboard/chat");
 
+const VoiceEmbed =
+    require("../../embeds/leaderboard/voice");
 
-const UPDATE_INTERVAL =
-    60 * 1000;
+const FallbackEmbed =
+    require("../../embeds/leaderboard/fallback");
 
-let timer = null;
-let updating = false;
-
-
-/*
- * Start manager
- */
-
-function start(client) {
-
-    if (timer) {
-        return;
-    }
-
-    update(client);
-
-    timer = setInterval(
-        () => update(client),
-        UPDATE_INTERVAL
-    );
-
-    console.log(
-        "[LEADERBOARD] Manager started."
-    );
-
-}
-
-
-/*
- * Update every configured guild
- */
 
 async function update(client) {
 
-    if (updating) {
-        return;
-    }
-
-    updating = true;
+    let configs;
 
     try {
 
-        const configs =
-            await LeaderboardConfig.find({});
-
-
-        for (const data of configs) {
-
-            try {
-
-                const guild =
-                    client.guilds.cache.get(
-                        data.guildId
-                    );
-
-                if (!guild) {
-                    continue;
-                }
-
-
-                /*
-                 * Weekly wipe
-                 */
-
-                if (
-                    Date.now() >=
-                    new Date(
-                        data.nextWipeAt
-                    ).getTime()
-                ) {
-
-                    await ChatLeaderboard.deleteMany({
-                        guildId:
-                            data.guildId
-                    });
-
-                    await VoiceLeaderboard.deleteMany({
-                        guildId:
-                            data.guildId
-                    });
-
-
-                    const now =
-                        new Date();
-
-
-                    data.weekStartedAt =
-                        now;
-
-                    data.nextWipeAt =
-                        new Date(
-                            now.getTime() +
-                            7 * 24 * 60 * 60 * 1000
-                        );
-
-
-                    await data.save();
-
-                }
-
-
-                /*
-                 * Update chat leaderboard
-                 */
-
-                if (
-                    data.chatChannelId &&
-                    data.chatMessageId
-                ) {
-
-                    await updateChat(
-                        guild,
-                        data
-                    );
-
-                }
-
-
-                /*
-                 * Update voice leaderboard
-                 */
-
-                if (
-                    data.voiceChannelId &&
-                    data.voiceMessageId
-                ) {
-
-                    await updateVoice(
-                        guild,
-                        data
-                    );
-
-                }
-
-            } catch (error) {
-
-                console.error(
-                    `[LEADERBOARD] ${data.guildId}:`,
-                    error
-                );
-
-            }
-
-        }
+        configs =
+            await LeaderboardConfig
+                .find({})
+                .lean();
 
     } catch (error) {
 
         console.error(
-            "[LEADERBOARD] Update error:",
+            "[LEADERBOARD] Failed to load configs:",
             error
         );
 
-    } finally {
+        return;
 
-        updating = false;
+    }
+
+
+    for (
+        const data of configs
+    ) {
+
+        const guild =
+            client.guilds.cache.get(
+                data.guildId
+            );
+
+
+        if (!guild) {
+            continue;
+        }
+
+
+        if (
+            data.chatChannelId &&
+            data.chatMessageId
+        ) {
+
+            await updateChat(
+                guild,
+                data
+            );
+
+        }
+
+
+        if (
+            data.voiceChannelId &&
+            data.voiceMessageId
+        ) {
+
+            await updateVoice(
+                guild,
+                data
+            );
+
+        }
 
     }
 
 }
 
-
-/*
- * Chat leaderboard
- */
 
 async function updateChat(
     guild,
@@ -195,6 +97,7 @@ async function updateChat(
             data.chatChannelId
         );
 
+
     if (
         !channel ||
         !channel.isTextBased()
@@ -204,80 +107,90 @@ async function updateChat(
 
 
     const message =
-        await channel.messages.fetch(
-            data.chatMessageId
-        ).catch(
-            () => null
-        );
+        await channel.messages
+            .fetch(
+                data.chatMessageId
+            )
+            .catch(
+                () => null
+            );
+
 
     if (!message) {
         return;
     }
 
 
-    const users =
-        await ChatLeaderboard.find({
-            guildId:
-                guild.id
-        })
-        .sort({
-            messages: -1
-        })
-        .limit(10)
-        .lean();
+    try {
+
+        const entries =
+            await ChatLeaderboard
+                .find({
+                    guildId:
+                        guild.id
+                })
+                .sort({
+                    messages: -1,
+                    userId: 1
+                })
+                .limit(10)
+                .lean();
 
 
-    const description =
-        users.length
-            ? users.map(
-                (user, index) =>
-                    `${medal(index)} <@${user.userId}> — **${Number(user.messages || 0).toLocaleString()}**`
-            ).join("\n")
-            : "No messages yet.";
+        const embed =
+            ChatEmbed.create(
+                guild,
+                entries,
+                data.nextWipeAt
+            );
 
 
-    const embed =
-        new EmbedBuilder()
-            .setColor(
-                config.colors.regular
-            )
-            .setTitle(
-                "💬 Chat Leaderboard"
-            )
-            .setAuthor({
-                name:
-                    guild.name
-            })
-            .setDescription(
-                description
-            )
-            .setFooter({
-                text:
-                    `Updates every min • ${day()} • Next wipe: in ${countdown(data.nextWipeAt)}`
-            });
-
-
-    const icon =
-        guild.iconURL({
-            dynamic: true,
-            size: 4096
+        await message.edit({
+            embeds: [embed]
         });
 
-    if (icon) {
-        embed.setThumbnail(icon);
+    } catch (error) {
+
+        console.error(
+            `[LEADERBOARD CHAT] ${guild.id}:`,
+            error
+        );
+
+
+        const saved =
+            await ChatLeaderboard
+                .find({
+                    guildId:
+                        guild.id
+                })
+                .sort({
+                    messages: -1
+                })
+                .limit(10)
+                .lean()
+                .catch(
+                    () => []
+                );
+
+
+        const embed =
+            FallbackEmbed.chat(
+                guild,
+                saved,
+                data.nextWipeAt
+            );
+
+
+        await message.edit({
+            embeds: [embed]
+        }).catch(
+            () => null
+        );
+
     }
-
-
-    await message.edit({
-        embeds: [embed]
-    });
 
 }
 
-
-/*
- * Voice leaderboard
- */
 
 async function updateVoice(
     guild,
@@ -289,6 +202,7 @@ async function updateVoice(
             data.voiceChannelId
         );
 
+
     if (
         !channel ||
         !channel.isTextBased()
@@ -298,216 +212,155 @@ async function updateVoice(
 
 
     const message =
-        await channel.messages.fetch(
-            data.voiceMessageId
-        ).catch(
-            () => null
-        );
+        await channel.messages
+            .fetch(
+                data.voiceMessageId
+            )
+            .catch(
+                () => null
+            );
+
 
     if (!message) {
         return;
     }
 
 
-    const users =
-        await VoiceLeaderboard.find({
-            guildId:
-                guild.id
-        })
-        .sort({
-            totalSeconds: -1
-        })
-        .limit(10)
-        .lean();
+    try {
+
+        const records =
+            await VoiceLeaderboard
+                .find({
+                    guildId:
+                        guild.id
+                })
+                .sort({
+                    totalSeconds: -1,
+                    userId: 1
+                })
+                .limit(10)
+                .lean();
 
 
-    const description =
-        users.length
-            ? users.map(
-                (user, index) =>
-                    `${medal(index)} <@${user.userId}> — **${voiceTime(user.totalSeconds)}**`
-            ).join("\n")
-            : "No voice activity yet.";
+        const now =
+            Date.now();
 
 
-    const embed =
-        new EmbedBuilder()
-            .setColor(
-                config.colors.regular
+        /*
+         * Add currently active voice time
+         * for display without changing MongoDB.
+         */
+
+        const entries =
+            records.map(
+                record => {
+
+                    let seconds =
+                        Number(
+                            record.totalSeconds || 0
+                        );
+
+
+                    if (
+                        record.sessionStartedAt
+                    ) {
+
+                        const started =
+                            new Date(
+                                record.sessionStartedAt
+                            ).getTime();
+
+
+                        if (
+                            Number.isFinite(
+                                started
+                            ) &&
+                            started <= now
+                        ) {
+
+                            seconds +=
+                                Math.floor(
+                                    (
+                                        now -
+                                        started
+                                    ) / 1000
+                                );
+
+                        }
+
+                    }
+
+
+                    return {
+                        ...record,
+                        totalSeconds:
+                            seconds
+                    };
+
+                }
             )
-            .setTitle(
-                "🎙️ Voice Leaderboard"
-            )
-            .setAuthor({
-                name:
-                    guild.name
-            })
-            .setDescription(
-                description
-            )
-            .setFooter({
-                text:
-                    `Updates every min • ${day()} • Next wipe: in ${countdown(data.nextWipeAt)}`
-            });
+            .sort(
+                (a, b) =>
+                    b.totalSeconds -
+                    a.totalSeconds
+            );
 
 
-    const icon =
-        guild.iconURL({
-            dynamic: true,
-            size: 4096
+        const embed =
+            VoiceEmbed.create(
+                guild,
+                entries,
+                data.nextWipeAt
+            );
+
+
+        await message.edit({
+            embeds: [embed]
         });
 
-    if (icon) {
-        embed.setThumbnail(icon);
+    } catch (error) {
+
+        console.error(
+            `[LEADERBOARD VOICE] ${guild.id}:`,
+            error
+        );
+
+
+        const saved =
+            await VoiceLeaderboard
+                .find({
+                    guildId:
+                        guild.id
+                })
+                .sort({
+                    totalSeconds: -1
+                })
+                .limit(10)
+                .lean()
+                .catch(
+                    () => []
+                );
+
+
+        const embed =
+            FallbackEmbed.voice(
+                guild,
+                saved,
+                data.nextWipeAt
+            );
+
+
+        await message.edit({
+            embeds: [embed]
+        }).catch(
+            () => null
+        );
+
     }
-
-
-    await message.edit({
-        embeds: [embed]
-    });
-
-}
-
-
-/*
- * Medal
- */
-
-function medal(index) {
-
-    if (index === 0) return "🥇";
-    if (index === 1) return "🥈";
-    if (index === 2) return "🥉";
-
-    return `${index + 1}.`;
-
-}
-
-
-/*
- * Voice time
- */
-
-function voiceTime(seconds) {
-
-    seconds =
-        Math.max(
-            0,
-            Number(seconds) || 0
-        );
-
-
-    const hours =
-        Math.floor(
-            seconds / 3600
-        );
-
-    const minutes =
-        Math.floor(
-            (seconds % 3600) / 60
-        );
-
-
-    return `${hours}h ${String(
-        minutes
-    ).padStart(2, "0")}m`;
-
-}
-
-
-/*
- * Current day
- */
-
-function day() {
-
-    return new Intl.DateTimeFormat(
-        "en-US",
-        {
-            weekday: "long"
-        }
-    ).format(
-        new Date()
-    );
-
-}
-
-
-/*
- * Next wipe countdown
- */
-
-function countdown(
-    date
-) {
-
-    let ms =
-        new Date(date).getTime() -
-        Date.now();
-
-
-    if (ms <= 0) {
-        return "now";
-    }
-
-
-    const days =
-        Math.floor(
-            ms / 86400000
-        );
-
-    ms %= 86400000;
-
-
-    const hours =
-        Math.floor(
-            ms / 3600000
-        );
-
-
-    if (days) {
-        return `${days}d ${hours}h`;
-    }
-
-
-    const minutes =
-        Math.floor(
-            ms / 60000
-        );
-
-
-    if (hours) {
-        return `${hours}h ${minutes}m`;
-    }
-
-
-    return `${Math.max(
-        1,
-        minutes
-    )}m`;
-
-}
-
-
-/*
- * Stop manager
- */
-
-function stop() {
-
-    if (!timer) {
-        return;
-    }
-
-    clearInterval(timer);
-
-    timer = null;
 
 }
 
 
 module.exports = {
-    start,
-    stop,
     update
 };
