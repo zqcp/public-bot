@@ -20,18 +20,25 @@ const config =
 // 2nd violation = 1 hour
 // 3rd violation = 1 day
 //
-// After the 1-day punishment expires, strikes reset.
+// The strike escalation is per-guild + per-user.
 //
 // Strike data is intentionally stored in memory.
 // Restarting the bot resets the escalation.
+//
+// IMPORTANT:
+// The actual Discord timeout is checked from
+// member.communicationDisabledUntilTimestamp.
+//
+// This means manually removing a timeout does NOT leave
+// the filter thinking the user is still punished.
 // ============================================================
 
 const strikes = new Map();
 
 const TIMEOUTS = [
-    10 * 60 * 1000,
-    60 * 60 * 1000,
-    24 * 60 * 60 * 1000
+    10 * 60 * 1000,       // 10 minutes
+    60 * 60 * 1000,       // 1 hour
+    24 * 60 * 60 * 1000   // 1 day
 ];
 
 
@@ -128,6 +135,7 @@ const HOMOGLYPHS = {
     "У": "y",
 
     "ᴢ": "z"
+
 };
 
 
@@ -248,6 +256,18 @@ function normalizeAggressive(text) {
                 /[^\p{L}\p{N}]/gu,
                 ""
             );
+
+    /*
+     * Collapse excessive repeated characters.
+     *
+     * baaaaaad -> baad
+     */
+
+    result =
+        result.replace(
+            /(.)\1{2,}/gu,
+            "$1$1"
+        );
 
     return result;
 
@@ -395,6 +415,20 @@ function buildWordVersions(word) {
 
 
 // ============================================================
+// ESCAPE REGEX
+// ============================================================
+
+function escapeRegex(text) {
+
+    return text.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        "\\$&"
+    );
+
+}
+
+
+// ============================================================
 // MATCH FILTER WORD
 // ============================================================
 
@@ -432,7 +466,7 @@ function matchesWord(
 
 
     // --------------------------------------------------------
-    // Normalized match
+    // Aggressive normalized match
     // --------------------------------------------------------
 
     if (
@@ -477,7 +511,7 @@ function matchesWord(
 
 
     // --------------------------------------------------------
-    // Repeated characters + spaces
+    // Repeated + spaces bypass
     // --------------------------------------------------------
 
     if (
@@ -493,8 +527,6 @@ function matchesWord(
 
     // --------------------------------------------------------
     // Character-separated bypass
-    //
-    // Example:
     //
     // b a d
     // b.a.d
@@ -545,20 +577,6 @@ function matchesWord(
 
 
 // ============================================================
-// ESCAPE REGEX
-// ============================================================
-
-function escapeRegex(text) {
-
-    return text.replace(
-        /[.*+?^${}()|[\]\\]/g,
-        "\\$&"
-    );
-
-}
-
-
-// ============================================================
 // STRIKE KEY
 // ============================================================
 
@@ -573,7 +591,7 @@ function getStrikeKey(
 
 
 // ============================================================
-// GET STRIKE
+// GET STRIKE RECORD
 // ============================================================
 
 function getStrike(
@@ -596,33 +614,21 @@ function getStrike(
         return {
             key,
             strikes: 0,
-            lastViolation: 0,
-            timeoutUntil: 0
+            lastViolation: 0
         };
 
     }
 
 
-    // --------------------------------------------------------
-    // Reset after the 1-day punishment expires.
-    // --------------------------------------------------------
-
-    if (
-        record.strikes >= 3 &&
-        Date.now() >= record.timeoutUntil
-    ) {
-
-        strikes.delete(key);
-
-        return {
-            key,
-            strikes: 0,
-            lastViolation: 0,
-            timeoutUntil: 0
-        };
-
-    }
-
+    /*
+     * Keep the strike record.
+     *
+     * We intentionally DO NOT use the old
+     * timeout timestamp to determine whether
+     * the user is currently timed out.
+     *
+     * Discord itself is the source of truth.
+     */
 
     return {
 
@@ -632,10 +638,7 @@ function getStrike(
             record.strikes || 0,
 
         lastViolation:
-            record.lastViolation || 0,
-
-        timeoutUntil:
-            record.timeoutUntil || 0
+            record.lastViolation || 0
 
     };
 
@@ -649,8 +652,7 @@ function getStrike(
 function setStrike(
     guildId,
     userId,
-    strikeNumber,
-    timeoutDuration
+    strikeNumber
 ) {
 
     const key =
@@ -659,9 +661,6 @@ function setStrike(
             userId
         );
 
-    const now =
-        Date.now();
-
     strikes.set(
         key,
         {
@@ -669,10 +668,7 @@ function setStrike(
                 strikeNumber,
 
             lastViolation:
-                now,
-
-            timeoutUntil:
-                now + timeoutDuration
+                Date.now()
         }
     );
 
@@ -694,6 +690,7 @@ function formatDuration(
         return "1 day";
     }
 
+
     if (
         milliseconds >=
         60 * 60 * 1000
@@ -708,6 +705,7 @@ function formatDuration(
         return `${hours} hour${hours === 1 ? "" : "s"}`;
 
     }
+
 
     const minutes =
         Math.round(
@@ -793,7 +791,7 @@ module.exports = {
 
 
         // ----------------------------------------------------
-        // Filter isn't configured/enabled.
+        // Filter disabled / not configured.
         // ----------------------------------------------------
 
         if (
@@ -828,7 +826,7 @@ module.exports = {
 
 
         // ----------------------------------------------------
-        // Get member.
+        // Get guild member.
         // ----------------------------------------------------
 
         let member =
@@ -860,7 +858,7 @@ module.exports = {
 
 
         // ----------------------------------------------------
-        // DELETE MESSAGE FIRST.
+        // DELETE OFFENDING MESSAGE.
         // ----------------------------------------------------
 
         try {
@@ -874,19 +872,11 @@ module.exports = {
                 error
             );
 
-            /*
-             * Don't stop the filter completely if
-             * deletion fails. Continue so the
-             * moderation action can still be attempted.
-             */
-
         }
 
 
         // ----------------------------------------------------
-        // Administrators:
-        //
-        // Message is removed but no timeout.
+        // Administrators are not timed out.
         // ----------------------------------------------------
 
         if (
@@ -925,7 +915,60 @@ module.exports = {
 
 
         // ----------------------------------------------------
-        // Get current strike.
+        // Make sure we have a member.
+        // ----------------------------------------------------
+
+        if (
+            !member
+        ) {
+
+            console.warn(
+                `[TEXT FILTER] Could not fetch member ${message.author.id} in ${message.guild.name}.`
+            );
+
+            return true;
+
+        }
+
+
+        // ----------------------------------------------------
+        // CHECK ACTUAL DISCORD TIMEOUT.
+        // ----------------------------------------------------
+        //
+        // This is the important fix.
+        //
+        // If Discord says the user is currently timed out,
+        // don't apply another timeout.
+        //
+        // If an administrator manually removes the timeout,
+        // communicationDisabledUntilTimestamp becomes null
+        // and the next violation can be punished normally.
+        // ----------------------------------------------------
+
+        const timeoutUntil =
+            member.communicationDisabledUntilTimestamp;
+
+        const currentlyTimedOut =
+            typeof timeoutUntil === "number" &&
+            timeoutUntil > Date.now();
+
+
+        if (
+            currentlyTimedOut
+        ) {
+
+            /*
+             * Message is still deleted, but we do not
+             * restart or extend the current timeout.
+             */
+
+            return true;
+
+        }
+
+
+        // ----------------------------------------------------
+        // GET CURRENT STRIKE.
         // ----------------------------------------------------
 
         const current =
@@ -936,25 +979,7 @@ module.exports = {
 
 
         // ----------------------------------------------------
-        // Already punished?
-        //
-        // Don't increase the strike or re-timeout them.
-        // Their messages are still deleted.
-        // ----------------------------------------------------
-
-        if (
-            current.timeoutUntil &&
-            Date.now() <
-                current.timeoutUntil
-        ) {
-
-            return true;
-
-        }
-
-
-        // ----------------------------------------------------
-        // Determine next strike.
+        // DETERMINE NEXT STRIKE.
         // ----------------------------------------------------
 
         const strikeNumber =
@@ -970,11 +995,10 @@ module.exports = {
 
 
         // ----------------------------------------------------
-        // Make sure member can actually be moderated.
+        // CHECK BOT MODERATION POWER.
         // ----------------------------------------------------
 
         if (
-            !member ||
             !member.moderatable
         ) {
 
@@ -988,11 +1012,11 @@ module.exports = {
 
 
         // ----------------------------------------------------
-        // Apply timeout.
+        // APPLY TIMEOUT.
+        // ----------------------------------------------------
         //
-        // IMPORTANT:
-        // Only save the strike AFTER Discord successfully
-        // applies the timeout.
+        // We ONLY save the strike after Discord accepts
+        // the timeout.
         // ----------------------------------------------------
 
         try {
@@ -1010,9 +1034,9 @@ module.exports = {
             );
 
             /*
-             * Don't save the strike if Discord rejected
-             * the timeout. This prevents the escalation
-             * system from becoming inaccurate.
+             * Discord rejected the timeout.
+             *
+             * Do NOT save the strike.
              */
 
             return true;
@@ -1021,19 +1045,18 @@ module.exports = {
 
 
         // ----------------------------------------------------
-        // Save strike.
+        // SAVE STRIKE AFTER SUCCESSFUL TIMEOUT.
         // ----------------------------------------------------
 
         setStrike(
             message.guild.id,
             message.author.id,
-            strikeNumber,
-            timeoutDuration
+            strikeNumber
         );
 
 
         // ----------------------------------------------------
-        // Warning embed.
+        // WARNING EMBED.
         // ----------------------------------------------------
 
         try {
