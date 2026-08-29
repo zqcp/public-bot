@@ -27,7 +27,7 @@ module.exports = {
         try {
 
             /*
-             * Get jail setup.
+             * Get jail configuration.
              */
 
             const jail =
@@ -35,10 +35,6 @@ module.exports = {
                     guildId:
                         channel.guild.id
                 });
-
-            /*
-             * No jail system configured.
-             */
 
             if (!jail) {
                 return;
@@ -58,190 +54,106 @@ module.exports = {
             }
 
             /*
-             * Get all channels/categories.
+             * NEW CATEGORY
              *
-             * This makes sure channels that existed
-             * BEFORE this channel was created are
-             * also synchronized.
+             * Hide the category from Jailed.
              */
 
-            const channels =
-                channel.guild.channels.cache;
-
-            /*
-             * Synchronize every channel/category.
-             */
-
-            for (
-                const currentChannel
-                of channels.values()
+            if (
+                channel.type ===
+                ChannelType.GuildCategory
             ) {
 
-                /*
-                 * Jail category does not exist as
-                 * a special category anymore.
-                 *
-                 * Only the two jail channels are
-                 * treated specially.
-                 */
+                await channel.permissionOverwrites.edit(
+                    jailRole,
+                    {
+                        ViewChannel: false
+                    }
+                );
 
-                /*
-                 * Categories
-                 *
-                 * Jailed cannot see normal categories.
-                 */
-
-                if (
-                    currentChannel.type ===
-                    ChannelType.GuildCategory
-                ) {
-
-                    await currentChannel.permissionOverwrites
-                        .edit(
-                            jailRole,
-                            {
-                                ViewChannel: false
-                            }
-                        )
-                        .catch(error => {
-
-                            console.error(
-                                `[JAIL] Failed to sync category ${currentChannel.id}:`,
-                                error
-                            );
-
-                        });
-
-                    continue;
-                }
-
-                /*
-                 * Jail channel
-                 *
-                 * Jailed members can access it.
-                 */
-
-                if (
-                    currentChannel.id ===
-                    jail.channelId
-                ) {
-
-                    await currentChannel.permissionOverwrites
-                        .edit(
-                            channel.guild.roles.everyone,
-                            {
-                                ViewChannel: false
-                            }
-                        )
-                        .catch(error => {
-
-                            console.error(
-                                `[JAIL] Failed to hide jail channel ${currentChannel.id}:`,
-                                error
-                            );
-
-                        });
-
-                    await currentChannel.permissionOverwrites
-                        .edit(
-                            jailRole,
-                            {
-                                ViewChannel: true,
-                                SendMessages: true,
-                                ReadMessageHistory: true
-                            }
-                        )
-                        .catch(error => {
-
-                            console.error(
-                                `[JAIL] Failed to allow Jailed role in jail channel ${currentChannel.id}:`,
-                                error
-                            );
-
-                        });
-
-                    continue;
-                }
-
-                /*
-                 * Jail logs channel
-                 *
-                 * Hidden from @everyone and Jailed.
-                 */
-
-                if (
-                    currentChannel.id ===
-                    jail.logChannelId
-                ) {
-
-                    await currentChannel.permissionOverwrites
-                        .edit(
-                            channel.guild.roles.everyone,
-                            {
-                                ViewChannel: false
-                            }
-                        )
-                        .catch(error => {
-
-                            console.error(
-                                `[JAIL] Failed to hide jail logs ${currentChannel.id}:`,
-                                error
-                            );
-
-                        });
-
-                    await currentChannel.permissionOverwrites
-                        .edit(
-                            jailRole,
-                            {
-                                ViewChannel: false
-                            }
-                        )
-                        .catch(error => {
-
-                            console.error(
-                                `[JAIL] Failed to hide jail logs from Jailed ${currentChannel.id}:`,
-                                error
-                            );
-
-                        });
-
-                    continue;
-                }
-
-                /*
-                 * Every normal channel.
-                 *
-                 * Hide it from Jailed.
-                 *
-                 * IMPORTANT:
-                 * Only the Jailed role overwrite is
-                 * changed. Everyone/staff/bot/etc.
-                 * permissions are untouched.
-                 */
-
-                await currentChannel.permissionOverwrites
-                    .edit(
-                        jailRole,
-                        {
-                            ViewChannel: false
-                        }
-                    )
-                    .catch(error => {
-
-                        console.error(
-                            `[JAIL] Failed to sync channel ${currentChannel.id}:`,
-                            error
-                        );
-
-                    });
-
+                return;
             }
+
+            /*
+             * NEW JAIL CHANNEL
+             *
+             * Allow Jailed members to access it.
+             */
+
+            if (
+                channel.id ===
+                jail.channelId
+            ) {
+
+                await channel.permissionOverwrites.edit(
+                    channel.guild.roles.everyone,
+                    {
+                        ViewChannel: false
+                    }
+                );
+
+                await channel.permissionOverwrites.edit(
+                    jailRole,
+                    {
+                        ViewChannel: true,
+                        SendMessages: true,
+                        ReadMessageHistory: true
+                    }
+                );
+
+                return;
+            }
+
+            /*
+             * NEW JAIL LOG CHANNEL
+             *
+             * Hide it from everyone and Jailed.
+             */
+
+            if (
+                channel.id ===
+                jail.logChannelId
+            ) {
+
+                await channel.permissionOverwrites.edit(
+                    channel.guild.roles.everyone,
+                    {
+                        ViewChannel: false
+                    }
+                );
+
+                await channel.permissionOverwrites.edit(
+                    jailRole,
+                    {
+                        ViewChannel: false
+                    }
+                );
+
+                return;
+            }
+
+            /*
+             * ANY OTHER NEW CHANNEL
+             *
+             * Hide it from Jailed.
+             *
+             * Only the Jailed role overwrite
+             * is modified. Existing permissions
+             * for everyone, staff, bots, etc.
+             * are left alone.
+             */
+
+            await channel.permissionOverwrites.edit(
+                jailRole,
+                {
+                    ViewChannel: false
+                }
+            );
 
         } catch (error) {
 
             console.error(
-                "[JAIL] Failed to automatically synchronize channels:",
+                "[JAIL] Failed to sync newly created channel:",
                 error
             );
 
