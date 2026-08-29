@@ -1,7 +1,11 @@
 const {
     ActionRowBuilder,
-    StringSelectMenuBuilder
+    StringSelectMenuBuilder,
+    StringSelectMenuOptionBuilder
 } = require("discord.js");
+
+const RolePanel =
+    require("../../../models/RolePanel");
 
 module.exports = {
 
@@ -9,42 +13,95 @@ module.exports = {
 
     type: "selectMenu",
 
-    async execute(client, interaction) {
+    async execute(
+        client,
+        interaction
+    ) {
 
-        if (!interaction.guild) return;
+        if (!interaction.guild) {
+            return;
+        }
+
+        const panel =
+            await RolePanel.findOne({
+                guildId:
+                    interaction.guild.id,
+                messageId:
+                    interaction.message.id
+            });
+
+        if (!panel) {
+            return interaction.reply({
+                content:
+                    "This role panel is no longer configured.",
+                flags: 64
+            });
+        }
 
         const roles =
-            interaction.guild.roles.cache
-                .filter(role =>
-                    role.id !== interaction.guild.id &&
-                    !role.managed
-                )
-                .sort((a, b) =>
-                    b.position - a.position
-                )
-                .first(25);
+            panel.roles || [];
 
         if (!roles.length) {
             return interaction.reply({
-                content: "No roles are available.",
+                content:
+                    "No roles have been added to this panel.",
+                flags: 64
+            });
+        }
+
+        const options =
+            roles
+                .map(role => {
+
+                    const discordRole =
+                        interaction.guild.roles.cache.get(
+                            role.roleId
+                        );
+
+                    if (!discordRole) {
+                        return null;
+                    }
+
+                    return new StringSelectMenuOptionBuilder()
+                        .setLabel(
+                            role.name || discordRole.name
+                        )
+                        .setValue(
+                            role.roleId
+                        )
+                        .setDescription(
+                            `Role ID: ${role.roleId}`
+                        );
+
+                })
+                .filter(Boolean);
+
+        if (!options.length) {
+            return interaction.reply({
+                content:
+                    "None of the configured roles exist anymore.",
                 flags: 64
             });
         }
 
         const menu =
             new StringSelectMenuBuilder()
-                .setCustomId("roleSelect")
-                .setPlaceholder("Select your roles...")
+                .setCustomId(
+                    `roleSelect:${panel.messageId}`
+                )
+                .setPlaceholder(
+                    panel.placeholder ||
+                    "Select your roles..."
+                )
                 .setMinValues(1)
                 .setMaxValues(
-                    Math.min(roles.length, 25)
+                    Math.min(
+                        options.length,
+                        25
+                    )
                 )
                 .addOptions(
-                    roles.map(role => ({
-                        label: role.name.slice(0, 100),
-                        description: `Role ID: ${role.id}`.slice(0, 100),
-                        value: role.id
-                    }))
+                    options.slice(0, 25)
                 );
 
         return interaction.update({
