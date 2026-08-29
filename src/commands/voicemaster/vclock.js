@@ -8,7 +8,7 @@ const Channels =
     require("../../systems/voicemaster/channels");
 
 const Voice =
-    require("../../embeds/voice");
+    require("../../embeds/voicemaster/voice");
 
 const {
     EmbedBuilder
