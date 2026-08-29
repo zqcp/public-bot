@@ -32,11 +32,13 @@ module.exports = {
                 .first(25);
 
         if (!roles.length) {
+
             return interaction.reply({
                 content:
                     "No roles are available.",
                 flags: 64
             });
+
         }
 
         const options =
@@ -47,7 +49,7 @@ module.exports = {
                             role.name.slice(0, 100)
                         )
                         .setDescription(
-                            `Role ID: ${role.id}`.slice(0, 100)
+                            `Role ID: ${role.id}`
                         )
                         .setValue(
                             role.id
@@ -74,17 +76,17 @@ module.exports = {
                 );
 
         return interaction.reply({
+
             content:
                 "Select your roles...",
 
             components: [
                 new ActionRowBuilder()
-                    .addComponents(
-                        menu
-                    )
+                    .addComponents(menu)
             ],
 
             flags: 64
+
         });
 
     }
