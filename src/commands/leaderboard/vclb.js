@@ -1,4 +1,4 @@
-// src/commands/leaderboard/setvclb.js
+// src/commands/setup/vclb.js
 
 const {
     EmbedBuilder
@@ -6,6 +6,9 @@ const {
 
 const LeaderboardConfig =
     require("../../models/LeaderboardConfig");
+
+const VoiceLeaderboard =
+    require("../../embeds/leaderboard/voice");
 
 const config =
     require("../../config");
@@ -84,6 +87,7 @@ module.exports = {
 
             data =
                 new LeaderboardConfig({
+
                     guildId:
                         message.guild.id,
 
@@ -95,6 +99,7 @@ module.exports = {
                             now.getTime() +
                             7 * 24 * 60 * 60 * 1000
                         )
+
                 });
 
         }
@@ -124,11 +129,13 @@ module.exports = {
             ) {
 
                 leaderboardMessage =
-                    await oldChannel.messages.fetch(
-                        data.voiceMessageId
-                    ).catch(
-                        () => null
-                    );
+                    await oldChannel.messages
+                        .fetch(
+                            data.voiceMessageId
+                        )
+                        .catch(
+                            () => null
+                        );
 
             }
 
@@ -136,44 +143,15 @@ module.exports = {
 
 
         /*
-         * Voice leaderboard embed.
+         * Use the core Voice Leaderboard embed.
          */
 
         const embed =
-            new EmbedBuilder()
-                .setColor(
-                    config.colors.regular
-                )
-                .setTitle(
-                    "🎙️ Voice Leaderboard"
-                )
-                .setAuthor({
-                    name:
-                        message.guild.name
-                })
-                .setDescription(
-                    "No voice activity yet."
-                )
-                .setFooter({
-                    text:
-                        "Updates every min"
-                });
-
-
-        const icon =
-            message.guild.iconURL({
-                dynamic: true,
-                size: 4096
-            });
-
-
-        if (icon) {
-
-            embed.setThumbnail(
-                icon
+            VoiceLeaderboard.create(
+                message.guild,
+                [],
+                data.nextWipeAt
             );
-
-        }
 
 
         /*
