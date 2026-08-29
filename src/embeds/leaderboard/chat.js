@@ -6,18 +6,6 @@ const config =
     require("../../config");
 
 
-/*
- * ============================================================
- * CHAT LEADERBOARD EMBED
- * ============================================================
- *
- * Creates the current Chat Leaderboard embed.
- *
- * The message itself is edited every minute.
- * This function only builds the embed.
- * ============================================================
- */
-
 module.exports = {
 
     create(
@@ -26,37 +14,9 @@ module.exports = {
         nextWipeAt
     ) {
 
-        /*
-         * Server icon
-         */
-
-        const icon =
-            guild.iconURL({
-                dynamic: true,
-                size: 4096
-            });
-
-
-        /*
-         * Build leaderboard
-         */
-
-        let leaderboard =
-            "";
-
-
-        if (
-            !entries ||
-            !entries.length
-        ) {
-
-            leaderboard =
-                "No messages recorded yet.";
-
-        } else {
-
-            leaderboard =
-                entries
+        const leaderboard =
+            entries?.length
+                ? entries
                     .slice(0, 10)
                     .map(
                         (entry, index) => {
@@ -64,52 +24,22 @@ module.exports = {
                             const position =
                                 index + 1;
 
-                            const user =
-                                `<@${entry.userId}>`;
-
-                            const messages =
-                                Number(
-                                    entry.messages || 0
-                                ).toLocaleString();
-
-                            let medal = "";
-
-                            if (
+                            const medal =
                                 position === 1
-                            ) {
-                                medal = "🥇 ";
-                            } else if (
-                                position === 2
-                            ) {
-                                medal = "🥈 ";
-                            } else if (
-                                position === 3
-                            ) {
-                                medal = "🥉 ";
-                            }
+                                    ? "🥇"
+                                    : position === 2
+                                        ? "🥈"
+                                        : position === 3
+                                            ? "🥉"
+                                            : `${position}.`;
 
-                            return `${medal}${user} — ${messages} messages`;
+                            return `${medal} <@${entry.userId}> — **${Number(entry.messages || 0).toLocaleString()}**`;
 
                         }
                     )
-                    .join("\n");
+                    .join("\n")
+                : "No messages recorded yet.";
 
-        }
-
-
-        /*
-         * Time until next wipe
-         */
-
-        const footerTime =
-            getTimeUntil(
-                nextWipeAt
-            );
-
-
-        /*
-         * Current day
-         */
 
         const day =
             new Intl.DateTimeFormat(
@@ -121,10 +51,6 @@ module.exports = {
                 new Date()
             );
 
-
-        /*
-         * Embed
-         */
 
         const embed =
             new EmbedBuilder()
@@ -143,17 +69,18 @@ module.exports = {
                 )
                 .setFooter({
                     text:
-                        `Updates every min • ${day} • Next wipe: in ${footerTime}`
+                        `Updates every min • ${day} • Next wipe: in ${timeUntil(nextWipeAt)}`
                 });
 
 
-        /*
-         * Server thumbnail
-         */
+        const icon =
+            guild.iconURL({
+                dynamic: true,
+                size: 4096
+            });
 
-        if (
-            icon
-        ) {
+
+        if (icon) {
 
             embed.setThumbnail(
                 icon
@@ -169,33 +96,12 @@ module.exports = {
 };
 
 
-/*
- * ============================================================
- * TIME FORMAT
- * ============================================================
- */
-
-function getTimeUntil(
+function timeUntil(
     target
 ) {
 
-    if (
-        !target
-    ) {
-
-        return "unknown";
-
-    }
-
-
-    const targetTime =
-        new Date(
-            target
-        ).getTime();
-
-
-    let difference =
-        targetTime -
+    const difference =
+        new Date(target).getTime() -
         Date.now();
 
 
@@ -208,37 +114,25 @@ function getTimeUntil(
     }
 
 
-    const day =
-        24 * 60 * 60 * 1000;
-
-    const hour =
-        60 * 60 * 1000;
-
-    const minute =
-        60 * 1000;
-
-
     const days =
         Math.floor(
-            difference / day
+            difference / 86400000
         );
-
-    difference %=
-        day;
 
 
     const hours =
         Math.floor(
-            difference / hour
+            (
+                difference % 86400000
+            ) / 3600000
         );
-
-    difference %=
-        hour;
 
 
     const minutes =
         Math.floor(
-            difference / minute
+            (
+                difference % 3600000
+            ) / 60000
         );
 
 
