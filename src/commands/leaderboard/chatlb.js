@@ -1,4 +1,4 @@
-// src/commands/leaderboard/setchatlb.js
+// src/commands/setup/chatlb.js
 
 const {
     EmbedBuilder
@@ -6,6 +6,9 @@ const {
 
 const LeaderboardConfig =
     require("../../models/LeaderboardConfig");
+
+const ChatLeaderboard =
+    require("../../embeds/leaderboard/chat");
 
 const config =
     require("../../config");
@@ -84,6 +87,7 @@ module.exports = {
 
             data =
                 new LeaderboardConfig({
+
                     guildId:
                         message.guild.id,
 
@@ -95,14 +99,14 @@ module.exports = {
                             now.getTime() +
                             7 * 24 * 60 * 60 * 1000
                         )
+
                 });
 
         }
 
 
         /*
-         * If an old leaderboard message exists,
-         * edit it instead of creating another one.
+         * Try to reuse the existing leaderboard message.
          */
 
         let leaderboardMessage = null;
@@ -125,11 +129,13 @@ module.exports = {
             ) {
 
                 leaderboardMessage =
-                    await oldChannel.messages.fetch(
-                        data.chatMessageId
-                    ).catch(
-                        () => null
-                    );
+                    await oldChannel.messages
+                        .fetch(
+                            data.chatMessageId
+                        )
+                        .catch(
+                            () => null
+                        );
 
             }
 
@@ -137,48 +143,19 @@ module.exports = {
 
 
         /*
-         * Create the leaderboard embed.
+         * Use the core Chat Leaderboard embed.
          */
 
         const embed =
-            new EmbedBuilder()
-                .setColor(
-                    config.colors.regular
-                )
-                .setTitle(
-                    "💬 Chat Leaderboard"
-                )
-                .setAuthor({
-                    name:
-                        message.guild.name
-                })
-                .setDescription(
-                    "No messages yet."
-                )
-                .setFooter({
-                    text:
-                        "Updates every min"
-                });
-
-
-        const icon =
-            message.guild.iconURL({
-                dynamic: true,
-                size: 4096
-            });
-
-
-        if (icon) {
-
-            embed.setThumbnail(
-                icon
+            ChatLeaderboard.create(
+                message.guild,
+                [],
+                data.nextWipeAt
             );
-
-        }
 
 
         /*
-         * Edit existing message if possible.
+         * Edit the existing leaderboard if possible.
          */
 
         if (
@@ -204,7 +181,7 @@ module.exports = {
 
 
         /*
-         * Save configuration.
+         * Save the new channel/message.
          */
 
         data.chatChannelId =
