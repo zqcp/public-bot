@@ -12,22 +12,22 @@ module.exports = {
     name: "channelCreate",
 
     async execute(
-        client,
-        channel
+        channel,
+        client
     ) {
 
         /*
          * Guild channels only.
          */
 
-        if (!channel.guild) {
+        if (!channel || !channel.guild) {
             return;
         }
 
         try {
 
             /*
-             * Get jail configuration.
+             * Get jail setup.
              */
 
             const jail =
@@ -35,6 +35,10 @@ module.exports = {
                     guildId:
                         channel.guild.id
                 });
+
+            /*
+             * Jail system is not setup.
+             */
 
             if (!jail) {
                 return;
@@ -77,7 +81,8 @@ module.exports = {
             /*
              * NEW JAIL CHANNEL
              *
-             * Allow Jailed members to access it.
+             * Allow Jailed members to see
+             * and use the channel.
              */
 
             if (
@@ -107,7 +112,8 @@ module.exports = {
             /*
              * NEW JAIL LOG CHANNEL
              *
-             * Hide it from everyone and Jailed.
+             * Hide it from everyone and
+             * Jailed members.
              */
 
             if (
@@ -138,9 +144,8 @@ module.exports = {
              * Hide it from Jailed.
              *
              * Only the Jailed role overwrite
-             * is modified. Existing permissions
-             * for everyone, staff, bots, etc.
-             * are left alone.
+             * is changed. Existing permissions
+             * remain untouched.
              */
 
             await channel.permissionOverwrites.edit(
