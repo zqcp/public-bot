@@ -24,9 +24,7 @@ module.exports = {
     ) {
 
         if (
-            !message.member.permissions.has(
-                "ManageGuild"
-            )
+            !message.member.permissions.has("ManageGuild")
         ) {
 
             return message.channel.send({
@@ -78,20 +76,16 @@ module.exports = {
             });
 
 
+        const now =
+            new Date();
+
+
         if (!data) {
 
-            const now =
-                new Date();
-
-
             data =
-                await LeaderboardConfig.create({
-
+                new LeaderboardConfig({
                     guildId:
                         message.guild.id,
-
-                    chatChannelId:
-                        channel.id,
 
                     weekStartedAt:
                         now,
@@ -101,32 +95,137 @@ module.exports = {
                             now.getTime() +
                             7 * 24 * 60 * 60 * 1000
                         )
-
                 });
-
-        } else {
-
-            data.chatChannelId =
-                channel.id;
-
-            await data.save();
 
         }
 
 
+        /*
+         * If an old leaderboard message exists,
+         * edit it instead of creating another one.
+         */
+
+        let leaderboardMessage = null;
+
+
+        if (
+            data.chatChannelId &&
+            data.chatMessageId
+        ) {
+
+            const oldChannel =
+                message.guild.channels.cache.get(
+                    data.chatChannelId
+                );
+
+
+            if (
+                oldChannel &&
+                oldChannel.isTextBased()
+            ) {
+
+                leaderboardMessage =
+                    await oldChannel.messages.fetch(
+                        data.chatMessageId
+                    ).catch(
+                        () => null
+                    );
+
+            }
+
+        }
+
+
+        /*
+         * Create the leaderboard embed.
+         */
+
         const embed =
             new EmbedBuilder()
                 .setColor(
-                    config.colors.success
+                    config.colors.regular
                 )
+                .setTitle(
+                    "💬 Chat Leaderboard"
+                )
+                .setAuthor({
+                    name:
+                        message.guild.name
+                })
                 .setDescription(
-                    `${config.emojis.success} ${message.author}: The **Chat Leaderboard** will now be posted in ${channel}.`
-                );
+                    "No messages yet."
+                )
+                .setFooter({
+                    text:
+                        "Updates every min"
+                });
+
+
+        const icon =
+            message.guild.iconURL({
+                dynamic: true,
+                size: 4096
+            });
+
+
+        if (icon) {
+
+            embed.setThumbnail(
+                icon
+            );
+
+        }
+
+
+        /*
+         * Edit existing message if possible.
+         */
+
+        if (
+            leaderboardMessage
+        ) {
+
+            await leaderboardMessage.edit({
+                embeds: [
+                    embed
+                ]
+            });
+
+        } else {
+
+            leaderboardMessage =
+                await channel.send({
+                    embeds: [
+                        embed
+                    ]
+                });
+
+        }
+
+
+        /*
+         * Save configuration.
+         */
+
+        data.chatChannelId =
+            channel.id;
+
+        data.chatMessageId =
+            leaderboardMessage.id;
+
+
+        await data.save();
 
 
         return message.channel.send({
             embeds: [
-                embed
+                new EmbedBuilder()
+                    .setColor(
+                        config.colors.success
+                    )
+                    .setDescription(
+                        `${config.emojis.success} ${message.author}: The **Chat Leaderboard** has been set to ${channel}.`
+                    )
             ]
         });
 
