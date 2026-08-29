@@ -1,10 +1,12 @@
 const {
-    StringSelectMenuOptionBuilder
+    StringSelectMenuBuilder,
+    StringSelectMenuOptionBuilder,
+    ActionRowBuilder
 } = require("discord.js");
 
 module.exports = {
 
-    name: "roleSelect",
+    name: "embedSelectMenuEdit",
 
     type: "selectMenu",
 
@@ -17,79 +19,57 @@ module.exports = {
             return;
         }
 
-        const member =
-            interaction.member;
-
-        const selected =
-            interaction.values;
-
         const roles =
-            selected
-                .map(id =>
-                    interaction.guild.roles.cache.get(id)
+            interaction.guild.roles.cache
+                .filter(role =>
+                    role.id !== interaction.guild.id &&
+                    !role.managed
                 )
-                .filter(Boolean);
-
-        if (!roles.length) {
-            return interaction.reply({
-                content:
-                    "No valid roles were selected.",
-                flags: 64
-            });
-        }
-
-        const added = [];
-        const removed = [];
-
-        for (const role of roles) {
-
-            if (
-                member.roles.cache.has(
-                    role.id
+                .sort(
+                    (a, b) =>
+                        b.position - a.position
                 )
-            ) {
+                .first(25);
 
-                await member.roles.remove(
-                    role
+        const options =
+            roles.map(
+                role =>
+                    new StringSelectMenuOptionBuilder()
+                        .setLabel(
+                            role.name.slice(0, 100)
+                        )
+                        .setDescription(
+                            `Role ID: ${role.id}`.slice(0, 100)
+                        )
+                        .setValue(
+                            role.id
+                        )
                 );
 
-                removed.push(
-                    role.name
+        const menu =
+            new StringSelectMenuBuilder()
+                .setCustomId(
+                    "embedSelectMenuEdit:roles:role"
+                )
+                .setPlaceholder(
+                    "Select your roles..."
+                )
+                .setMinValues(1)
+                .setMaxValues(
+                    Math.min(
+                        options.length,
+                        25
+                    )
+                )
+                .addOptions(
+                    options
                 );
 
-            } else {
-
-                await member.roles.add(
-                    role
-                );
-
-                added.push(
-                    role.name
-                );
-
-            }
-
-        }
-
-        const changes = [];
-
-        if (added.length) {
-            changes.push(
-                `Added: ${added.join(", ")}`
-            );
-        }
-
-        if (removed.length) {
-            changes.push(
-                `Removed: ${removed.join(", ")}`
-            );
-        }
-
-        return interaction.reply({
-            content:
-                changes.join("\n") ||
-                "No roles were changed.",
-            flags: 64
+        return interaction.update({
+            components: [
+                new ActionRowBuilder()
+                    .addComponents(menu)
+            ]
         });
 
     }
