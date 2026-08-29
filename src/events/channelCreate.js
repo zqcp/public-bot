@@ -4,8 +4,8 @@ const {
     ChannelType
 } = require("discord.js");
 
-const JailSystem =
-    require("../systems/Jail");
+const Jail =
+    require("../models/Jail");
 
 module.exports = {
 
@@ -27,7 +27,41 @@ module.exports = {
         try {
 
             /*
-             * New category
+             * Get jail setup.
+             */
+
+            const jail =
+                await Jail.findOne({
+                    guildId:
+                        channel.guild.id
+                });
+
+            /*
+             * No jail system configured.
+             */
+
+            if (!jail) {
+                return;
+            }
+
+            /*
+             * Get Jailed role.
+             */
+
+            const jailRole =
+                channel.guild.roles.cache.get(
+                    jail.roleId
+                );
+
+            if (!jailRole) {
+                return;
+            }
+
+            /*
+             * New category.
+             *
+             * Hide the category from
+             * the Jailed role.
              */
 
             if (
@@ -35,21 +69,84 @@ module.exports = {
                 ChannelType.GuildCategory
             ) {
 
-                await JailSystem.syncCategory(
-                    channel.guild,
-                    channel
+                await channel.permissionOverwrites.edit(
+                    jailRole,
+                    {
+                        ViewChannel: false
+                    }
                 );
 
                 return;
             }
 
             /*
-             * New channel
+             * Jail channel.
              */
 
-            await JailSystem.syncChannel(
-                channel.guild,
-                channel
+            if (
+                channel.id ===
+                jail.channelId
+            ) {
+
+                await channel.permissionOverwrites.edit(
+                    channel.guild.roles.everyone,
+                    {
+                        ViewChannel: false
+                    }
+                );
+
+                await channel.permissionOverwrites.edit(
+                    jailRole,
+                    {
+                        ViewChannel: true,
+                        SendMessages: true,
+                        ReadMessageHistory: true
+                    }
+                );
+
+                return;
+            }
+
+            /*
+             * Jail logs channel.
+             */
+
+            if (
+                channel.id ===
+                jail.logChannelId
+            ) {
+
+                await channel.permissionOverwrites.edit(
+                    channel.guild.roles.everyone,
+                    {
+                        ViewChannel: false
+                    }
+                );
+
+                await channel.permissionOverwrites.edit(
+                    jailRole,
+                    {
+                        ViewChannel: false
+                    }
+                );
+
+                return;
+            }
+
+            /*
+             * Normal newly-created channel.
+             *
+             * Hide it from Jailed.
+             *
+             * Existing permissions for
+             * everyone/staff/etc. are untouched.
+             */
+
+            await channel.permissionOverwrites.edit(
+                jailRole,
+                {
+                    ViewChannel: false
+                }
             );
 
         } catch (error) {
