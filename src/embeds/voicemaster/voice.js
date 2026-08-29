@@ -3,7 +3,7 @@ const {
 } = require("discord.js");
 
 const config =
-    require("../config");
+    require("../../config");
 
 module.exports = {
 
