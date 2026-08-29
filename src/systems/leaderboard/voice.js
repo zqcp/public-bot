@@ -3,163 +3,80 @@
 const VoiceLeaderboard =
     require("../../models/VoiceLeaderboard");
 
-const {
-    getCycle
-} =
-    require("./cycle");
 
-
-/*
- * ============================================================
- * VOICE LEADERBOARD
- * ============================================================
- *
- * Tracks voice time for each user per guild.
- *
- * Data:
- *
- * totalSeconds      = completed voice time
- * sessionStartedAt  = currently active voice session
- *
- * The system is designed to survive bot restarts because
- * sessionStartedAt is stored in MongoDB.
- * ============================================================
- */
-
-
-/*
- * ============================================================
- * TRACKED VOICE CHANNEL
- * ============================================================
- *
- * We only count users who are actually in a voice channel.
- *
- * The caller can optionally provide a function here later
- * if you want to exclude VoiceMaster/system channels.
- * ============================================================
- */
-
-function isTrackableChannel(
+function trackable(
     channel
 ) {
 
-    if (
-        !channel
-    ) {
-
-        return false;
-
-    }
-
-
-    return (
-        channel.isVoiceBased &&
-        channel.isVoiceBased()
+    return !!(
+        channel &&
+        channel.isVoiceBased?.()
     );
 
 }
 
-
-/*
- * ============================================================
- * START SESSION
- * ============================================================
- */
 
 async function startSession(
     member
 ) {
 
     if (
-        !member ||
-        !member.guild ||
-        !member.user ||
-        member.user.bot ||
-        !isTrackableChannel(
-            member.voice.channel
-        )
+        !member?.guild ||
+        member.user?.bot ||
+        !trackable(member.voice.channel)
     ) {
-
         return false;
-
-    }
-
-
-    const guildId =
-        member.guild.id;
-
-    const userId =
-        member.user.id;
-
-
-    /*
-     * Make sure the weekly cycle is still valid.
-     */
-
-    try {
-
-        await getCycle(
-            guildId
-        );
-
-    } catch (error) {
-
-        console.error(
-            "[LEADERBOARD VOICE] Failed to check cycle:",
-            error
-        );
-
-        return false;
-
     }
 
 
     try {
 
-        /*
-         * Don't restart an existing session.
-         *
-         * This is important when Discord sends multiple
-         * voice state updates for the same user.
-         */
-
-        const existing =
-            await VoiceLeaderboard.findOne({
-                guildId,
-                userId
-            });
-
-
-        if (
-            existing &&
-            existing.sessionStartedAt
-        ) {
-
-            return true;
-
-        }
-
-
-        await VoiceLeaderboard.findOneAndUpdate(
-
+        await VoiceLeaderboard.updateOne(
             {
-                guildId,
-                userId
+                guildId:
+                    member.guild.id,
+
+                userId:
+                    member.id
             },
-
             {
-                $set: {
+                $setOnInsert: {
                     sessionStartedAt:
                         new Date()
                 }
             },
-
             {
-                upsert: true,
-                setDefaultsOnInsert: true
+                upsert: true
             }
-
         );
+
+
+        /*
+         * If the record already exists, only start
+         * a session when one isn't already active.
+         */
+
+        const record =
+            await VoiceLeaderboard.findOne({
+                guildId:
+                    member.guild.id,
+
+                userId:
+                    member.id
+            });
+
+
+        if (
+            record &&
+            !record.sessionStartedAt
+        ) {
+
+            record.sessionStartedAt =
+                new Date();
+
+            await record.save();
+
+        }
 
 
         return true;
@@ -167,7 +84,7 @@ async function startSession(
     } catch (error) {
 
         console.error(
-            "[LEADERBOARD VOICE] Failed to start session:",
+            "[LEADERBOARD VOICE] Start error:",
             error
         );
 
@@ -178,79 +95,39 @@ async function startSession(
 }
 
 
-/*
- * ============================================================
- * END SESSION
- * ============================================================
- */
-
 async function endSession(
     member
 ) {
 
     if (
-        !member ||
-        !member.guild ||
-        !member.user ||
-        member.user.bot
+        !member?.guild ||
+        member.user?.bot
     ) {
-
         return false;
-
     }
-
-
-    const guildId =
-        member.guild.id;
-
-    const userId =
-        member.user.id;
 
 
     try {
 
-        /*
-         * Check the weekly cycle first.
-         *
-         * If the week expired while the bot was offline,
-         * old data is cleaned automatically.
-         */
-
-        await getCycle(
-            guildId
-        );
-
-
         const record =
             await VoiceLeaderboard.findOne({
-                guildId,
-                userId
+                guildId:
+                    member.guild.id,
+
+                userId:
+                    member.id
             });
 
 
         if (
-            !record
-        ) {
-
-            return false;
-
-        }
-
-
-        /*
-         * No active session.
-         */
-
-        if (
+            !record ||
             !record.sessionStartedAt
         ) {
-
-            return true;
-
+            return false;
         }
 
 
-        const startedAt =
+        const started =
             new Date(
                 record.sessionStartedAt
             ).getTime();
@@ -260,15 +137,9 @@ async function endSession(
             Date.now();
 
 
-        /*
-         * Prevent negative or invalid sessions.
-         */
-
         if (
-            !Number.isFinite(
-                startedAt
-            ) ||
-            startedAt > now
+            !Number.isFinite(started) ||
+            started > now
         ) {
 
             record.sessionStartedAt =
@@ -281,27 +152,13 @@ async function endSession(
         }
 
 
-        const seconds =
+        record.totalSeconds +=
             Math.floor(
                 (
                     now -
-                    startedAt
+                    started
                 ) / 1000
             );
-
-
-        /*
-         * Add completed session time.
-         */
-
-        if (
-            seconds > 0
-        ) {
-
-            record.totalSeconds +=
-                seconds;
-
-        }
 
 
         record.sessionStartedAt =
@@ -310,13 +167,12 @@ async function endSession(
 
         await record.save();
 
-
         return true;
 
     } catch (error) {
 
         console.error(
-            "[LEADERBOARD VOICE] Failed to end session:",
+            "[LEADERBOARD VOICE] End error:",
             error
         );
 
@@ -327,69 +183,17 @@ async function endSession(
 }
 
 
-/*
- * ============================================================
- * HANDLE VOICE STATE UPDATE
- * ============================================================
- *
- * Called from Discord's voiceStateUpdate event.
- *
- * Cases:
- *
- * JOIN
- *      null -> voice
- *
- * LEAVE
- *      voice -> null
- *
- * SWITCH CHANNEL
- *      voice -> voice
- *
- * MUTE / DEAFEN
- *      voice -> same voice
- *
- * Only actual channel changes matter.
- * ============================================================
- */
-
 async function handle(
     oldState,
     newState
 ) {
 
     if (
-        !newState ||
-        !newState.member ||
-        newState.member.user.bot
+        !newState?.member ||
+        newState.member.user?.bot ||
+        oldState?.channelId === newState.channelId
     ) {
-
         return false;
-
-    }
-
-
-    const oldChannelId =
-        oldState &&
-        oldState.channelId;
-
-
-    const newChannelId =
-        newState.channelId;
-
-
-    /*
-     * Nothing changed regarding the channel.
-     *
-     * Ignore mute, deaf, stream, video, etc.
-     */
-
-    if (
-        oldChannelId ===
-        newChannelId
-    ) {
-
-        return false;
-
     }
 
 
@@ -397,15 +201,7 @@ async function handle(
         newState.member;
 
 
-    /*
-     * --------------------------------------------------------
-     * LEAVING A CHANNEL
-     * --------------------------------------------------------
-     */
-
-    if (
-        oldChannelId
-    ) {
+    if (oldState?.channelId) {
 
         await endSession(
             member
@@ -414,17 +210,9 @@ async function handle(
     }
 
 
-    /*
-     * --------------------------------------------------------
-     * JOINING A CHANNEL
-     * --------------------------------------------------------
-     */
-
     if (
-        newChannelId &&
-        isTrackableChannel(
-            newState.channel
-        )
+        newState.channelId &&
+        trackable(newState.channel)
     ) {
 
         await startSession(
@@ -439,28 +227,12 @@ async function handle(
 }
 
 
-/*
- * ============================================================
- * FINALIZE ACTIVE SESSION
- * ============================================================
- *
- * Used before wiping the weekly leaderboard.
- *
- * This makes sure users currently sitting in voice don't
- * lose their time when the weekly cycle expires.
- * ============================================================
- */
-
 async function finalizeActiveSessions(
     guildId
 ) {
 
-    if (
-        !guildId
-    ) {
-
+    if (!guildId) {
         return false;
-
     }
 
 
@@ -468,13 +240,11 @@ async function finalizeActiveSessions(
 
         const records =
             await VoiceLeaderboard.find({
-
                 guildId,
 
                 sessionStartedAt: {
                     $ne: null
                 }
-
             });
 
 
@@ -483,67 +253,37 @@ async function finalizeActiveSessions(
 
 
         for (
-            const record
-            of records
+            const record of records
         ) {
 
-            if (
-                !record.sessionStartedAt
-            ) {
-
-                continue;
-
-            }
-
-
-            const startedAt =
+            const started =
                 new Date(
                     record.sessionStartedAt
                 ).getTime();
 
 
             if (
-                !Number.isFinite(
-                    startedAt
-                ) ||
-                startedAt > now
+                !Number.isFinite(started) ||
+                started > now
             ) {
 
                 record.sessionStartedAt =
                     null;
 
-                await record.save();
-
-                continue;
-
-            }
-
-
-            const seconds =
-                Math.floor(
-                    (
-                        now -
-                        startedAt
-                    ) / 1000
-                );
-
-
-            if (
-                seconds > 0
-            ) {
+            } else {
 
                 record.totalSeconds +=
-                    seconds;
+                    Math.floor(
+                        (
+                            now -
+                            started
+                        ) / 1000
+                    );
+
+                record.sessionStartedAt =
+                    null;
 
             }
-
-
-            /*
-             * Clear the old session.
-             */
-
-            record.sessionStartedAt =
-                null;
 
 
             await record.save();
@@ -556,7 +296,7 @@ async function finalizeActiveSessions(
     } catch (error) {
 
         console.error(
-            `[LEADERBOARD VOICE] Failed to finalize sessions for ${guildId}:`,
+            "[LEADERBOARD VOICE] Finalize error:",
             error
         );
 
@@ -567,50 +307,25 @@ async function finalizeActiveSessions(
 }
 
 
-/*
- * ============================================================
- * GET TOP USERS
- * ============================================================
- */
-
 async function getTop(
     guildId,
     limit = 10
 ) {
 
-    if (
-        !guildId
-    ) {
-
+    if (!guildId) {
         return [];
-
     }
 
 
     try {
 
-        await getCycle(
-            guildId
-        );
-
-
-        /*
-         * Finalize currently active sessions so the displayed
-         * leaderboard stays accurate.
-         */
-
-        await finalizeActiveSessions(
-            guildId
-        );
-
-
         const safeLimit =
-            Math.max(
-                1,
-                Math.min(
+            Math.min(
+                Math.max(
                     Number(limit) || 10,
-                    100
-                )
+                    1
+                ),
+                100
             );
 
 
@@ -619,7 +334,8 @@ async function getTop(
                 guildId
             })
             .sort({
-                totalSeconds: -1
+                totalSeconds: -1,
+                userId: 1
             })
             .limit(
                 safeLimit
@@ -629,7 +345,7 @@ async function getTop(
     } catch (error) {
 
         console.error(
-            "[LEADERBOARD VOICE] Failed to get top users:",
+            "[LEADERBOARD VOICE] Get top error:",
             error
         );
 
@@ -639,12 +355,6 @@ async function getTop(
 
 }
 
-
-/*
- * ============================================================
- * GET USER RANK
- * ============================================================
- */
 
 async function getRank(
     guildId,
@@ -655,18 +365,11 @@ async function getRank(
         !guildId ||
         !userId
     ) {
-
         return null;
-
     }
 
 
     try {
-
-        await getCycle(
-            guildId
-        );
-
 
         const user =
             await VoiceLeaderboard
@@ -677,43 +380,34 @@ async function getRank(
                 .lean();
 
 
-        if (
-            !user
-        ) {
-
+        if (!user) {
             return null;
-
         }
 
 
-        const usersAbove =
-            await VoiceLeaderboard
-                .countDocuments({
+        const above =
+            await VoiceLeaderboard.countDocuments({
+                guildId,
 
-                    guildId,
-
-                    totalSeconds: {
-                        $gt:
-                            user.totalSeconds
-                    }
-
-                });
+                totalSeconds: {
+                    $gt:
+                        user.totalSeconds
+                }
+            });
 
 
         return {
-
             rank:
-                usersAbove + 1,
+                above + 1,
 
             totalSeconds:
                 user.totalSeconds || 0
-
         };
 
     } catch (error) {
 
         console.error(
-            "[LEADERBOARD VOICE] Failed to get user rank:",
+            "[LEADERBOARD VOICE] Rank error:",
             error
         );
 
@@ -724,22 +418,12 @@ async function getRank(
 }
 
 
-/*
- * ============================================================
- * RESET GUILD
- * ============================================================
- */
-
 async function reset(
     guildId
 ) {
 
-    if (
-        !guildId
-    ) {
-
+    if (!guildId) {
         return false;
-
     }
 
 
@@ -749,21 +433,14 @@ async function reset(
             guildId
         });
 
-
-        console.log(
-            `[LEADERBOARD VOICE] Reset guild ${guildId}.`
-        );
-
-
         return true;
 
     } catch (error) {
 
         console.error(
-            `[LEADERBOARD VOICE] Failed to reset guild ${guildId}:`,
+            "[LEADERBOARD VOICE] Reset error:",
             error
         );
-
 
         return false;
 
@@ -771,12 +448,6 @@ async function reset(
 
 }
 
-
-/*
- * ============================================================
- * EXPORT
- * ============================================================
- */
 
 module.exports = {
 
