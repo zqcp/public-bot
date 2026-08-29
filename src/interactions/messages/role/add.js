@@ -1,8 +1,5 @@
-const {
-    ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle
-} = require("discord.js");
+const Embed = require("../../../models/Embed");
+const embeds = require("../../../embeds/embeds");
 
 module.exports = {
 
@@ -10,12 +7,25 @@ module.exports = {
 
     type: "button",
 
-    async execute(client, interaction) {
+    async execute(
+        client,
+        interaction
+    ) {
 
-        if (!interaction.guild) return;
+        if (!interaction.guild) {
+            return;
+        }
 
         const roleId =
             interaction.customId.split(":")[1];
+
+        if (!roleId) {
+            return interaction.reply({
+                content:
+                    "No role ID was provided.",
+                flags: 64
+            });
+        }
 
         const role =
             interaction.guild.roles.cache.get(
@@ -24,54 +34,25 @@ module.exports = {
 
         if (!role) {
             return interaction.reply({
-                content: "That role no longer exists.",
+                content:
+                    "That role no longer exists.",
                 flags: 64
             });
         }
 
-        if (
-            !interaction.member.manageable ||
-            role.position >= interaction.guild.members.me.roles.highest.position
-        ) {
+        if (role.managed) {
             return interaction.reply({
-                content: "I cannot manage that role.",
+                content:
+                    "That role cannot be used.",
                 flags: 64
             });
         }
 
-        try {
-
-            if (
-                interaction.member.roles.cache.has(
-                    role.id
-                )
-            ) {
-                return interaction.reply({
-                    content: `You already have **${role.name}**.`,
-                    flags: 64
-                });
-            }
-
-            await interaction.member.roles.add(role);
-
-            return interaction.reply({
-                content: `Added **${role.name}** to you.`,
-                flags: 64
-            });
-
-        } catch (error) {
-
-            console.error(
-                "[ROLE ADD]",
-                error
-            );
-
-            return interaction.reply({
-                content: "I couldn't add that role.",
-                flags: 64
-            });
-
-        }
+        return interaction.reply({
+            content:
+                `Role ready to add: **${role.name}**\nRole ID: \`${role.id}\``,
+            flags: 64
+        });
 
     }
 
