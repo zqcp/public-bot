@@ -1,7 +1,8 @@
 const {
-    ActionRowBuilder,
-    StringSelectMenuBuilder,
-    StringSelectMenuOptionBuilder
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
+    ActionRowBuilder
 } = require("discord.js");
 
 module.exports = {
@@ -33,71 +34,34 @@ module.exports = {
             });
         }
 
-        const roles =
-            interaction.guild.roles.cache
-                .filter(role =>
-                    role.id !== interaction.guild.id &&
-                    !role.managed
-                )
-                .sort(
-                    (a, b) =>
-                        b.position - a.position
-                )
-                .first(25);
-
-        if (!roles.length) {
-            return interaction.reply({
-                content:
-                    "No roles are available.",
-                flags: 64
-            });
-        }
-
-        const options =
-            roles.map(
-                role =>
-                    new StringSelectMenuOptionBuilder()
-                        .setLabel(
-                            role.name.slice(0, 100)
-                        )
-                        .setDescription(
-                            `Role ID: ${role.id}`.slice(0, 100)
-                        )
-                        .setValue(
-                            role.id
-                        )
-            );
-
-        const menu =
-            new StringSelectMenuBuilder()
-                .setCustomId(
-                    "roleSelect"
-                )
+        const input =
+            new TextInputBuilder()
+                .setCustomId("roleId")
+                .setLabel("Role ID")
                 .setPlaceholder(
-                    "Select your roles..."
+                    "Enter the role ID..."
                 )
-                .setMinValues(1)
-                .setMaxValues(
-                    Math.min(
-                        options.length,
-                        25
-                    )
+                .setStyle(
+                    TextInputStyle.Short
                 )
-                .addOptions(
-                    options
-                );
+                .setRequired(true)
+                .setMaxLength(20);
 
-        return interaction.reply({
-            content:
-                "Select your roles...",
+        const modal =
+            new ModalBuilder()
+                .setCustomId(
+                    "roleIdModal"
+                )
+                .setTitle("Select Role");
 
-            components: [
-                new ActionRowBuilder()
-                    .addComponents(menu)
-            ],
+        modal.addComponents(
+            new ActionRowBuilder()
+                .addComponents(input)
+        );
 
-            flags: 64
-        });
+        return interaction.showModal(
+            modal
+        );
 
     }
 
