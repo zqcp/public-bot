@@ -18,6 +18,11 @@ const VoiceEmbed =
 const FallbackEmbed =
     require("../../embeds/leaderboard/fallback");
 
+const {
+    getCycle
+} =
+    require("./cycle");
+
 
 async function update(client) {
 
@@ -26,14 +31,12 @@ async function update(client) {
     try {
 
         configs =
-            await LeaderboardConfig
-                .find({})
-                .lean();
+            await LeaderboardConfig.find({}).lean();
 
     } catch (error) {
 
         console.error(
-            "[LEADERBOARD] Failed to load configs:",
+            "[LEADERBOARD] Config error:",
             error
         );
 
@@ -42,18 +45,39 @@ async function update(client) {
     }
 
 
-    for (
-        const data of configs
-    ) {
+    for (const data of configs) {
 
         const guild =
             client.guilds.cache.get(
                 data.guildId
             );
 
+        if (!guild) continue;
 
-        if (!guild) {
+
+        /*
+         * Make sure the weekly cycle is current.
+         * This also handles bot downtime.
+         */
+
+        let cycle;
+
+        try {
+
+            cycle =
+                await getCycle(
+                    guild.id
+                );
+
+        } catch (error) {
+
+            console.error(
+                `[LEADERBOARD] Cycle error ${guild.id}:`,
+                error
+            );
+
             continue;
+
         }
 
 
@@ -64,7 +88,8 @@ async function update(client) {
 
             await updateChat(
                 guild,
-                data
+                data,
+                cycle
             );
 
         }
@@ -77,7 +102,8 @@ async function update(client) {
 
             await updateVoice(
                 guild,
-                data
+                data,
+                cycle
             );
 
         }
@@ -87,9 +113,14 @@ async function update(client) {
 }
 
 
+/*
+ * CHAT
+ */
+
 async function updateChat(
     guild,
-    data
+    data,
+    cycle
 ) {
 
     const channel =
@@ -97,28 +128,18 @@ async function updateChat(
             data.chatChannelId
         );
 
-
     if (
         !channel ||
         !channel.isTextBased()
-    ) {
-        return;
-    }
+    ) return;
 
 
     const message =
         await channel.messages
-            .fetch(
-                data.chatMessageId
-            )
-            .catch(
-                () => null
-            );
+            .fetch(data.chatMessageId)
+            .catch(() => null);
 
-
-    if (!message) {
-        return;
-    }
+    if (!message) return;
 
 
     try {
@@ -141,7 +162,7 @@ async function updateChat(
             ChatEmbed.create(
                 guild,
                 entries,
-                data.nextWipeAt
+                cycle.nextWipeAt
             );
 
 
@@ -168,33 +189,32 @@ async function updateChat(
                 })
                 .limit(10)
                 .lean()
-                .catch(
-                    () => []
-                );
-
-
-        const embed =
-            FallbackEmbed.chat(
-                guild,
-                saved,
-                data.nextWipeAt
-            );
+                .catch(() => []);
 
 
         await message.edit({
-            embeds: [embed]
-        }).catch(
-            () => null
-        );
+            embeds: [
+                FallbackEmbed.chat(
+                    guild,
+                    saved,
+                    cycle.nextWipeAt
+                )
+            ]
+        }).catch(() => null);
 
     }
 
 }
 
 
+/*
+ * VOICE
+ */
+
 async function updateVoice(
     guild,
-    data
+    data,
+    cycle
 ) {
 
     const channel =
@@ -202,31 +222,28 @@ async function updateVoice(
             data.voiceChannelId
         );
 
-
     if (
         !channel ||
         !channel.isTextBased()
-    ) {
-        return;
-    }
+    ) return;
 
 
     const message =
         await channel.messages
-            .fetch(
-                data.voiceMessageId
-            )
-            .catch(
-                () => null
-            );
+            .fetch(data.voiceMessageId)
+            .catch(() => null);
 
-
-    if (!message) {
-        return;
-    }
+    if (!message) return;
 
 
     try {
+
+        /*
+         * Get all users first.
+         *
+         * Active voice time is added before
+         * determining the top 10.
+         */
 
         const records =
             await VoiceLeaderboard
@@ -234,11 +251,6 @@ async function updateVoice(
                     guildId:
                         guild.id
                 })
-                .sort({
-                    totalSeconds: -1,
-                    userId: 1
-                })
-                .limit(10)
                 .lean();
 
 
@@ -246,14 +258,9 @@ async function updateVoice(
             Date.now();
 
 
-        /*
-         * Add currently active voice time
-         * for display without changing MongoDB.
-         */
-
         const entries =
-            records.map(
-                record => {
+            records
+                .map(record => {
 
                     let seconds =
                         Number(
@@ -272,9 +279,7 @@ async function updateVoice(
 
 
                         if (
-                            Number.isFinite(
-                                started
-                            ) &&
+                            Number.isFinite(started) &&
                             started <= now
                         ) {
 
@@ -297,20 +302,20 @@ async function updateVoice(
                             seconds
                     };
 
-                }
-            )
-            .sort(
-                (a, b) =>
-                    b.totalSeconds -
-                    a.totalSeconds
-            );
+                })
+                .sort(
+                    (a, b) =>
+                        b.totalSeconds -
+                        a.totalSeconds
+                )
+                .slice(0, 10);
 
 
         const embed =
             VoiceEmbed.create(
                 guild,
                 entries,
-                data.nextWipeAt
+                cycle.nextWipeAt
             );
 
 
@@ -337,24 +342,18 @@ async function updateVoice(
                 })
                 .limit(10)
                 .lean()
-                .catch(
-                    () => []
-                );
-
-
-        const embed =
-            FallbackEmbed.voice(
-                guild,
-                saved,
-                data.nextWipeAt
-            );
+                .catch(() => []);
 
 
         await message.edit({
-            embeds: [embed]
-        }).catch(
-            () => null
-        );
+            embeds: [
+                FallbackEmbed.voice(
+                    guild,
+                    saved,
+                    cycle.nextWipeAt
+                )
+            ]
+        }).catch(() => null);
 
     }
 
