@@ -96,15 +96,33 @@ module.exports = {
 
                 );
 
+        const add =
+            new ActionRowBuilder()
+                .addComponents(
+
+                    new ButtonBuilder()
+                        .setCustomId(
+                            "roleAddAnother"
+                        )
+                        .setLabel("Add another role")
+                        .setStyle(
+                            ButtonStyle.Secondary
+                        )
+
+                );
+
         return interaction.reply({
+
             content:
                 `Role: **${role.name}**\nRole ID: \`${role.id}\``,
 
             components: [
-                buttons
+                buttons,
+                add
             ],
 
             flags: 64
+
         });
 
     }
