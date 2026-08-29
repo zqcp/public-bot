@@ -12,23 +12,21 @@ const config =
     require("../config");
 
 
-/*
- * ============================================================
- * FILTER STRIKE SYSTEM
- * ============================================================
- *
- * 1st violation = 10 minutes
- * 2nd violation = 1 hour
- * 3rd violation = 1 day
- *
- * After the 1-day punishment expires, the user resets.
- *
- * Strike data is intentionally stored in memory.
- * Restarting the bot resets the escalation.
- */
+// ============================================================
+// STRIKE SYSTEM
+// ============================================================
+//
+// 1st violation = 10 minutes
+// 2nd violation = 1 hour
+// 3rd violation = 1 day
+//
+// After the 1-day punishment expires, strikes reset.
+//
+// Strike data is intentionally stored in memory.
+// Restarting the bot resets the escalation.
+// ============================================================
 
 const strikes = new Map();
-
 
 const TIMEOUTS = [
     10 * 60 * 1000,
@@ -37,28 +35,14 @@ const TIMEOUTS = [
 ];
 
 
-/*
- * ============================================================
- * UNICODE HOMOGLYPH MAP
- * ============================================================
- *
- * Converts characters that visually resemble Latin letters.
- *
- * Example:
- *
- * bаd
- * bаd with Cyrillic "а"
- *
- * becomes:
- *
- * bad
- */
+// ============================================================
+// HOMOGLYPHS
+// ============================================================
 
 const HOMOGLYPHS = {
 
     "а": "a",
     "А": "a",
-
     "ɑ": "a",
     "α": "a",
 
@@ -100,7 +84,6 @@ const HOMOGLYPHS = {
 
     "ⅼ": "l",
     "ӏ": "l",
-    "І": "i",
 
     "м": "m",
     "М": "m",
@@ -144,21 +127,17 @@ const HOMOGLYPHS = {
     "у": "y",
     "У": "y",
 
-    "ᴢ": "z",
-    "ѕ": "s"
+    "ᴢ": "z"
 };
 
 
-/*
- * ============================================================
- * LEETSPEAK
- * ============================================================
- */
+// ============================================================
+// LEETSPEAK
+// ============================================================
 
 function applyLeetspeak(text) {
 
     return text
-
         .replace(/[@4]/g, "a")
         .replace(/[8]/g, "b")
         .replace(/[3]/g, "e")
@@ -173,11 +152,9 @@ function applyLeetspeak(text) {
 }
 
 
-/*
- * ============================================================
- * HOMOGLYPH NORMALIZATION
- * ============================================================
- */
+// ============================================================
+// HOMOGLYPH NORMALIZATION
+// ============================================================
 
 function normalizeHomoglyphs(text) {
 
@@ -193,20 +170,9 @@ function normalizeHomoglyphs(text) {
 }
 
 
-/*
- * ============================================================
- * REMOVE INVISIBLE CHARACTERS
- * ============================================================
- *
- * Catches:
- *
- * zero-width spaces
- * zero-width joiners
- * word joiners
- * variation selectors
- * BOM
- * control characters
- */
+// ============================================================
+// REMOVE INVISIBLE CHARACTERS
+// ============================================================
 
 function removeInvisible(text) {
 
@@ -239,11 +205,9 @@ function removeInvisible(text) {
 }
 
 
-/*
- * ============================================================
- * BASE NORMALIZATION
- * ============================================================
- */
+// ============================================================
+// BASE NORMALIZATION
+// ============================================================
 
 function normalizeBase(text) {
 
@@ -262,24 +226,9 @@ function normalizeBase(text) {
 }
 
 
-/*
- * ============================================================
- * AGGRESSIVE NORMALIZATION
- * ============================================================
- *
- * Removes punctuation and whitespace completely.
- *
- * Example:
- *
- * b.a.d
- * b-a-d
- * b a d
- * b__a__d
- *
- * all become:
- *
- * bad
- */
+// ============================================================
+// AGGRESSIVE NORMALIZATION
+// ============================================================
 
 function normalizeAggressive(text) {
 
@@ -300,35 +249,14 @@ function normalizeAggressive(text) {
                 ""
             );
 
-    /*
-     * Collapse excessive repeated characters.
-     *
-     * Example:
-     *
-     * baaaaaad
-     *
-     * becomes:
-     *
-     * baad
-     */
-    result =
-        result.replace(
-            /(.)\1{2,}/gu,
-            "$1$1"
-        );
-
     return result;
 
 }
 
 
-/*
- * ============================================================
- * LOOSE NORMALIZATION
- * ============================================================
- *
- * Keeps spaces but removes punctuation.
- */
+// ============================================================
+// LOOSE NORMALIZATION
+// ============================================================
 
 function normalizeLoose(text) {
 
@@ -359,28 +287,9 @@ function normalizeLoose(text) {
 }
 
 
-/*
- * ============================================================
- * REMOVE SPACES
- * ============================================================
- */
-
-function removeSpaces(text) {
-
-    return text
-        .replace(
-            /\s+/g,
-            ""
-        );
-
-}
-
-
-/*
- * ============================================================
- * COLLAPSE REPEATED CHARACTERS
- * ============================================================
- */
+// ============================================================
+// COLLAPSE REPEATED CHARACTERS
+// ============================================================
 
 function collapseRepeated(text) {
 
@@ -392,78 +301,69 @@ function collapseRepeated(text) {
 }
 
 
-/*
- * ============================================================
- * BUILD MULTIPLE MESSAGE VERSIONS
- * ============================================================
- *
- * We create several versions because attackers can combine
- * different bypass techniques.
- */
+// ============================================================
+// REMOVE SPACES
+// ============================================================
+
+function removeSpaces(text) {
+
+    return text.replace(
+        /\s+/g,
+        ""
+    );
+
+}
+
+
+// ============================================================
+// BUILD MESSAGE VERSIONS
+// ============================================================
 
 function buildVersions(text) {
 
     const base =
         normalizeBase(text);
 
-    const leet =
-        applyLeetspeak(base);
+    const aggressive =
+        normalizeAggressive(text);
 
     const loose =
         normalizeLoose(text);
-
-    const aggressive =
-        normalizeAggressive(text);
 
     const spaceFree =
         removeSpaces(loose);
 
     const collapsed =
-        collapseRepeated(
-            aggressive
-        );
+        collapseRepeated(aggressive);
 
     const collapsedSpaceFree =
-        collapseRepeated(
-            spaceFree
-        );
+        collapseRepeated(spaceFree);
 
     return {
 
         original:
             text.toLowerCase(),
 
-        base:
-            base,
+        base,
 
-        leet:
-            leet,
+        aggressive,
 
-        loose:
-            loose,
+        loose,
 
-        aggressive:
-            aggressive,
+        spaceFree,
 
-        spaceFree:
-            spaceFree,
+        collapsed,
 
-        collapsed:
-            collapsed,
-
-        collapsedSpaceFree:
-            collapsedSpaceFree
+        collapsedSpaceFree
 
     };
 
 }
 
 
-/*
- * ============================================================
- * BUILD WORD VERSIONS
- * ============================================================
- */
+// ============================================================
+// BUILD WORD VERSIONS
+// ============================================================
 
 function buildWordVersions(word) {
 
@@ -494,11 +394,9 @@ function buildWordVersions(word) {
 }
 
 
-/*
- * ============================================================
- * MATCH WORD
- * ============================================================
- */
+// ============================================================
+// MATCH FILTER WORD
+// ============================================================
 
 function matchesWord(
     content,
@@ -519,13 +417,12 @@ function matchesWord(
         buildWordVersions(word);
 
 
-    /*
-     * --------------------------------------------------------
-     * Normal direct match
-     * --------------------------------------------------------
-     */
+    // --------------------------------------------------------
+    // Exact match
+    // --------------------------------------------------------
 
     if (
+        blocked.original &&
         message.original.includes(
             blocked.original
         )
@@ -534,14 +431,13 @@ function matchesWord(
     }
 
 
-    /*
-     * --------------------------------------------------------
-     * Unicode / homoglyph match
-     * --------------------------------------------------------
-     */
+    // --------------------------------------------------------
+    // Normalized match
+    // --------------------------------------------------------
 
     if (
         blocked.aggressive &&
+        blocked.aggressive.length >= 2 &&
         message.aggressive.includes(
             blocked.aggressive
         )
@@ -550,14 +446,13 @@ function matchesWord(
     }
 
 
-    /*
-     * --------------------------------------------------------
-     * Spacing / punctuation bypass
-     * --------------------------------------------------------
-     */
+    // --------------------------------------------------------
+    // Spacing / punctuation bypass
+    // --------------------------------------------------------
 
     if (
         blocked.spaceFree &&
+        blocked.spaceFree.length >= 2 &&
         message.spaceFree.includes(
             blocked.spaceFree
         )
@@ -566,14 +461,13 @@ function matchesWord(
     }
 
 
-    /*
-     * --------------------------------------------------------
-     * Repeated-character bypass
-     * --------------------------------------------------------
-     */
+    // --------------------------------------------------------
+    // Repeated-character bypass
+    // --------------------------------------------------------
 
     if (
         blocked.collapsed &&
+        blocked.collapsed.length >= 2 &&
         message.collapsed.includes(
             blocked.collapsed
         )
@@ -582,14 +476,13 @@ function matchesWord(
     }
 
 
-    /*
-     * --------------------------------------------------------
-     * Repeated characters + spaces
-     * --------------------------------------------------------
-     */
+    // --------------------------------------------------------
+    // Repeated characters + spaces
+    // --------------------------------------------------------
 
     if (
         blocked.collapsedSpaceFree &&
+        blocked.collapsedSpaceFree.length >= 2 &&
         message.collapsedSpaceFree.includes(
             blocked.collapsedSpaceFree
         )
@@ -598,17 +491,16 @@ function matchesWord(
     }
 
 
-    /*
-     * --------------------------------------------------------
-     * Character-separated bypass
-     *
-     * Example:
-     *
-     * b a d
-     * b . a . d
-     * b - a - d
-     * --------------------------------------------------------
-     */
+    // --------------------------------------------------------
+    // Character-separated bypass
+    //
+    // Example:
+    //
+    // b a d
+    // b.a.d
+    // b-a-d
+    // b__a__d
+    // --------------------------------------------------------
 
     if (
         blocked.aggressive &&
@@ -620,7 +512,7 @@ function matchesWord(
                 .split("")
                 .map(
                     character =>
-                        `${character}[\\W_\\s]*`
+                        `${escapeRegex(character)}[\\W_\\s]*`
                 )
                 .join("");
 
@@ -647,65 +539,28 @@ function matchesWord(
     }
 
 
-    /*
-     * --------------------------------------------------------
-     * Mixed punctuation bypass
-     * --------------------------------------------------------
-     */
-
-    if (
-        blocked.aggressive &&
-        blocked.aggressive.length >= 2
-    ) {
-
-        const chars =
-            blocked.aggressive
-                .split("");
-
-        let position = 0;
-
-        for (
-            const character
-            of chars
-        ) {
-
-            const index =
-                message.aggressive.indexOf(
-                    character,
-                    position
-                );
-
-            if (
-                index === -1
-            ) {
-                position = -1;
-                break;
-            }
-
-            position =
-                index + 1;
-
-        }
-
-        if (
-            position !== -1
-        ) {
-            return true;
-        }
-
-    }
-
-
     return false;
 
 }
 
 
-/*
- * ============================================================
- * STRIKE KEY
- * ============================================================
- */
+// ============================================================
+// ESCAPE REGEX
+// ============================================================
+
+function escapeRegex(text) {
+
+    return text.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        "\\$&"
+    );
+
+}
+
+
+// ============================================================
+// STRIKE KEY
+// ============================================================
 
 function getStrikeKey(
     guildId,
@@ -717,11 +572,9 @@ function getStrikeKey(
 }
 
 
-/*
- * ============================================================
- * GET STRIKE
- * ============================================================
- */
+// ============================================================
+// GET STRIKE
+// ============================================================
 
 function getStrike(
     guildId,
@@ -750,16 +603,13 @@ function getStrike(
     }
 
 
-    /*
-     * If the 1-day punishment has expired,
-     * reset the user completely.
-     */
+    // --------------------------------------------------------
+    // Reset after the 1-day punishment expires.
+    // --------------------------------------------------------
 
     if (
         record.strikes >= 3 &&
-        Date.now() -
-            record.lastViolation >=
-            TIMEOUTS[2]
+        Date.now() >= record.timeoutUntil
     ) {
 
         strikes.delete(key);
@@ -775,6 +625,7 @@ function getStrike(
 
 
     return {
+
         key,
 
         strikes:
@@ -785,100 +636,92 @@ function getStrike(
 
         timeoutUntil:
             record.timeoutUntil || 0
+
     };
 
 }
 
 
-/*
- * ============================================================
- * ADD STRIKE
- * ============================================================
- */
+// ============================================================
+// SET STRIKE
+// ============================================================
 
-function addStrike(
+function setStrike(
     guildId,
     userId,
+    strikeNumber,
     timeoutDuration
 ) {
 
-    const current =
-        getStrike(
+    const key =
+        getStrikeKey(
             guildId,
             userId
         );
 
-    const nextStrike =
-        Math.min(
-            current.strikes + 1,
-            3
-        );
-
-    const timeoutUntil =
-        Date.now() +
-        timeoutDuration;
+    const now =
+        Date.now();
 
     strikes.set(
-        current.key,
+        key,
         {
             strikes:
-                nextStrike,
+                strikeNumber,
 
             lastViolation:
-                Date.now(),
+                now,
 
             timeoutUntil:
-                timeoutUntil
+                now + timeoutDuration
         }
     );
-
-    return nextStrike;
 
 }
 
 
-/*
- * ============================================================
- * FORMAT TIME
- * ============================================================
- */
+// ============================================================
+// FORMAT DURATION
+// ============================================================
 
 function formatDuration(
     milliseconds
 ) {
+
+    if (
+        milliseconds >=
+        24 * 60 * 60 * 1000
+    ) {
+        return "1 day";
+    }
+
+    if (
+        milliseconds >=
+        60 * 60 * 1000
+    ) {
+
+        const hours =
+            Math.round(
+                milliseconds /
+                (60 * 60 * 1000)
+            );
+
+        return `${hours} hour${hours === 1 ? "" : "s"}`;
+
+    }
 
     const minutes =
         Math.round(
             milliseconds / 60000
         );
 
-    if (
-        minutes < 60
-    ) {
-        return `${minutes} minute${minutes === 1 ? "" : "s"}`;
-    }
-
-    const hours =
-        Math.round(
-            minutes / 60
-        );
-
-    if (
-        hours < 24
-    ) {
-        return `${hours} hour${hours === 1 ? "" : "s"}`;
-    }
-
-    return "1 day";
+    return `${minutes} minute${minutes === 1 ? "" : "s"}`;
 
 }
 
 
-/*
- * ============================================================
- * MAIN FILTER
- * ============================================================
- */
+// ============================================================
+// MAIN FILTER
+// ============================================================
 
 module.exports = {
 
@@ -887,9 +730,9 @@ module.exports = {
         message
     ) {
 
-        /*
-         * Ignore invalid messages.
-         */
+        // ----------------------------------------------------
+        // Ignore invalid messages.
+        // ----------------------------------------------------
 
         if (
             !message ||
@@ -900,9 +743,9 @@ module.exports = {
         }
 
 
-        /*
-         * Guild only.
-         */
+        // ----------------------------------------------------
+        // Guild only.
+        // ----------------------------------------------------
 
         if (
             !message.guild
@@ -911,9 +754,9 @@ module.exports = {
         }
 
 
-        /*
-         * Ignore empty messages.
-         */
+        // ----------------------------------------------------
+        // Ignore empty messages.
+        // ----------------------------------------------------
 
         if (
             !message.content ||
@@ -923,9 +766,9 @@ module.exports = {
         }
 
 
-        /*
-         * Get filter configuration.
-         */
+        // ----------------------------------------------------
+        // Get THIS guild's filter.
+        // ----------------------------------------------------
 
         let filter;
 
@@ -949,23 +792,23 @@ module.exports = {
         }
 
 
-        /*
-         * Filter isn't configured/enabled.
-         */
+        // ----------------------------------------------------
+        // Filter isn't configured/enabled.
+        // ----------------------------------------------------
 
         if (
             !filter ||
-            !filter.enabled ||
+            filter.enabled !== true ||
             !Array.isArray(filter.words) ||
-            !filter.words.length
+            filter.words.length === 0
         ) {
             return false;
         }
 
 
-        /*
-         * Find matching blocked word.
-         */
+        // ----------------------------------------------------
+        // Find blocked word.
+        // ----------------------------------------------------
 
         const matchedWord =
             filter.words.find(
@@ -977,10 +820,6 @@ module.exports = {
             );
 
 
-        /*
-         * Nothing detected.
-         */
-
         if (
             !matchedWord
         ) {
@@ -988,9 +827,9 @@ module.exports = {
         }
 
 
-        /*
-         * Get member.
-         */
+        // ----------------------------------------------------
+        // Get member.
+        // ----------------------------------------------------
 
         let member =
             message.member;
@@ -1009,9 +848,9 @@ module.exports = {
         }
 
 
-        /*
-         * Never punish administrators.
-         */
+        // ----------------------------------------------------
+        // Administrator check.
+        // ----------------------------------------------------
 
         const isAdministrator =
             member &&
@@ -1020,9 +859,9 @@ module.exports = {
             );
 
 
-        /*
-         * Delete the offending message.
-         */
+        // ----------------------------------------------------
+        // DELETE MESSAGE FIRST.
+        // ----------------------------------------------------
 
         try {
 
@@ -1035,13 +874,20 @@ module.exports = {
                 error
             );
 
+            /*
+             * Don't stop the filter completely if
+             * deletion fails. Continue so the
+             * moderation action can still be attempted.
+             */
+
         }
 
 
-        /*
-         * Administrators still have their
-         * message removed, but aren't timed out.
-         */
+        // ----------------------------------------------------
+        // Administrators:
+        //
+        // Message is removed but no timeout.
+        // ----------------------------------------------------
 
         if (
             isAdministrator
@@ -1078,9 +924,9 @@ module.exports = {
         }
 
 
-        /*
-         * Get current strike.
-         */
+        // ----------------------------------------------------
+        // Get current strike.
+        // ----------------------------------------------------
 
         const current =
             getStrike(
@@ -1089,15 +935,12 @@ module.exports = {
             );
 
 
-        /*
-         * IMPORTANT:
-         *
-         * If the user is already inside the
-         * current punishment window, don't
-         * repeatedly re-timeout them.
-         *
-         * We still delete their messages.
-         */
+        // ----------------------------------------------------
+        // Already punished?
+        //
+        // Don't increase the strike or re-timeout them.
+        // Their messages are still deleted.
+        // ----------------------------------------------------
 
         if (
             current.timeoutUntil &&
@@ -1110,9 +953,9 @@ module.exports = {
         }
 
 
-        /*
-         * Determine next timeout.
-         */
+        // ----------------------------------------------------
+        // Determine next strike.
+        // ----------------------------------------------------
 
         const strikeNumber =
             Math.min(
@@ -1126,40 +969,38 @@ module.exports = {
             ];
 
 
-        /*
-         * Add strike.
-         */
+        // ----------------------------------------------------
+        // Make sure member can actually be moderated.
+        // ----------------------------------------------------
 
-        addStrike(
-            message.guild.id,
-            message.author.id,
-            timeoutDuration
-        );
+        if (
+            !member ||
+            !member.moderatable
+        ) {
+
+            console.warn(
+                `[TEXT FILTER] Cannot timeout ${message.author.tag} in ${message.guild.name}.`
+            );
+
+            return true;
+
+        }
 
 
-        /*
-         * Apply timeout.
-         */
-
-        let timeoutApplied =
-            false;
+        // ----------------------------------------------------
+        // Apply timeout.
+        //
+        // IMPORTANT:
+        // Only save the strike AFTER Discord successfully
+        // applies the timeout.
+        // ----------------------------------------------------
 
         try {
 
-            if (
-                member &&
-                member.moderatable
-            ) {
-
-                await member.timeout(
-                    timeoutDuration,
-                    `Text filter - violation #${strikeNumber}`
-                );
-
-                timeoutApplied =
-                    true;
-
-            }
+            await member.timeout(
+                timeoutDuration,
+                `Text filter - violation #${strikeNumber}`
+            );
 
         } catch (error) {
 
@@ -1168,12 +1009,32 @@ module.exports = {
                 error
             );
 
+            /*
+             * Don't save the strike if Discord rejected
+             * the timeout. This prevents the escalation
+             * system from becoming inaccurate.
+             */
+
+            return true;
+
         }
 
 
-        /*
-         * Warning message.
-         */
+        // ----------------------------------------------------
+        // Save strike.
+        // ----------------------------------------------------
+
+        setStrike(
+            message.guild.id,
+            message.author.id,
+            strikeNumber,
+            timeoutDuration
+        );
+
+
+        // ----------------------------------------------------
+        // Warning embed.
+        // ----------------------------------------------------
 
         try {
 
@@ -1182,20 +1043,13 @@ module.exports = {
                     timeoutDuration
                 );
 
-            const description =
-                timeoutApplied
-
-                    ? `${config.emojis.error} ${message.author}: Your message was removed because it contained a blocked word. You have been timed out for **${duration}**. This is filter violation **#${strikeNumber}**.`
-
-                    : `${config.emojis.error} ${message.author}: Your message was removed because it contained a blocked word.`;
-
             const embed =
                 new EmbedBuilder()
                     .setColor(
                         config.colors.error
                     )
                     .setDescription(
-                        description
+                        `${config.emojis.error} ${message.author}: Your message was removed because it contained a blocked word. You have been timed out for **${duration}**. This is filter violation **#${strikeNumber}**.`
                     );
 
             await message.channel.send({
