@@ -9,13 +9,12 @@ module.exports = {
     name: "messageCreate",
 
     async execute(
-        client,
-        message
+        message,
+        client
     ) {
 
         if (
             !message.guild ||
-            !message.author ||
             message.author.bot
         ) {
             return;
@@ -31,7 +30,7 @@ module.exports = {
         } catch (error) {
 
             console.error(
-                "[CHAT LEADERBOARD] Event error:",
+                "[CHAT LEADERBOARD]",
                 error
             );
 
