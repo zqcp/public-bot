@@ -13,28 +13,28 @@ module.exports = {
                 .addComponents(
 
                     new ButtonBuilder()
-                        .setCustomId("vc_reject")
-                        .setEmoji("<:vc_reject:1537241549304500315>")
-                        .setStyle(ButtonStyle.Secondary),
-
-                    new ButtonBuilder()
-                        .setCustomId("vc_kick")
-                        .setEmoji("<:vc_kick:1537241600650903654>")
-                        .setStyle(ButtonStyle.Secondary),
-
-                    new ButtonBuilder()
-                        .setCustomId("vc_permit")
-                        .setEmoji("<:vc_permit:1537242278991630437>")
-                        .setStyle(ButtonStyle.Secondary),
-
-                    new ButtonBuilder()
                         .setCustomId("vc_lock")
-                        .setEmoji("<:vc_lock:1537242322285232158>")
+                        .setEmoji("<:vc_lock:1543240964779278439>")
                         .setStyle(ButtonStyle.Secondary),
 
                     new ButtonBuilder()
                         .setCustomId("vc_unlock")
-                        .setEmoji("<:vc_unlock:1537242360935878797>")
+                        .setEmoji("<:vc_unlock:1543240922941235290>")
+                        .setStyle(ButtonStyle.Secondary),
+
+                    new ButtonBuilder()
+                        .setCustomId("vc_hide")
+                        .setEmoji("<:vc_hide:1543241001705930843>")
+                        .setStyle(ButtonStyle.Secondary),
+
+                    new ButtonBuilder()
+                        .setCustomId("vc_reveal")
+                        .setEmoji("<:vc_reveal:1543241065438519306>")
+                        .setStyle(ButtonStyle.Secondary),
+
+                    new ButtonBuilder()
+                        .setCustomId("vc_disconnect")
+                        .setEmoji("<:vc_disconnect:1543241366321238026>")
                         .setStyle(ButtonStyle.Secondary)
 
                 );
@@ -45,28 +45,28 @@ module.exports = {
                 .addComponents(
 
                     new ButtonBuilder()
-                        .setCustomId("vc_transfer")
-                        .setEmoji("<:vc_transfer:1537242413045776394>")
+                        .setCustomId("vc_start")
+                        .setEmoji("<:vc_start:1543241403511996457>")
+                        .setStyle(ButtonStyle.Secondary),
+
+                    new ButtonBuilder()
+                        .setCustomId("vc_info")
+                        .setEmoji("<:vc_info:1543241450685202452>")
+                        .setStyle(ButtonStyle.Secondary),
+
+                    new ButtonBuilder()
+                        .setCustomId("vc_increase")
+                        .setEmoji("<:vc_increase:1543241492884365403>")
+                        .setStyle(ButtonStyle.Secondary),
+
+                    new ButtonBuilder()
+                        .setCustomId("vc_decrease")
+                        .setEmoji("<:vc_decrease:1543241527780835389>")
                         .setStyle(ButtonStyle.Secondary),
 
                     new ButtonBuilder()
                         .setCustomId("vc_claim")
-                        .setEmoji("<:vc_claim:1537242443005698118>")
-                        .setStyle(ButtonStyle.Secondary),
-
-                    new ButtonBuilder()
-                        .setCustomId("vc_unmute")
-                        .setEmoji("<:vc_unmute:1537242487028977674>")
-                        .setStyle(ButtonStyle.Secondary),
-
-                    new ButtonBuilder()
-                        .setCustomId("vc_rename")
-                        .setEmoji("<:vc_rename:1537242538413531279>")
-                        .setStyle(ButtonStyle.Secondary),
-
-                    new ButtonBuilder()
-                        .setCustomId("vc_limit")
-                        .setEmoji("<:vc_limit:1537242633741799435>")
+                        .setEmoji("<:vc_claim:1543241117779099709>")
                         .setStyle(ButtonStyle.Secondary)
 
                 );
