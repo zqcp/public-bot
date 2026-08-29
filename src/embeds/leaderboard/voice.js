@@ -6,12 +6,6 @@ const config =
     require("../../config");
 
 
-/*
- * ============================================================
- * VOICE LEADERBOARD EMBED
- * ============================================================
- */
-
 module.exports = {
 
     create(
@@ -20,37 +14,9 @@ module.exports = {
         nextWipeAt
     ) {
 
-        /*
-         * Server icon
-         */
-
-        const icon =
-            guild.iconURL({
-                dynamic: true,
-                size: 4096
-            });
-
-
-        /*
-         * Build leaderboard
-         */
-
-        let leaderboard =
-            "";
-
-
-        if (
-            !entries ||
-            !entries.length
-        ) {
-
-            leaderboard =
-                "No voice activity recorded yet.";
-
-        } else {
-
-            leaderboard =
-                entries
+        const leaderboard =
+            entries?.length
+                ? entries
                     .slice(0, 10)
                     .map(
                         (entry, index) => {
@@ -58,57 +24,22 @@ module.exports = {
                             const position =
                                 index + 1;
 
-                            const user =
-                                `<@${entry.userId}>`;
-
-                            const seconds =
-                                Number(
-                                    entry.totalSeconds || 0
-                                );
-
-                            const duration =
-                                formatDuration(
-                                    seconds
-                                );
-
-                            let medal = "";
-
-                            if (
+                            const medal =
                                 position === 1
-                            ) {
-                                medal = "🥇 ";
-                            } else if (
-                                position === 2
-                            ) {
-                                medal = "🥈 ";
-                            } else if (
-                                position === 3
-                            ) {
-                                medal = "🥉 ";
-                            }
+                                    ? "🥇"
+                                    : position === 2
+                                        ? "🥈"
+                                        : position === 3
+                                            ? "🥉"
+                                            : `${position}.`;
 
-                            return `${medal}${user} — ${duration}`;
+                            return `${medal} <@${entry.userId}> — **${formatDuration(entry.totalSeconds)}**`;
 
                         }
                     )
-                    .join("\n");
+                    .join("\n")
+                : "No voice activity recorded yet.";
 
-        }
-
-
-        /*
-         * Time until next wipe
-         */
-
-        const footerTime =
-            getTimeUntil(
-                nextWipeAt
-            );
-
-
-        /*
-         * Current day
-         */
 
         const day =
             new Intl.DateTimeFormat(
@@ -120,10 +51,6 @@ module.exports = {
                 new Date()
             );
 
-
-        /*
-         * Embed
-         */
 
         const embed =
             new EmbedBuilder()
@@ -142,17 +69,18 @@ module.exports = {
                 )
                 .setFooter({
                     text:
-                        `Updates every min • ${day} • Next wipe: in ${footerTime}`
+                        `Updates every min • ${day} • Next wipe: in ${timeUntil(nextWipeAt)}`
                 });
 
 
-        /*
-         * Server thumbnail
-         */
+        const icon =
+            guild.iconURL({
+                dynamic: true,
+                size: 4096
+            });
 
-        if (
-            icon
-        ) {
+
+        if (icon) {
 
             embed.setThumbnail(
                 icon
@@ -168,31 +96,27 @@ module.exports = {
 };
 
 
-/*
- * ============================================================
- * VOICE DURATION
- * ============================================================
- *
- * Example:
- *
- * 42h 18m
- * 36h 04m
- * 28h 51m
- * ============================================================
- */
-
 function formatDuration(
-    totalSeconds
+    seconds
 ) {
+
+    seconds =
+        Math.max(
+            0,
+            Number(seconds) || 0
+        );
+
 
     const hours =
         Math.floor(
-            totalSeconds / 3600
+            seconds / 3600
         );
 
     const minutes =
         Math.floor(
-            (totalSeconds % 3600) / 60
+            (
+                seconds % 3600
+            ) / 60
         );
 
 
@@ -203,33 +127,17 @@ function formatDuration(
 }
 
 
-/*
- * ============================================================
- * TIME UNTIL WIPE
- * ============================================================
- */
-
-function getTimeUntil(
+function timeUntil(
     target
 ) {
 
-    if (
-        !target
-    ) {
-
+    if (!target) {
         return "unknown";
-
     }
 
 
-    const targetTime =
-        new Date(
-            target
-        ).getTime();
-
-
-    let difference =
-        targetTime -
+    const difference =
+        new Date(target).getTime() -
         Date.now();
 
 
@@ -242,55 +150,35 @@ function getTimeUntil(
     }
 
 
-    const day =
-        24 * 60 * 60 * 1000;
-
-    const hour =
-        60 * 60 * 1000;
-
-    const minute =
-        60 * 1000;
-
-
     const days =
         Math.floor(
-            difference / day
+            difference / 86400000
         );
-
-    difference %=
-        day;
 
 
     const hours =
         Math.floor(
-            difference / hour
+            (
+                difference % 86400000
+            ) / 3600000
         );
-
-    difference %=
-        hour;
 
 
     const minutes =
         Math.floor(
-            difference / minute
+            (
+                difference % 3600000
+            ) / 60000
         );
 
 
-    if (
-        days > 0
-    ) {
-
+    if (days > 0) {
         return `${days}d ${hours}h`;
-
     }
 
 
-    if (
-        hours > 0
-    ) {
-
+    if (hours > 0) {
         return `${hours}h ${minutes}m`;
-
     }
 
 
