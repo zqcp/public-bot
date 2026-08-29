@@ -1,12 +1,6 @@
-const {
-    StringSelectMenuBuilder,
-    StringSelectMenuOptionBuilder,
-    ActionRowBuilder
-} = require("discord.js");
-
 module.exports = {
 
-    name: "embedSelectMenuEdit",
+    name: "roleSelect",
 
     type: "selectMenu",
 
@@ -19,57 +13,28 @@ module.exports = {
             return;
         }
 
-        const roles =
-            interaction.guild.roles.cache
-                .filter(role =>
-                    role.id !== interaction.guild.id &&
-                    !role.managed
-                )
-                .sort(
-                    (a, b) =>
-                        b.position - a.position
-                )
-                .first(25);
+        const roleId =
+            interaction.values[0];
 
-        const options =
-            roles.map(
-                role =>
-                    new StringSelectMenuOptionBuilder()
-                        .setLabel(
-                            role.name.slice(0, 100)
-                        )
-                        .setDescription(
-                            `Role ID: ${role.id}`.slice(0, 100)
-                        )
-                        .setValue(
-                            role.id
-                        )
-                );
+        const role =
+            interaction.guild.roles.cache.get(
+                roleId
+            );
 
-        const menu =
-            new StringSelectMenuBuilder()
-                .setCustomId(
-                    "embedSelectMenuEdit:roles:role"
-                )
-                .setPlaceholder(
-                    "Select your roles..."
-                )
-                .setMinValues(1)
-                .setMaxValues(
-                    Math.min(
-                        options.length,
-                        25
-                    )
-                )
-                .addOptions(
-                    options
-                );
+        if (!role) {
 
-        return interaction.update({
-            components: [
-                new ActionRowBuilder()
-                    .addComponents(menu)
-            ]
+            return interaction.reply({
+                content:
+                    "That role no longer exists.",
+                flags: 64
+            });
+
+        }
+
+        return interaction.reply({
+            content:
+                `Selected **${role.name}**\nRole ID: \`${role.id}\``,
+            flags: 64
         });
 
     }
