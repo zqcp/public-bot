@@ -34,7 +34,6 @@ module.exports = {
 \`\`\`r
 Syntax:
 ${config.prefix}welcome [option]
-
 Example:
 ${config.prefix}welcome set #welcome
 
@@ -72,7 +71,6 @@ set, message, enable, disable
 \`\`\`r
 Syntax:
 ${config.prefix}welcome set [channel]
-
 Example:
 ${config.prefix}welcome set #welcome
 \`\`\``
@@ -107,7 +105,6 @@ ${config.prefix}welcome set #welcome
 \`\`\`r
 Syntax:
 ${config.prefix}welcome message [embed]
-
 Example:
 ${config.prefix}welcome message welcome
 \`\`\``
@@ -142,7 +139,6 @@ ${config.prefix}welcome message welcome
 \`\`\`r
 Syntax:
 ${config.prefix}welcome enable
-
 Example:
 ${config.prefix}welcome enable
 \`\`\``
@@ -177,7 +173,6 @@ ${config.prefix}welcome enable
 \`\`\`r
 Syntax:
 ${config.prefix}welcome disable
-
 Example:
 ${config.prefix}welcome disable
 \`\`\``
