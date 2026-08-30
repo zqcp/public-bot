@@ -24,7 +24,6 @@ module.exports = {
             interaction.customId.split(":");
 
         if (!name) {
-
             return interaction.reply({
                 embeds: [
                     embeds.error(
@@ -34,18 +33,15 @@ module.exports = {
                 ],
                 flags: 64
             });
-
         }
 
         const saved =
             await Embed.findOne({
-                guildId:
-                    interaction.guild.id,
+                guildId: interaction.guild.id,
                 name
             });
 
         if (!saved) {
-
             return interaction.reply({
                 embeds: [
                     embeds.error(
@@ -55,14 +51,18 @@ module.exports = {
                 ],
                 flags: 64
             });
-
         }
 
-        const current =
-            Array.isArray(saved.embeds) &&
-            saved.embeds[0]
-                ? saved.embeds[0]
-                : {};
+        if (!Array.isArray(saved.embeds)) {
+            saved.embeds = [];
+        }
+
+        if (!saved.embeds.length) {
+            saved.embeds.push({});
+        }
+
+        const embed =
+            saved.embeds[0] || {};
 
         const thumbnail =
             new TextInputBuilder()
@@ -70,7 +70,7 @@ module.exports = {
                 .setLabel("Thumbnail URL")
                 .setStyle(TextInputStyle.Short)
                 .setPlaceholder(
-                    "https://example.com/image.png or {user.avatar}"
+                    "URL or variable, e.g. {server.icon}"
                 )
                 .setRequired(false)
                 .setMaxLength(1000);
@@ -81,25 +81,21 @@ module.exports = {
                 .setLabel("Image URL")
                 .setStyle(TextInputStyle.Short)
                 .setPlaceholder(
-                    "https://example.com/image.png or {server.icon}"
+                    "URL or variable, e.g. {server.banner}"
                 )
                 .setRequired(false)
                 .setMaxLength(1000);
 
-        if (current.thumbnail?.url) {
-
+        if (embed.thumbnail?.url) {
             thumbnail.setValue(
-                current.thumbnail.url
+                String(embed.thumbnail.url)
             );
-
         }
 
-        if (current.image?.url) {
-
+        if (embed.image?.url) {
             image.setValue(
-                current.image.url
+                String(embed.image.url)
             );
-
         }
 
         const modal =
