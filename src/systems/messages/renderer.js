@@ -9,11 +9,9 @@ const {
     MentionableSelectMenuBuilder
 } = require("discord.js");
 
-const variables = require("../variables");
-
 module.exports = {
 
-    render(messageData = {}, member = null) {
+    render(messageData = {}) {
 
         const payload = {};
 
@@ -36,32 +34,6 @@ module.exports = {
 
                     if (embed instanceof EmbedBuilder) {
                         return embed;
-                    }
-
-                    if (member) {
-
-                        const data =
-                            JSON.parse(
-                                JSON.stringify(embed)
-                            );
-
-                        if (data.thumbnail?.url) {
-                            data.thumbnail.url =
-                                variables.replace(
-                                    data.thumbnail.url,
-                                    member
-                                );
-                        }
-
-                        if (data.image?.url) {
-                            data.image.url =
-                                variables.replace(
-                                    data.image.url,
-                                    member
-                                );
-                        }
-
-                        return new EmbedBuilder(data);
                     }
 
                     return new EmbedBuilder(embed);
