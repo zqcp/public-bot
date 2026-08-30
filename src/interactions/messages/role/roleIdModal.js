@@ -104,7 +104,9 @@ module.exports = {
                         .setCustomId(
                             "roleAddAnother"
                         )
-                        .setLabel("Add another role")
+                        .setLabel(
+                            "Add another role"
+                        )
                         .setStyle(
                             ButtonStyle.Secondary
                         )
