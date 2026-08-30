@@ -1,5 +1,6 @@
 const Embed = require("../../models/Embed");
 const embeds = require("../../embeds/embeds");
+const variables = require("../../systems/variables");
 
 module.exports = {
 
@@ -74,7 +75,11 @@ module.exports = {
         }
 
         /*
-         * Thumbnail
+         * Variables are only resolved when
+         * the embed is actually rendered.
+         *
+         * We keep the original variable
+         * inside MongoDB.
          */
 
         if (thumbnail) {
@@ -82,14 +87,15 @@ module.exports = {
             if (
                 !/^https?:\/\//i.test(
                     thumbnail
-                )
+                ) &&
+                !thumbnail.includes("{")
             ) {
 
                 return interaction.reply({
                     embeds: [
                         embeds.error(
                             interaction.user,
-                            "The thumbnail URL must start with `http://` or `https://`."
+                            "The thumbnail must be a valid URL or contain a supported variable."
                         )
                     ],
                     flags: 64
@@ -116,14 +122,15 @@ module.exports = {
             if (
                 !/^https?:\/\//i.test(
                     image
-                )
+                ) &&
+                !image.includes("{")
             ) {
 
                 return interaction.reply({
                     embeds: [
                         embeds.error(
                             interaction.user,
-                            "The image URL must start with `http://` or `https://`."
+                            "The image must be a valid URL or contain a supported variable."
                         )
                     ],
                     flags: 64
