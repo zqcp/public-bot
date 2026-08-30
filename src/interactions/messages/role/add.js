@@ -1,6 +1,3 @@
-const Embed = require("../../../models/Embed");
-const embeds = require("../../../embeds/embeds");
-
 module.exports = {
 
     name: "roleAdd",
@@ -19,14 +16,6 @@ module.exports = {
         const roleId =
             interaction.customId.split(":")[1];
 
-        if (!roleId) {
-            return interaction.reply({
-                content:
-                    "No role ID was provided.",
-                flags: 64
-            });
-        }
-
         const role =
             interaction.guild.roles.cache.get(
                 roleId
@@ -40,17 +29,9 @@ module.exports = {
             });
         }
 
-        if (role.managed) {
-            return interaction.reply({
-                content:
-                    "That role cannot be used.",
-                flags: 64
-            });
-        }
-
         return interaction.reply({
             content:
-                `Role ready to add: **${role.name}**\nRole ID: \`${role.id}\``,
+                `Added **${role.name}**\nRole ID: \`${role.id}\``,
             flags: 64
         });
 
