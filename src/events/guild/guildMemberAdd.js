@@ -6,8 +6,8 @@ module.exports = {
     name: "guildMemberAdd",
 
     async execute(
-        client,
-        member
+        member,
+        client
     ) {
 
         if (!member?.guild) {
@@ -28,7 +28,7 @@ module.exports = {
             const channel =
                 await member.guild.channels.fetch(
                     result.channelId
-                );
+                ).catch(() => null);
 
             if (!channel) {
                 return;
