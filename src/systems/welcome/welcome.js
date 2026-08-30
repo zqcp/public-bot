@@ -233,6 +233,32 @@ module.exports = {
         }
 
         /*
+         * THUMBNAIL
+         */
+
+        if (embed.thumbnail?.url) {
+
+            embed.thumbnail.url =
+                replace(
+                    embed.thumbnail.url
+                );
+
+        }
+
+        /*
+         * LARGE IMAGE
+         */
+
+        if (embed.image?.url) {
+
+            embed.image.url =
+                replace(
+                    embed.image.url
+                );
+
+        }
+
+        /*
          * FIELDS
          */
 
