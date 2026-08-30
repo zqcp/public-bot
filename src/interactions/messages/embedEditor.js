@@ -214,7 +214,8 @@ module.exports = {
 
                 payload =
                     renderer.render(
-                        saved.toObject()
+                        saved.toObject(),
+                        interaction.member
                     );
 
             } catch (error) {
@@ -326,7 +327,8 @@ module.exports = {
                     const payload =
                         require("../../systems/messages/renderer")
                             .render(
-                                updated.toObject()
+                                updated.toObject(),
+                                interaction.member
                             );
 
                     await interaction.message.edit({
