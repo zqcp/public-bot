@@ -1,6 +1,5 @@
 const Embed = require("../../models/Embed");
 const embeds = require("../../embeds/embeds");
-const variables = require("../../systems/variables");
 
 module.exports = {
 
@@ -18,7 +17,6 @@ module.exports = {
             interaction.customId.split(":");
 
         if (!name) {
-
             return interaction.reply({
                 embeds: [
                     embeds.error(
@@ -28,7 +26,6 @@ module.exports = {
                 ],
                 flags: 64
             });
-
         }
 
         const thumbnail =
@@ -47,13 +44,11 @@ module.exports = {
 
         const saved =
             await Embed.findOne({
-                guildId:
-                    interaction.guild.id,
+                guildId: interaction.guild.id,
                 name
             });
 
         if (!saved) {
-
             return interaction.reply({
                 embeds: [
                     embeds.error(
@@ -63,7 +58,6 @@ module.exports = {
                 ],
                 flags: 64
             });
-
         }
 
         if (!Array.isArray(saved.embeds)) {
@@ -74,28 +68,48 @@ module.exports = {
             saved.embeds.push({});
         }
 
+        const embed =
+            JSON.parse(
+                JSON.stringify(
+                    saved.embeds[0] || {}
+                )
+            );
+
         /*
-         * Variables are only resolved when
-         * the embed is actually rendered.
+         * IMAGE VARIABLES
          *
-         * We keep the original variable
-         * inside MongoDB.
+         * Variables are intentionally stored
+         * exactly as entered.
+         *
+         * Examples:
+         *
+         * {server.icon}
+         * {server.banner}
+         * {user.avatar}
+         *
+         * They are resolved by the existing
+         * message system when the embed is used.
          */
 
         if (thumbnail) {
 
-            if (
-                !/^https?:\/\//i.test(
+            const isUrl =
+                /^https?:\/\/\S+$/i.test(
                     thumbnail
-                ) &&
-                !thumbnail.includes("{")
-            ) {
+                );
+
+            const isVariable =
+                /^\{[^{}]+\}$/.test(
+                    thumbnail
+                );
+
+            if (!isUrl && !isVariable) {
 
                 return interaction.reply({
                     embeds: [
                         embeds.error(
                             interaction.user,
-                            "The thumbnail must be a valid URL or contain a supported variable."
+                            "The thumbnail must be a valid URL or a supported variable such as `{server.icon}`."
                         )
                     ],
                     flags: 64
@@ -103,34 +117,39 @@ module.exports = {
 
             }
 
-            saved.embeds[0].thumbnail = {
+            embed.thumbnail = {
                 url: thumbnail
             };
 
         } else {
 
-            delete saved.embeds[0].thumbnail;
+            delete embed.thumbnail;
 
         }
 
         /*
-         * Large image
+         * LARGE IMAGE
          */
 
         if (image) {
 
-            if (
-                !/^https?:\/\//i.test(
+            const isUrl =
+                /^https?:\/\/\S+$/i.test(
                     image
-                ) &&
-                !image.includes("{")
-            ) {
+                );
+
+            const isVariable =
+                /^\{[^{}]+\}$/.test(
+                    image
+                );
+
+            if (!isUrl && !isVariable) {
 
                 return interaction.reply({
                     embeds: [
                         embeds.error(
                             interaction.user,
-                            "The image must be a valid URL or contain a supported variable."
+                            "The image must be a valid URL or a supported variable such as `{server.banner}`."
                         )
                     ],
                     flags: 64
@@ -138,21 +157,24 @@ module.exports = {
 
             }
 
-            saved.embeds[0].image = {
+            embed.image = {
                 url: image
             };
 
         } else {
 
-            delete saved.embeds[0].image;
+            delete embed.image;
 
         }
 
-        try {
+        saved.embeds[0] =
+            embed;
 
-            saved.markModified(
-                "embeds"
-            );
+        saved.markModified(
+            "embeds"
+        );
+
+        try {
 
             await saved.save();
 
