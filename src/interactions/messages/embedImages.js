@@ -70,7 +70,7 @@ module.exports = {
                 .setLabel("Thumbnail URL")
                 .setStyle(TextInputStyle.Short)
                 .setPlaceholder(
-                    "https://example.com/thumbnail.png"
+                    "https://example.com/image.png or {user.avatar}"
                 )
                 .setRequired(false)
                 .setMaxLength(1000);
@@ -81,7 +81,7 @@ module.exports = {
                 .setLabel("Image URL")
                 .setStyle(TextInputStyle.Short)
                 .setPlaceholder(
-                    "https://example.com/image.png"
+                    "https://example.com/image.png or {server.icon}"
                 )
                 .setRequired(false)
                 .setMaxLength(1000);
