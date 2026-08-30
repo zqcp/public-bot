@@ -23,7 +23,12 @@ module.exports = {
 
     permissions: {
         user: ["ManageGuild"],
-        bot: []
+        bot: [
+            "ManageGuild",
+            "ViewChannel",
+            "SendMessages",
+            "EmbedLinks"
+        ]
     },
 
     async execute(
@@ -55,6 +60,27 @@ module.exports = {
                     globalEmbeds.permission(
                         message.author,
                         "Manage Server"
+                    )
+                ]
+            });
+
+        }
+
+        /*
+         * Bot permission
+         */
+
+        if (
+            !message.guild.members.me.permissions.has(
+                PermissionFlagsBits.ManageGuild
+            )
+        ) {
+
+            return message.channel.send({
+                embeds: [
+                    globalEmbeds.botPermission(
+                        message.author,
+                        ["ManageGuild"]
                     )
                 ]
             });
@@ -111,6 +137,55 @@ module.exports = {
                 embeds: [
                     globalEmbeds.error(
                         `${message.author}: That isn't a text channel.`
+                    )
+                ]
+            });
+
+        }
+
+        /*
+         * Bot permissions
+         * in selected channel.
+         */
+
+        const permissions =
+            channel.permissionsFor(
+                message.guild.members.me
+            );
+
+        const missing = [];
+
+        if (
+            !permissions.has(
+                PermissionFlagsBits.ViewChannel
+            )
+        ) {
+            missing.push("ViewChannel");
+        }
+
+        if (
+            !permissions.has(
+                PermissionFlagsBits.SendMessages
+            )
+        ) {
+            missing.push("SendMessages");
+        }
+
+        if (
+            !permissions.has(
+                PermissionFlagsBits.EmbedLinks
+            )
+        ) {
+            missing.push("EmbedLinks");
+        }
+
+        if (missing.length) {
+
+            return message.channel.send({
+                embeds: [
+                    globalEmbeds.botPermission(
+                        message.author,
+                        missing
                     )
                 ]
             });
