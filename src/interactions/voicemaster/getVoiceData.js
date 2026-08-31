@@ -5,7 +5,7 @@ const VoiceMaster =
     require("../../models/VoiceMaster");
 
 const Voice =
-    require("../../embeds/voice");
+    require("../../embeds/voicemaster/voice");
 
 module.exports = async function getVoiceData(
     interaction
