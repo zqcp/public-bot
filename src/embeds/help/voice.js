@@ -17,14 +17,8 @@ module.exports = {
 \`\`\`
 Syntax:
 ${config.prefix}vc permit [member]
-
 Example:
 ${config.prefix}vc permit @User
-${config.prefix}vc permit 123456789012345678
-${config.prefix}vc permit username
-
-Member:
-Mention, ID, or username
 \`\`\``
         };
     },
@@ -45,14 +39,8 @@ Mention, ID, or username
 \`\`\`
 Syntax:
 ${config.prefix}vc reject [member]
-
 Example:
 ${config.prefix}vc reject @User
-${config.prefix}vc reject 123456789012345678
-${config.prefix}vc reject username
-
-Member:
-Mention, ID, or username
 \`\`\``
         };
     }
