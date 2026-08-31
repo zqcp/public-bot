@@ -50,21 +50,17 @@ async function handleRejectedAdmin(
         return;
     }
 
-
     const channel =
         member.voice.channel;
-
 
     if (!channel) {
         return;
     }
 
-
     const overwrite =
         channel.permissionOverwrites.cache.get(
             member.id
         );
-
 
     if (
         !overwrite ||
@@ -74,7 +70,6 @@ async function handleRejectedAdmin(
     ) {
         return;
     }
-
 
     await member.voice.setChannel(
         null
@@ -90,6 +85,11 @@ async function handleUnmute(
     config
 ) {
 
+    /*
+     * User must be inside either
+     * configured unmute channel.
+     */
+
     if (
         member.voice.channelId !==
         config.unmuteId &&
@@ -99,59 +99,12 @@ async function handleUnmute(
         return;
     }
 
-
-    if (
-        !member.voice.serverMute &&
-        !member.voice.serverDeaf
-    ) {
-        return;
-    }
-
-
     /*
-     * UNMUTE MEMBER
+     * Find the temporary VC owned
+     * by this member.
      *
-     * This must happen before looking
-     * for their personal voice channel.
-     */
-
-    if (
-        member.voice.serverMute
-    ) {
-
-        await member.voice.setMute(
-            false
-        ).catch(
-            error => console.error(
-                "[VC UNMUTE] Failed to unmute member:",
-                error
-            )
-        );
-
-    }
-
-
-    if (
-        member.voice.serverDeaf
-    ) {
-
-        await member.voice.setDeaf(
-            false
-        ).catch(
-            error => console.error(
-                "[VC UNMUTE] Failed to undeafen member:",
-                error
-            )
-        );
-
-    }
-
-
-    /*
-     * Find their personal voice channel.
-     *
-     * If they don't own one, they simply
-     * remain in the unmute channel.
+     * This is intentionally done even
+     * if the member is not muted yet.
      */
 
     const original =
@@ -165,11 +118,13 @@ async function handleUnmute(
 
         });
 
-
     if (!original) {
         return;
     }
 
+    /*
+     * Get their original VC.
+     */
 
     const channel =
         await member.guild.channels.fetch(
@@ -178,19 +133,51 @@ async function handleUnmute(
             () => null
         );
 
-
     if (!channel) {
         return;
     }
 
+    /*
+     * Unmute.
+     */
+
+    if (
+        member.voice.serverMute
+    ) {
+
+        await member.voice.setMute(
+            false
+        ).catch(
+            () => null
+        );
+
+    }
+
+    /*
+     * Undeafen.
+     */
+
+    if (
+        member.voice.serverDeaf
+    ) {
+
+        await member.voice.setDeaf(
+            false
+        ).catch(
+            () => null
+        );
+
+    }
+
+    /*
+     * Return them to their
+     * original temporary VC.
+     */
 
     await member.voice.setChannel(
         channel
     ).catch(
-        error => console.error(
-            "[VC UNMUTE] Failed to return member to voice channel:",
-            error
-        )
+        () => null
     );
 
 }
@@ -208,16 +195,13 @@ async function handleRandom(
         return;
     }
 
-
     const channels =
         await VoiceChannel.find({
             guildId:
                 member.guild.id
         });
 
-
     const available = [];
-
 
     for (
         const data of channels
@@ -228,11 +212,9 @@ async function handleRandom(
                 data.channelId
             );
 
-
         if (!channel) {
             continue;
         }
-
 
         if (
             channel.members.size >=
@@ -241,7 +223,6 @@ async function handleRandom(
         ) {
             continue;
         }
-
 
         if (
             !Permissions.canJoin(
@@ -252,18 +233,15 @@ async function handleRandom(
             continue;
         }
 
-
         available.push(
             channel
         );
 
     }
 
-
     if (!available.length) {
         return;
     }
-
 
     const channel =
         available[
@@ -272,7 +250,6 @@ async function handleRandom(
                 available.length
             )
         ];
-
 
     await member.voice.setChannel(
         channel
@@ -289,7 +266,6 @@ async function handleLeave(
         return;
     }
 
-
     const data =
         await VoiceChannel.findOne({
             guildId:
@@ -299,11 +275,9 @@ async function handleLeave(
                 oldChannel.id
         });
 
-
     if (!data) {
         return;
     }
-
 
     await Channels.cleanup(
         oldChannel
@@ -325,7 +299,6 @@ async function handle(
         return;
     }
 
-
     const config =
         await VoiceMaster.findOne({
             guildId:
@@ -336,6 +309,10 @@ async function handle(
         return;
     }
 
+    /*
+     * Someone joined/moved into
+     * a voice channel.
+     */
 
     if (
         newState.channelId
@@ -345,25 +322,33 @@ async function handle(
             member
         );
 
-
         if (
             !member.voice.channelId
         ) {
             return;
         }
 
+        /*
+         * Join to Create.
+         */
 
         await handleJoinToCreate(
             member,
             config
         );
 
+        /*
+         * Unmute / return to VC.
+         */
 
         await handleUnmute(
             member,
             config
         );
 
+        /*
+         * Random VC.
+         */
 
         await handleRandom(
             member,
@@ -372,6 +357,10 @@ async function handle(
 
     }
 
+    /*
+     * Someone left or moved out
+     * of a tracked temporary VC.
+     */
 
     if (
         oldState.channelId &&
