@@ -1,65 +1,27 @@
-const mongoose = require("mongoose");
+const Interface =
+    require("../systems/voicemaster/interface");
 
-const VoiceMasterSchema =
-    new mongoose.Schema({
+module.exports = {
 
-        guildId: {
-            type: String,
-            required: true,
-            unique: true
-        },
+    name: "guildUpdate",
 
-        defaultCategoryId: {
-            type: String,
-            default: null
-        },
+    async execute(
+        oldGuild,
+        newGuild
+    ) {
 
-        joinToCreateId: {
-            type: String,
-            default: null
-        },
+        if (
+            oldGuild.icon !==
+            newGuild.icon
+        ) {
 
-        unmuteId: {
-            type: String,
-            default: null
-        },
+            await Interface.update(
+                newGuild.client,
+                newGuild
+            );
 
-        unmute2Id: {
-            type: String,
-            default: null
-        },
-
-        randomId: {
-            type: String,
-            default: null
-        },
-
-        publicCategoryId: {
-            type: String,
-            default: null
-        },
-
-        privateCategoryId: {
-            type: String,
-            default: null
-        },
-
-        interfaceChannelId: {
-            type: String,
-            default: null
-        },
-
-        interfaceMessageId: {
-            type: String,
-            default: null
         }
 
-    }, {
-        timestamps: true
-    });
+    }
 
-module.exports =
-    mongoose.model(
-        "VoiceMaster",
-        VoiceMasterSchema
-    );
+};
