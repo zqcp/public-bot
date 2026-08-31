@@ -14,7 +14,7 @@ const SnipeCommand =
 
 module.exports = {
 
-    name: "snipe",
+    name: "snipe_",
 
     type: "button",
 
