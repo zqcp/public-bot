@@ -163,19 +163,23 @@ module.exports = {
             );
 
             /*
-             * Success embed
+             * Success
              */
 
-            const embed =
-                new EmbedBuilder()
-                    .setColor(config.colors.success)
-                    .setDescription(
-                        `${config.emojis.success} ${message.author}: Unbanned **${bannedUser.user.username}** for ${reason}.`
-                    );
+            if (
+                reason ===
+                "No reason provided"
+            ) {
 
-            return message.channel.send({
-                embeds: [embed]
-            });
+                return message.channel.send(
+                    `unbanned <@${userId}>`
+                );
+
+            }
+
+            return message.channel.send(
+                `unbanned <@${userId}> for \`${reason}\``
+            );
 
         } catch (error) {
 
@@ -190,7 +194,9 @@ module.exports = {
 
             const embed =
                 new EmbedBuilder()
-                    .setColor(config.colors.failed)
+                    .setColor(
+                        config.colors.failed
+                    )
                     .setDescription(
                         `${config.emojis.failed} ${message.author}: Unban failed for **${bannedUser.user.username}**. Please try again.`
                     );
