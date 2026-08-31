@@ -99,6 +99,7 @@ async function handleUnmute(
         return;
     }
 
+
     if (
         !member.voice.serverMute &&
         !member.voice.serverDeaf
@@ -106,6 +107,52 @@ async function handleUnmute(
         return;
     }
 
+
+    /*
+     * UNMUTE MEMBER
+     *
+     * This must happen before looking
+     * for their personal voice channel.
+     */
+
+    if (
+        member.voice.serverMute
+    ) {
+
+        await member.voice.setMute(
+            false
+        ).catch(
+            error => console.error(
+                "[VC UNMUTE] Failed to unmute member:",
+                error
+            )
+        );
+
+    }
+
+
+    if (
+        member.voice.serverDeaf
+    ) {
+
+        await member.voice.setDeaf(
+            false
+        ).catch(
+            error => console.error(
+                "[VC UNMUTE] Failed to undeafen member:",
+                error
+            )
+        );
+
+    }
+
+
+    /*
+     * Find their personal voice channel.
+     *
+     * If they don't own one, they simply
+     * remain in the unmute channel.
+     */
 
     const original =
         await VoiceChannel.findOne({
@@ -137,36 +184,13 @@ async function handleUnmute(
     }
 
 
-    if (
-        member.voice.serverMute
-    ) {
-
-        await member.voice.setMute(
-            false
-        ).catch(
-            () => null
-        );
-
-    }
-
-
-    if (
-        member.voice.serverDeaf
-    ) {
-
-        await member.voice.setDeaf(
-            false
-        ).catch(
-            () => null
-        );
-
-    }
-
-
     await member.voice.setChannel(
         channel
     ).catch(
-        () => null
+        error => console.error(
+            "[VC UNMUTE] Failed to return member to voice channel:",
+            error
+        )
     );
 
 }
