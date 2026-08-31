@@ -1,9 +1,11 @@
 const {
-    PermissionFlagsBits
+    PermissionFlagsBits,
+    EmbedBuilder
 } = require("discord.js");
 
 const globalEmbeds = require("../../embeds/global");
 const moderationEmbeds = require("../../embeds/help/moderation");
+const config = require("../../config");
 
 module.exports = {
 
@@ -82,21 +84,77 @@ module.exports = {
          * Find member
          */
 
-        const input = args.shift();
+        const input =
+            args.shift();
 
-        let member =
-            message.mentions.members.first();
+        let member = null;
 
-        if (!member) {
-            try {
-                member =
-                    await message.guild.members.fetch(input);
-            } catch {
-                member = null;
+        try {
+
+            /*
+             * Mention
+             */
+
+            member =
+                message.mentions.members.first() ||
+                null;
+
+            /*
+             * ID
+             */
+
+            if (!member) {
+
+                const id =
+                    input.replace(
+                        /[<@!>]/g,
+                        ""
+                    );
+
+                if (
+                    /^\d{17,20}$/.test(id)
+                ) {
+
+                    member =
+                        await message.guild.members
+                            .fetch(id)
+                            .catch(() => null);
+
+                }
+
             }
-        }
 
-        if (!member) {
+            /*
+             * Username
+             */
+
+            if (!member) {
+
+                const members =
+                    await message.guild.members
+                        .fetch({
+                            query: input,
+                            limit: 10
+                        })
+                        .catch(() => []);
+
+                member =
+                    members.find(
+                        member =>
+                            member.user.username
+                                .toLowerCase() ===
+                            input.toLowerCase()
+                    ) || null;
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "[UNTIMEOUT] Failed to resolve member:",
+                error
+            );
+
             return message.channel.send({
                 embeds: [
                     globalEmbeds.notFound(
@@ -104,13 +162,34 @@ module.exports = {
                     )
                 ]
             });
+
+        }
+
+        /*
+         * Not found
+         */
+
+        if (!member) {
+
+            return message.channel.send({
+                embeds: [
+                    globalEmbeds.notFound(
+                        message.author
+                    )
+                ]
+            });
+
         }
 
         /*
          * Self
          */
 
-        if (member.id === message.author.id) {
+        if (
+            member.id ===
+            message.author.id
+        ) {
+
             return message.channel.send({
                 embeds: [
                     globalEmbeds.self(
@@ -118,6 +197,7 @@ module.exports = {
                     )
                 ]
             });
+
         }
 
         /*
@@ -125,8 +205,10 @@ module.exports = {
          */
 
         if (
-            member.id === message.guild.ownerId
+            member.id ===
+            message.guild.ownerId
         ) {
+
             return message.channel.send({
                 embeds: [
                     globalEmbeds.owner(
@@ -134,6 +216,7 @@ module.exports = {
                     )
                 ]
             });
+
         }
 
         /*
@@ -143,8 +226,10 @@ module.exports = {
         if (
             member.roles.highest.position >=
             message.member.roles.highest.position &&
-            message.author.id !== message.guild.ownerId
+            message.author.id !==
+            message.guild.ownerId
         ) {
+
             return message.channel.send({
                 embeds: [
                     globalEmbeds.hierarchy(
@@ -152,6 +237,7 @@ module.exports = {
                     )
                 ]
             });
+
         }
 
         /*
@@ -162,6 +248,7 @@ module.exports = {
             member.roles.highest.position >=
             message.guild.members.me.roles.highest.position
         ) {
+
             return message.channel.send({
                 embeds: [
                     globalEmbeds.botRole(
@@ -169,6 +256,7 @@ module.exports = {
                     )
                 ]
             });
+
         }
 
         /*
@@ -179,6 +267,10 @@ module.exports = {
             args.join(" ").trim() ||
             "No reason provided";
 
+        /*
+         * Remove timeout
+         */
+
         try {
 
             await member.timeout(
@@ -187,17 +279,18 @@ module.exports = {
             );
 
             /*
-             * Success
+             * Success embed
              */
 
             return message.channel.send({
                 embeds: [
-                    globalEmbeds.success(
-                        message.author,
-                        "Removed timeout from",
-                        member.user.username,
-                        reason
-                    )
+                    new EmbedBuilder()
+                        .setColor(
+                            config.colors.success
+                        )
+                        .setDescription(
+                            `${config.emojis.success} ${member} is now **unmuted**.`
+                        )
                 ]
             });
 
@@ -208,13 +301,19 @@ module.exports = {
                 error
             );
 
+            /*
+             * Failed embed
+             */
+
             return message.channel.send({
                 embeds: [
-                    globalEmbeds.failed(
-                        message.author,
-                        "Remove timeout from",
-                        member.user.username
-                    )
+                    new EmbedBuilder()
+                        .setColor(
+                            config.colors.failed
+                        )
+                        .setDescription(
+                            `${config.emojis.failed} ${message.author}: failed untimeout ${member}. Please try again`
+                        )
                 ]
             });
 
