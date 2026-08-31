@@ -266,7 +266,7 @@ module.exports = {
             }
 
             return message.channel.send(
-                `banned ${target} for **${reason}**`
+                `banned ${target} for \`${reason}\``
             );
 
         } catch (error) {
