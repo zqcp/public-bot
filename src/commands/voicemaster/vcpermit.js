@@ -7,6 +7,9 @@ const VoiceMaster =
 const Voice =
     require("../../embeds/voicemaster/voice");
 
+const VoiceHelp =
+    require("../../embeds/help/voice");
+
 const {
     EmbedBuilder
 } = require("discord.js");
@@ -105,6 +108,27 @@ module.exports = {
             return message.channel.send({
                 embeds: [
                     Voice.notOwner(
+                        message.author
+                    )
+                ]
+            });
+
+        }
+
+        /*
+         * HELP
+         *
+         * ,vc permit
+         */
+
+        if (
+            !args[0] &&
+            !message.mentions.members.first()
+        ) {
+
+            return message.channel.send({
+                embeds: [
+                    VoiceHelp.permit(
                         message.author
                     )
                 ]
