@@ -1,21 +1,21 @@
 const VoiceChannel =
-    require("../../../models/VoiceChannel");
+    require("../../models/VoiceChannel");
 
 const VoiceMaster =
-    require("../../../models/VoiceMaster");
+    require("../../models/VoiceMaster");
 
 const Channels =
-    require("../../../systems/voicemaster/channels");
+    require("../../systems/voicemaster/channels");
 
 const Voice =
-    require("../../../embeds/voicemaster/voice");
+    require("../../embeds/voicemaster/voice");
 
 const {
     EmbedBuilder
 } = require("discord.js");
 
 const config =
-    require("../../../config");
+    require("../../config");
 
 module.exports = {
 
