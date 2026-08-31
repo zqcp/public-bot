@@ -3,18 +3,18 @@ const {
 } = require("discord.js");
 
 const config =
-    require("../config");
+    require("../../config");
 
 const Snipe =
-    require("../events/snipe");
+    require("../../events/snipe");
 
 const SnipeCommand =
-    require("../commands/utility/snipe");
+    require("../../commands/utility/snipe");
 
 
 module.exports = {
 
-    name: "snipe_",
+    name: "snipe",
 
     type: "button",
 
@@ -24,7 +24,7 @@ module.exports = {
     ) {
 
         const parts =
-            interaction.customId.split("_");
+            interaction.customId.split(":");
 
         const direction =
             parts[1];
@@ -69,15 +69,13 @@ module.exports = {
             );
 
 
-        if (
-            !snipes.length
-        ) {
+        if (!snipes.length) {
 
-            return interaction.message
-                .delete()
-                .catch(
-                    () => null
-                );
+            return interaction.update({
+                components: []
+            }).catch(
+                () => null
+            );
 
         }
 
@@ -137,7 +135,9 @@ module.exports = {
             () => {
 
                 interaction.message
-                    .delete()
+                    .edit({
+                        components: []
+                    })
                     .catch(
                         () => null
                     );
