@@ -69,14 +69,20 @@ function createEmbed(
 
     const embed =
         new EmbedBuilder()
-            .setColor(randomColor())
+            .setColor(
+                randomColor()
+            )
             .setAuthor({
-                name: snipe.author.username,
-                iconURL: snipe.author.avatar
+                name:
+                    snipe.author.username,
+
+                iconURL:
+                    snipe.author.avatar
             })
             .setFooter({
                 text:
                     `Deleted ${timeAgo(snipe.deletedTimestamp)} • ${index + 1}/${total} messages`,
+
                 iconURL:
                     runner.displayAvatarURL({
                         dynamic: true
@@ -88,21 +94,26 @@ function createEmbed(
         "*No message content.*"
     );
 
+
     if (
         snipe.attachments?.length
     ) {
 
         embed.addFields({
-            name: "Attachments",
-            value: snipe.attachments
-                .map(
-                    url =>
-                        `[Attachment](${url})`
-                )
-                .join("\n")
+            name:
+                "Attachments",
+
+            value:
+                snipe.attachments
+                    .map(
+                        url =>
+                            `[Attachment](${url})`
+                    )
+                    .join("\n")
         });
 
     }
+
 
     return embed;
 
@@ -115,9 +126,14 @@ function createButtons(
     total
 ) {
 
-    if (total <= 1) {
+    if (
+        total <= 1
+    ) {
+
         return [];
+
     }
+
 
     return [
         new ActionRowBuilder()
@@ -125,9 +141,11 @@ function createButtons(
 
                 new ButtonBuilder()
                     .setCustomId(
-                        `snipe_previous_${ownerId}_${index}`
+                        `snipe:previous:${ownerId}:${index}`
                     )
-                    .setLabel("<")
+                    .setLabel(
+                        "<"
+                    )
                     .setStyle(
                         ButtonStyle.Secondary
                     )
@@ -137,9 +155,11 @@ function createButtons(
 
                 new ButtonBuilder()
                     .setCustomId(
-                        `snipe_next_${ownerId}_${index}`
+                        `snipe:next:${ownerId}:${index}`
                     )
-                    .setLabel(">")
+                    .setLabel(
+                        ">"
+                    )
                     .setStyle(
                         ButtonStyle.Secondary
                     )
@@ -155,7 +175,8 @@ function createButtons(
 
 module.exports = {
 
-    name: "snipe",
+    name:
+        "snipe",
 
     aliases: [
         "s"
@@ -167,15 +188,21 @@ module.exports = {
         args
     ) {
 
-        if (!message.guild) {
+        if (
+            !message.guild
+        ) {
+
             return;
+
         }
+
 
         const stored =
             Snipe.get(
                 message.guild.id,
                 message.channel.id
             );
+
 
         const snipes =
             stored.filter(
@@ -185,7 +212,10 @@ module.exports = {
                     TWO_HOURS
             );
 
-        if (!snipes.length) {
+
+        if (
+            !snipes.length
+        ) {
 
             return message.channel.send({
                 embeds: [
@@ -201,8 +231,10 @@ module.exports = {
 
         }
 
+
         const sent =
             await message.channel.send({
+
                 embeds: [
                     createEmbed(
                         snipes[0],
@@ -218,20 +250,23 @@ module.exports = {
                         0,
                         snipes.length
                     )
+
             });
 
 
         /*
-         * Delete after 60 seconds.
+         * Remove buttons after 60 seconds.
+         * Keep the embed.
          */
 
         setTimeout(
             () => {
 
-                sent.delete()
-                    .catch(
-                        () => null
-                    );
+                sent.edit({
+                    components: []
+                }).catch(
+                    () => null
+                );
 
             },
             SIXTY_SECONDS
