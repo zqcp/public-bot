@@ -1,9 +1,11 @@
 const {
-    PermissionFlagsBits
+    PermissionFlagsBits,
+    EmbedBuilder
 } = require("discord.js");
 
 const globalEmbeds = require("../../embeds/global");
 const moderationEmbeds = require("../../embeds/help/moderation");
+const config = require("../../config");
 
 module.exports = {
 
@@ -82,13 +84,15 @@ module.exports = {
          * Duration
          */
 
-        const input = args.join(" ")
-            .toLowerCase()
-            .trim();
+        const input =
+            args.join(" ")
+                .toLowerCase()
+                .trim();
 
-        const match = input.match(
-            /^(\d+)\s*(s|sec|secs|second|seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours)$/
-        );
+        const match =
+            input.match(
+                /^(\d+)\s*(s|sec|secs|second|seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours)$/
+            );
 
         if (!match) {
             return message.channel.send({
@@ -100,21 +104,45 @@ module.exports = {
             });
         }
 
-        const amount = Number(match[1]);
-        const unit = match[2];
+        const amount =
+            Number(match[1]);
+
+        const unit =
+            match[2];
 
         let seconds;
 
         if (
-            ["s", "sec", "secs", "second", "seconds"].includes(unit)
+            [
+                "s",
+                "sec",
+                "secs",
+                "second",
+                "seconds"
+            ].includes(unit)
         ) {
-            seconds = amount;
+
+            seconds =
+                amount;
+
         } else if (
-            ["m", "min", "mins", "minute", "minutes"].includes(unit)
+            [
+                "m",
+                "min",
+                "mins",
+                "minute",
+                "minutes"
+            ].includes(unit)
         ) {
-            seconds = amount * 60;
+
+            seconds =
+                amount * 60;
+
         } else {
-            seconds = amount * 60 * 60;
+
+            seconds =
+                amount * 60 * 60;
+
         }
 
         /*
@@ -131,18 +159,16 @@ module.exports = {
             });
         }
 
+        /*
+         * Set slowmode
+         */
+
         try {
 
             await message.channel.setRateLimitPerUser(
                 seconds,
                 `Slowmode set by ${message.author.tag}`
             );
-
-            /*
-             * No success embed
-             */
-
-            return;
 
         } catch (error) {
 
@@ -151,17 +177,39 @@ module.exports = {
                 error
             );
 
+            /*
+             * Failed embed
+             */
+
             return message.channel.send({
                 embeds: [
-                    globalEmbeds.failed(
-                        message.author,
-                        "Slowmode",
-                        message.channel.name
-                    )
+                    new EmbedBuilder()
+                        .setColor(
+                            config.colors.failed
+                        )
+                        .setDescription(
+                            `${config.emojis.failed} ${message.author}: failed slowmode ${message.channel}. Please try again`
+                        )
                 ]
             });
 
         }
+
+        /*
+         * Success embed
+         */
+
+        return message.channel.send({
+            embeds: [
+                new EmbedBuilder()
+                    .setColor(
+                        config.colors.success
+                    )
+                    .setDescription(
+                        `${config.emojis.success} ${message.author}: Slowmode set to \`${input}\` in ${message.channel}.`
+                    )
+            ]
+        });
 
     }
 
