@@ -1,9 +1,11 @@
 const {
-    PermissionFlagsBits
+    PermissionFlagsBits,
+    EmbedBuilder
 } = require("discord.js");
 
 const globalEmbeds = require("../../embeds/global");
 const moderationEmbeds = require("../../embeds/help/moderation");
+const config = require("../../config");
 
 module.exports = {
 
@@ -82,21 +84,77 @@ module.exports = {
          * Find member
          */
 
-        const input = args.shift();
+        const input =
+            args.shift();
 
-        let member =
-            message.mentions.members.first();
+        let member = null;
 
-        if (!member) {
-            try {
-                member =
-                    await message.guild.members.fetch(input);
-            } catch {
-                member = null;
+        try {
+
+            /*
+             * Mention
+             */
+
+            member =
+                message.mentions.members.first() ||
+                null;
+
+            /*
+             * ID
+             */
+
+            if (!member) {
+
+                const id =
+                    input.replace(
+                        /[<@!>]/g,
+                        ""
+                    );
+
+                if (
+                    /^\d{17,20}$/.test(id)
+                ) {
+
+                    member =
+                        await message.guild.members
+                            .fetch(id)
+                            .catch(() => null);
+
+                }
+
             }
-        }
 
-        if (!member) {
+            /*
+             * Username
+             */
+
+            if (!member) {
+
+                const members =
+                    await message.guild.members
+                        .fetch({
+                            query: input,
+                            limit: 10
+                        })
+                        .catch(() => []);
+
+                member =
+                    members.find(
+                        member =>
+                            member.user.username
+                                .toLowerCase() ===
+                            input.toLowerCase()
+                    ) || null;
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "[TIMEOUT] Failed to resolve member:",
+                error
+            );
+
             return message.channel.send({
                 embeds: [
                     globalEmbeds.notFound(
@@ -104,13 +162,34 @@ module.exports = {
                     )
                 ]
             });
+
+        }
+
+        /*
+         * Not found
+         */
+
+        if (!member) {
+
+            return message.channel.send({
+                embeds: [
+                    globalEmbeds.notFound(
+                        message.author
+                    )
+                ]
+            });
+
         }
 
         /*
          * Self
          */
 
-        if (member.id === message.author.id) {
+        if (
+            member.id ===
+            message.author.id
+        ) {
+
             return message.channel.send({
                 embeds: [
                     globalEmbeds.self(
@@ -118,6 +197,7 @@ module.exports = {
                     )
                 ]
             });
+
         }
 
         /*
@@ -125,8 +205,10 @@ module.exports = {
          */
 
         if (
-            member.id === message.guild.ownerId
+            member.id ===
+            message.guild.ownerId
         ) {
+
             return message.channel.send({
                 embeds: [
                     globalEmbeds.owner(
@@ -134,6 +216,7 @@ module.exports = {
                     )
                 ]
             });
+
         }
 
         /*
@@ -143,8 +226,10 @@ module.exports = {
         if (
             member.roles.highest.position >=
             message.member.roles.highest.position &&
-            message.author.id !== message.guild.ownerId
+            message.author.id !==
+            message.guild.ownerId
         ) {
+
             return message.channel.send({
                 embeds: [
                     globalEmbeds.hierarchy(
@@ -152,6 +237,7 @@ module.exports = {
                     )
                 ]
             });
+
         }
 
         /*
@@ -162,6 +248,7 @@ module.exports = {
             member.roles.highest.position >=
             message.guild.members.me.roles.highest.position
         ) {
+
             return message.channel.send({
                 embeds: [
                     globalEmbeds.botRole(
@@ -169,15 +256,18 @@ module.exports = {
                     )
                 ]
             });
+
         }
 
         /*
          * Duration
          */
 
-        const durationInput = args.shift();
+        const durationInput =
+            args.shift();
 
         if (!durationInput) {
+
             return message.channel.send({
                 embeds: [
                     moderationEmbeds.timeout(
@@ -185,6 +275,7 @@ module.exports = {
                     )
                 ]
             });
+
         }
 
         const match =
@@ -195,6 +286,7 @@ module.exports = {
                 );
 
         if (!match) {
+
             return message.channel.send({
                 embeds: [
                     globalEmbeds.error(
@@ -202,6 +294,7 @@ module.exports = {
                     )
                 ]
             });
+
         }
 
         const amount =
@@ -212,14 +305,50 @@ module.exports = {
 
         let milliseconds;
 
-        if (["s", "sec", "secs", "second", "seconds"].includes(unit)) {
-            milliseconds = amount * 1000;
-        } else if (["m", "min", "mins", "minute", "minutes"].includes(unit)) {
-            milliseconds = amount * 60 * 1000;
-        } else if (["h", "hr", "hrs", "hour", "hours"].includes(unit)) {
-            milliseconds = amount * 60 * 60 * 1000;
+        if (
+            [
+                "s",
+                "sec",
+                "secs",
+                "second",
+                "seconds"
+            ].includes(unit)
+        ) {
+
+            milliseconds =
+                amount * 1000;
+
+        } else if (
+            [
+                "m",
+                "min",
+                "mins",
+                "minute",
+                "minutes"
+            ].includes(unit)
+        ) {
+
+            milliseconds =
+                amount * 60 * 1000;
+
+        } else if (
+            [
+                "h",
+                "hr",
+                "hrs",
+                "hour",
+                "hours"
+            ].includes(unit)
+        ) {
+
+            milliseconds =
+                amount * 60 * 60 * 1000;
+
         } else {
-            milliseconds = amount * 24 * 60 * 60 * 1000;
+
+            milliseconds =
+                amount * 24 * 60 * 60 * 1000;
+
         }
 
         /*
@@ -230,8 +359,10 @@ module.exports = {
             28 * 24 * 60 * 60 * 1000;
 
         if (
-            milliseconds > maxTimeout
+            milliseconds >
+            maxTimeout
         ) {
+
             return message.channel.send({
                 embeds: [
                     globalEmbeds.error(
@@ -239,6 +370,7 @@ module.exports = {
                     )
                 ]
             });
+
         }
 
         /*
@@ -248,6 +380,10 @@ module.exports = {
         const reason =
             args.join(" ").trim() ||
             "No reason provided";
+
+        /*
+         * Timeout
+         */
 
         try {
 
@@ -260,16 +396,20 @@ module.exports = {
              * Success
              */
 
-            return message.channel.send({
-                embeds: [
-                    globalEmbeds.success(
-                        message.author,
-                        "Timed out",
-                        member.user.username,
-                        reason
-                    )
-                ]
-            });
+            if (
+                reason ===
+                "No reason provided"
+            ) {
+
+                return message.channel.send(
+                    `timed out ${member}`
+                );
+
+            }
+
+            return message.channel.send(
+                `timed out ${member} for \`${reason}\``
+            );
 
         } catch (error) {
 
@@ -278,13 +418,19 @@ module.exports = {
                 error
             );
 
+            /*
+             * Failed embed
+             */
+
             return message.channel.send({
                 embeds: [
-                    globalEmbeds.failed(
-                        message.author,
-                        "Timeout",
-                        member.user.username
-                    )
+                    new EmbedBuilder()
+                        .setColor(
+                            config.colors.failed
+                        )
+                        .setDescription(
+                            `${config.emojis.failed} ${message.author}: failed timeout ${member}. Please try again`
+                        )
                 ]
             });
 
