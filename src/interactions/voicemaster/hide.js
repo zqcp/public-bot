@@ -19,7 +19,7 @@ const config =
 
 module.exports = {
 
-    name: "vc_reveal",
+    name: "vc_hide",
 
     type: "button",
 
