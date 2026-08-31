@@ -255,19 +255,23 @@ module.exports = {
             });
 
             /*
-             * Success embed
+             * Success
              */
 
-            const embed =
-                new EmbedBuilder()
-                    .setColor(config.colors.success)
-                    .setDescription(
-                        `${config.emojis.success} ${message.author}: Hard banned **${target.user.username}** for ${reason}.`
-                    );
+            if (
+                reason ===
+                "No reason provided"
+            ) {
 
-            return message.channel.send({
-                embeds: [embed]
-            });
+                return message.channel.send(
+                    `hard banned ${target}`
+                );
+
+            }
+
+            return message.channel.send(
+                `hard banned ${target} for \`${reason}\``
+            );
 
         } catch (error) {
 
@@ -282,7 +286,9 @@ module.exports = {
 
             const embed =
                 new EmbedBuilder()
-                    .setColor(config.colors.failed)
+                    .setColor(
+                        config.colors.failed
+                    )
                     .setDescription(
                         `${config.emojis.failed} ${message.author}: Hard ban failed for **${target.user.username}**. Please try again.`
                     );
