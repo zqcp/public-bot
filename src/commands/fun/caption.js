@@ -51,12 +51,12 @@ function escapeXml(text) {
 
 
 /*
- * Wrap caption
+ * Caption wrapping
  */
 
 function wrapText(
     text,
-    max
+    maxCharacters
 ) {
 
     const words =
@@ -75,7 +75,7 @@ function wrapText(
 
         if (
             test.length >
-            max
+            maxCharacters
         ) {
 
             if (line) {
@@ -96,22 +96,6 @@ function wrapText(
 
     if (line) {
         lines.push(line);
-    }
-
-    /*
-     * Maximum 4 lines
-     */
-
-    if (
-        lines.length >
-        4
-    ) {
-
-        lines.length = 4;
-
-        lines[3] =
-            `${lines[3]}...`;
-
     }
 
     return lines;
@@ -165,7 +149,7 @@ module.exports = {
 
 
         /*
-         * Attachment
+         * Image / GIF
          */
 
         const attachment =
@@ -186,23 +170,16 @@ module.exports = {
         }
 
 
-        /*
-         * Check image
-         */
-
         const contentType =
-            attachment.contentType ||
-            "";
+            attachment.contentType || "";
+
 
         const fileName =
-            attachment.name ||
-            "";
+            attachment.name || "";
 
 
         const isImage =
-            contentType.startsWith(
-                "image/"
-            ) ||
+            contentType.startsWith("image/") ||
             /\.(png|jpe?g|webp|gif)$/i.test(
                 fileName
             );
@@ -263,7 +240,7 @@ module.exports = {
             outputPath =
                 path.join(
                     TEMP_DIR,
-                    `${message.id}-caption.png`
+                    `${message.id}-caption.gif`
                 );
 
 
@@ -279,7 +256,10 @@ module.exports = {
 
             const metadata =
                 await sharp(
-                    inputPath
+                    inputPath,
+                    {
+                        animated: true
+                    }
                 ).metadata();
 
 
@@ -294,82 +274,110 @@ module.exports = {
 
 
             /*
-             * BLEED-STYLE CAPTION
+             * BLEED-STYLE TEXT
              *
-             * Large
-             * Extremely bold
-             * Tight
-             * Rounded
-             * Black
+             * Based directly on the
+             * "chilling" reference.
              */
 
             const fontSize =
+                Math.round(
+                    width * 0.068
+                );
+
+
+            const actualFontSize =
                 Math.max(
-                    36,
+                    34,
                     Math.min(
-                        92,
-                        Math.round(
-                            width * 0.105
-                        )
+                        82,
+                        fontSize
                     )
                 );
 
 
-            const paddingX =
+            /*
+             * White bar height
+             */
+
+            const paddingTop =
                 Math.round(
-                    width * 0.045
+                    actualFontSize * 0.45
                 );
 
 
-            const paddingY =
+            const paddingBottom =
                 Math.round(
-                    fontSize * 0.35
+                    actualFontSize * 0.45
                 );
 
 
             const lineHeight =
                 Math.round(
-                    fontSize * 0.92
+                    actualFontSize * 1.08
                 );
 
 
             /*
-             * More characters per line
-             * because the reference uses
-             * relatively tight text.
+             * Match the reference's
+             * relatively wide text.
              */
 
-            const lines =
-                wrapText(
-                    caption,
-                    Math.max(
-                        10,
-                        Math.floor(
-                            width /
-                            (
-                                fontSize *
-                                0.48
-                            )
+            const maxCharacters =
+                Math.max(
+                    10,
+                    Math.floor(
+                        width /
+                        (
+                            actualFontSize *
+                            0.50
                         )
                     )
                 );
 
 
-            const captionHeight =
-                Math.round(
-                    (
-                        lines.length *
-                        lineHeight
-                    ) +
-                    (
-                        paddingY *
-                        2
-                    )
+            const lines =
+                wrapText(
+                    caption,
+                    maxCharacters
                 );
 
 
             /*
-             * Caption text
+             * Don't let the caption
+             * become enormous.
+             */
+
+            if (
+                lines.length >
+                4
+            ) {
+
+                lines.length = 4;
+
+                lines[3] =
+                    `${lines[3]}...`;
+
+            }
+
+
+            /*
+             * White bar height
+             */
+
+            const captionHeight =
+                Math.round(
+                    paddingTop +
+                    (
+                        lines.length *
+                        lineHeight
+                    ) +
+                    paddingBottom
+                );
+
+
+            /*
+             * Text
              */
 
             const text =
@@ -381,12 +389,8 @@ module.exports = {
                         ) => {
 
                             const y =
-                                paddingY +
-                                fontSize -
-                                Math.round(
-                                    fontSize *
-                                    0.08
-                                ) +
+                                paddingTop +
+                                actualFontSize +
                                 (
                                     index *
                                     lineHeight
@@ -398,10 +402,9 @@ module.exports = {
                                     x="50%"
                                     y="${y}"
                                     text-anchor="middle"
-                                    font-family="Arial Rounded MT Bold, Arial Rounded MT, Arial, sans-serif"
-                                    font-size="${fontSize}px"
-                                    font-weight="950"
-                                    letter-spacing="-1.5px"
+                                    font-family="Arial, Helvetica, sans-serif"
+                                    font-size="${actualFontSize}px"
+                                    font-weight="700"
                                     fill="#000000"
                                 >${escapeXml(line)}</text>
                             `;
@@ -412,7 +415,7 @@ module.exports = {
 
 
             /*
-             * White caption area
+             * White caption bar
              */
 
             const svg =
@@ -439,11 +442,17 @@ module.exports = {
 
 
             /*
-             * Create final image
+             * Add the caption bar
+             *
+             * The original image stays
+             * completely untouched.
              */
 
             await sharp(
-                inputPath
+                inputPath,
+                {
+                    animated: true
+                }
             )
                 .extend({
                     top: 0,
@@ -471,14 +480,16 @@ module.exports = {
                             0
                     }
                 ])
-                .png()
+                .gif({
+                    effort: 3
+                })
                 .toFile(
                     outputPath
                 );
 
 
             /*
-             * Send
+             * Send GIF
              */
 
             return message.channel.send({
@@ -488,7 +499,7 @@ module.exports = {
                         outputPath,
                         {
                             name:
-                                "caption.png"
+                                "caption.gif"
                         }
                     )
                 ]
@@ -532,9 +543,7 @@ module.exports = {
 
                         if (
                             file &&
-                            fs.existsSync(
-                                file
-                            )
+                            fs.existsSync(file)
                         ) {
 
                             fs.unlink(
