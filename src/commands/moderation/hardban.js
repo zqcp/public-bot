@@ -9,13 +9,13 @@ const config = require("../../config");
 
 module.exports = {
 
-    name: "hardban",
+    name: "timeout",
 
-    aliases: ["hb"],
+    aliases: ["to", "mute", "m"],
 
     permissions: {
-        user: ["BanMembers"],
-        bot: ["BanMembers"]
+        user: ["ModerateMembers"],
+        bot: ["ModerateMembers"]
     },
 
     async execute(client, message, args) {
@@ -34,14 +34,14 @@ module.exports = {
 
         if (
             !message.member.permissions.has(
-                PermissionFlagsBits.BanMembers
+                PermissionFlagsBits.ModerateMembers
             )
         ) {
             return message.channel.send({
                 embeds: [
                     globalEmbeds.permission(
                         message.author,
-                        "Ban Members"
+                        "Moderate Members"
                     )
                 ]
             });
@@ -53,29 +53,27 @@ module.exports = {
 
         if (
             !message.guild.members.me.permissions.has(
-                PermissionFlagsBits.BanMembers
+                PermissionFlagsBits.ModerateMembers
             )
         ) {
             return message.channel.send({
                 embeds: [
                     globalEmbeds.botPermission(
                         message.author,
-                        ["BanMembers"]
+                        ["ModerateMembers"]
                     )
                 ]
             });
         }
 
         /*
-         * Target
+         * Help
          */
 
-        const targetInput = args.shift();
-
-        if (!targetInput) {
+        if (!args.length) {
             return message.channel.send({
                 embeds: [
-                    moderationEmbeds.hardban(
+                    moderationEmbeds.timeout(
                         message.author
                     )
                 ]
@@ -83,64 +81,77 @@ module.exports = {
         }
 
         /*
-         * Resolve target
+         * Find member
          */
 
-        let target = null;
+        const input =
+            args.shift();
+
+        let member = null;
 
         try {
-
-            const id =
-                targetInput.replace(/[<@!>]/g, "");
-
-            /*
-             * ID
-             */
-
-            if (/^\d{17,20}$/.test(id)) {
-
-                target =
-                    await message.guild.members
-                        .fetch(id)
-                        .catch(() => null);
-            }
 
             /*
              * Mention
              */
 
-            if (!target) {
-                target =
-                    message.mentions.members.first() || null;
+            member =
+                message.mentions.members.first() ||
+                null;
+
+            /*
+             * ID
+             */
+
+            if (!member) {
+
+                const id =
+                    input.replace(
+                        /[<@!>]/g,
+                        ""
+                    );
+
+                if (
+                    /^\d{17,20}$/.test(id)
+                ) {
+
+                    member =
+                        await message.guild.members
+                            .fetch(id)
+                            .catch(() => null);
+
+                }
+
             }
 
             /*
              * Username
              */
 
-            if (!target) {
+            if (!member) {
 
                 const members =
                     await message.guild.members
                         .fetch({
-                            query: targetInput,
+                            query: input,
                             limit: 10
                         })
                         .catch(() => []);
 
-                target =
+                member =
                     members.find(
                         member =>
                             member.user.username
                                 .toLowerCase() ===
-                            targetInput.toLowerCase()
+                            input.toLowerCase()
                     ) || null;
+
             }
 
         } catch (error) {
 
             console.error(
-                "[HARDBAN] Failed to resolve target:",
+                "[TIMEOUT] Failed to resolve member:",
                 error
             );
 
@@ -151,13 +162,15 @@ module.exports = {
                     )
                 ]
             });
+
         }
 
         /*
          * Not found
          */
 
-        if (!target) {
+        if (!member) {
+
             return message.channel.send({
                 embeds: [
                     globalEmbeds.notFound(
@@ -165,13 +178,18 @@ module.exports = {
                     )
                 ]
             });
+
         }
 
         /*
          * Self
          */
 
-        if (target.id === message.author.id) {
+        if (
+            member.id ===
+            message.author.id
+        ) {
+
             return message.channel.send({
                 embeds: [
                     globalEmbeds.self(
@@ -179,13 +197,18 @@ module.exports = {
                     )
                 ]
             });
+
         }
 
         /*
          * Server owner
          */
 
-        if (target.id === message.guild.ownerId) {
+        if (
+            member.id ===
+            message.guild.ownerId
+        ) {
+
             return message.channel.send({
                 embeds: [
                     globalEmbeds.owner(
@@ -193,17 +216,20 @@ module.exports = {
                     )
                 ]
             });
+
         }
 
         /*
-         * Moderator hierarchy
+         * Hierarchy
          */
 
         if (
-            message.member.roles.highest.comparePositionTo(
-                target.roles.highest
-            ) <= 0
+            member.roles.highest.position >=
+            message.member.roles.highest.position &&
+            message.author.id !==
+            message.guild.ownerId
         ) {
+
             return message.channel.send({
                 embeds: [
                     globalEmbeds.hierarchy(
@@ -211,6 +237,7 @@ module.exports = {
                     )
                 ]
             });
+
         }
 
         /*
@@ -218,10 +245,10 @@ module.exports = {
          */
 
         if (
-            message.guild.members.me.roles.highest.comparePositionTo(
-                target.roles.highest
-            ) <= 0
+            member.roles.highest.position >=
+            message.guild.members.me.roles.highest.position
         ) {
+
             return message.channel.send({
                 embeds: [
                     globalEmbeds.botRole(
@@ -229,6 +256,121 @@ module.exports = {
                     )
                 ]
             });
+
+        }
+
+        /*
+         * Duration
+         */
+
+        const durationInput =
+            args.shift();
+
+        if (!durationInput) {
+
+            return message.channel.send({
+                embeds: [
+                    moderationEmbeds.timeout(
+                        message.author
+                    )
+                ]
+            });
+
+        }
+
+        const match =
+            durationInput
+                .toLowerCase()
+                .match(
+                    /^(\d+)\s*(s|sec|secs|second|seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days)$/
+                );
+
+        if (!match) {
+
+            return message.channel.send({
+                embeds: [
+                    globalEmbeds.error(
+                        `${message.author}: Please provide a valid duration such as \`10m\`, \`1h\`, or \`7d\`.`
+                    )
+                ]
+            });
+
+        }
+
+        const amount =
+            Number(match[1]);
+
+        const unit =
+            match[2];
+
+        let milliseconds;
+
+        if (
+            [
+                "s",
+                "sec",
+                "secs",
+                "second",
+                "seconds"
+            ].includes(unit)
+        ) {
+
+            milliseconds =
+                amount * 1000;
+
+        } else if (
+            [
+                "m",
+                "min",
+                "mins",
+                "minute",
+                "minutes"
+            ].includes(unit)
+        ) {
+
+            milliseconds =
+                amount * 60 * 1000;
+
+        } else if (
+            [
+                "h",
+                "hr",
+                "hrs",
+                "hour",
+                "hours"
+            ].includes(unit)
+        ) {
+
+            milliseconds =
+                amount * 60 * 60 * 1000;
+
+        } else {
+
+            milliseconds =
+                amount * 24 * 60 * 60 * 1000;
+
+        }
+
+        /*
+         * Discord maximum timeout: 28 days
+         */
+
+        const maxTimeout =
+            28 * 24 * 60 * 60 * 1000;
+
+        if (
+            milliseconds >
+            maxTimeout
+        ) {
+
+            return message.channel.send({
+                embeds: [
+                    globalEmbeds.error(
+                        `${message.author}: The maximum timeout duration is **28 days**.`
+                    )
+                ]
+            });
+
         }
 
         /*
@@ -236,23 +378,19 @@ module.exports = {
          */
 
         const reason =
-            args.length
-                ? args.join(" ").trim()
-                : "No reason provided";
+            args.join(" ").trim() ||
+            "No reason provided";
 
         /*
-         * Hard ban
-         *
-         * deleteMessageSeconds:
-         * 7 days of the user's recent messages
+         * Timeout
          */
 
         try {
 
-            await target.ban({
-                reason,
-                deleteMessageSeconds: 604800
-            });
+            await member.timeout(
+                milliseconds,
+                reason
+            );
 
             /*
              * Success
@@ -264,19 +402,19 @@ module.exports = {
             ) {
 
                 return message.channel.send(
-                    `hard banned ${target}`
+                    `timed out ${member}`
                 );
 
             }
 
             return message.channel.send(
-                `hard banned ${target} for \`${reason}\``
+                `timed out ${member} for \`${reason}\``
             );
 
         } catch (error) {
 
             console.error(
-                `[HARDBAN] Failed to ban ${target.user.tag}:`,
+                "[TIMEOUT] Failed to timeout member:",
                 error
             );
 
@@ -284,18 +422,18 @@ module.exports = {
              * Failed embed
              */
 
-            const embed =
-                new EmbedBuilder()
-                    .setColor(
-                        config.colors.failed
-                    )
-                    .setDescription(
-                        `${config.emojis.failed} ${message.author}: Hard ban failed for **${target.user.username}**. Please try again.`
-                    );
-
             return message.channel.send({
-                embeds: [embed]
+                embeds: [
+                    new EmbedBuilder()
+                        .setColor(
+                            config.colors.failed
+                        )
+                        .setDescription(
+                            `${config.emojis.failed} ${message.author}: failed timeout ${member}. Please try again`
+                        )
+                ]
             });
+
         }
 
     }
