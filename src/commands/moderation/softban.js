@@ -260,19 +260,23 @@ module.exports = {
             );
 
             /*
-             * Success embed
+             * Success
              */
 
-            const embed =
-                new EmbedBuilder()
-                    .setColor(config.colors.success)
-                    .setDescription(
-                        `${config.emojis.success} ${message.author}: Soft banned **${target.user.username}** for ${reason}.`
-                    );
+            if (
+                reason ===
+                "No reason provided"
+            ) {
 
-            return message.channel.send({
-                embeds: [embed]
-            });
+                return message.channel.send(
+                    `soft banned ${target}`
+                );
+
+            }
+
+            return message.channel.send(
+                `soft banned ${target} for \`${reason}\``
+            );
 
         } catch (error) {
 
@@ -287,7 +291,9 @@ module.exports = {
 
             const embed =
                 new EmbedBuilder()
-                    .setColor(config.colors.failed)
+                    .setColor(
+                        config.colors.failed
+                    )
                     .setDescription(
                         `${config.emojis.failed} ${message.author}: Soft ban failed for **${target.user.username}**. Please try again.`
                     );
