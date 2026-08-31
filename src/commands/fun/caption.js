@@ -34,6 +34,10 @@ if (!fs.existsSync(TEMP_DIR)) {
 }
 
 
+/*
+ * Escape XML
+ */
+
 function escapeXml(text) {
 
     return text
@@ -45,6 +49,10 @@ function escapeXml(text) {
 
 }
 
+
+/*
+ * Wrap caption
+ */
 
 function wrapText(
     text,
@@ -65,17 +73,22 @@ function wrapText(
                 ? `${line} ${word}`
                 : word;
 
-        if (test.length > max) {
+        if (
+            test.length >
+            max
+        ) {
 
             if (line) {
                 lines.push(line);
             }
 
-            line = word;
+            line =
+                word;
 
         } else {
 
-            line = test;
+            line =
+                test;
 
         }
 
@@ -85,11 +98,19 @@ function wrapText(
         lines.push(line);
     }
 
-    if (lines.length > 4) {
+    /*
+     * Maximum 4 lines
+     */
+
+    if (
+        lines.length >
+        4
+    ) {
 
         lines.length = 4;
 
-        lines[3] += "...";
+        lines[3] =
+            `${lines[3]}...`;
 
     }
 
@@ -124,7 +145,9 @@ module.exports = {
          */
 
         const caption =
-            args.join(" ").trim();
+            args
+                .join(" ")
+                .trim();
 
 
         if (!caption) {
@@ -142,7 +165,7 @@ module.exports = {
 
 
         /*
-         * Image / GIF
+         * Attachment
          */
 
         const attachment =
@@ -163,16 +186,23 @@ module.exports = {
         }
 
 
-        const contentType =
-            attachment.contentType || "";
+        /*
+         * Check image
+         */
 
+        const contentType =
+            attachment.contentType ||
+            "";
 
         const fileName =
-            attachment.name || "";
+            attachment.name ||
+            "";
 
 
         const isImage =
-            contentType.startsWith("image/") ||
+            contentType.startsWith(
+                "image/"
+            ) ||
             /\.(png|jpe?g|webp|gif)$/i.test(
                 fileName
             );
@@ -209,9 +239,11 @@ module.exports = {
 
 
             if (!response.ok) {
+
                 throw new Error(
                     `Download failed: ${response.status}`
                 );
+
             }
 
 
@@ -252,51 +284,71 @@ module.exports = {
 
 
             const width =
-                metadata.width || 800;
+                metadata.width ||
+                800;
 
 
             const height =
-                metadata.height || 600;
+                metadata.height ||
+                600;
 
 
             /*
-             * Caption style
+             * BLEED-STYLE CAPTION
+             *
+             * Large
+             * Extremely bold
+             * Tight
+             * Rounded
+             * Black
              */
 
             const fontSize =
                 Math.max(
-                    28,
+                    36,
                     Math.min(
-                        70,
+                        92,
                         Math.round(
-                            width * 0.075
+                            width * 0.105
                         )
                     )
                 );
 
 
-            const padding =
+            const paddingX =
                 Math.round(
-                    fontSize * 0.5
+                    width * 0.045
+                );
+
+
+            const paddingY =
+                Math.round(
+                    fontSize * 0.35
                 );
 
 
             const lineHeight =
                 Math.round(
-                    fontSize * 1.15
+                    fontSize * 0.92
                 );
 
+
+            /*
+             * More characters per line
+             * because the reference uses
+             * relatively tight text.
+             */
 
             const lines =
                 wrapText(
                     caption,
                     Math.max(
-                        12,
+                        10,
                         Math.floor(
                             width /
                             (
                                 fontSize *
-                                0.55
+                                0.48
                             )
                         )
                     )
@@ -304,12 +356,15 @@ module.exports = {
 
 
             const captionHeight =
-                (
-                    lines.length *
-                    lineHeight
-                ) +
-                (
-                    padding * 2
+                Math.round(
+                    (
+                        lines.length *
+                        lineHeight
+                    ) +
+                    (
+                        paddingY *
+                        2
+                    )
                 );
 
 
@@ -326,22 +381,28 @@ module.exports = {
                         ) => {
 
                             const y =
-                                padding +
-                                fontSize +
+                                paddingY +
+                                fontSize -
+                                Math.round(
+                                    fontSize *
+                                    0.08
+                                ) +
                                 (
                                     index *
                                     lineHeight
                                 );
+
 
                             return `
                                 <text
                                     x="50%"
                                     y="${y}"
                                     text-anchor="middle"
-                                    font-family="Arial, sans-serif"
+                                    font-family="Arial Rounded MT Bold, Arial Rounded MT, Arial, sans-serif"
                                     font-size="${fontSize}px"
-                                    font-weight="900"
-                                    fill="black"
+                                    font-weight="950"
+                                    letter-spacing="-1.5px"
+                                    fill="#000000"
                                 >${escapeXml(line)}</text>
                             `;
 
@@ -351,7 +412,7 @@ module.exports = {
 
 
             /*
-             * White caption bar
+             * White caption area
              */
 
             const svg =
@@ -359,13 +420,16 @@ module.exports = {
                 <svg
                     width="${width}"
                     height="${captionHeight}"
+                    viewBox="0 0 ${width} ${captionHeight}"
                     xmlns="http://www.w3.org/2000/svg"
                 >
 
                     <rect
-                        width="100%"
-                        height="100%"
-                        fill="white"
+                        x="0"
+                        y="0"
+                        width="${width}"
+                        height="${captionHeight}"
+                        fill="#ffffff"
                     />
 
                     ${text}
@@ -375,7 +439,7 @@ module.exports = {
 
 
             /*
-             * Create image
+             * Create final image
              */
 
             await sharp(
@@ -396,10 +460,15 @@ module.exports = {
                 .composite([
                     {
                         input:
-                            Buffer.from(svg),
+                            Buffer.from(
+                                svg
+                            ),
+
                         top:
                             height,
-                        left: 0
+
+                        left:
+                            0
                     }
                 ])
                 .png()
@@ -413,6 +482,7 @@ module.exports = {
              */
 
             return message.channel.send({
+
                 files: [
                     new AttachmentBuilder(
                         outputPath,
@@ -422,6 +492,7 @@ module.exports = {
                         }
                     )
                 ]
+
             });
 
 
@@ -461,7 +532,9 @@ module.exports = {
 
                         if (
                             file &&
-                            fs.existsSync(file)
+                            fs.existsSync(
+                                file
+                            )
                         ) {
 
                             fs.unlink(
