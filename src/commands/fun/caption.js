@@ -305,7 +305,7 @@ module.exports = {
 
             const paddingTop =
                 Math.round(
-                    actualFontSize * 0.85
+                    actualFontSize * 3.85
                 );
 
 
@@ -412,7 +412,7 @@ module.exports = {
                                     font-weight="900"
                                     fill="#000000"
                                     stroke="#000000"
-                                    stroke-width="2.5"
+                                    stroke-width="3.5"
                                     stroke-linejoin="round"
                                     paint-order="stroke fill"
                                 >${escapeXml(line)}</text>
