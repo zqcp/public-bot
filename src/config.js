@@ -4,13 +4,13 @@ module.exports = {
 
     colors: {
         regular: 0x000000,
-        success: 0xA9EB7F,
+        success: 0x57F288,
         failed: 0xFF6763
     },
 
     emojis: {
-        success: "<:success:1541970152814551162>",
-        failed: "<:failed:1541973642345185280>"
+        success: "✅",
+        failed: "❌"
     },
 
     status: {
