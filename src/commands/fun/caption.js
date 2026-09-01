@@ -278,21 +278,25 @@ module.exports = {
              * FONT
              * =================================
              *
-             * Heavy black text.
+             * Dynamic sizing:
+             * Short captions are larger.
              */
-
-            const fontSize =
-                Math.round(
-                    width * 0.068
-                );
-
 
             const actualFontSize =
                 Math.max(
-                    34,
+                    45,
                     Math.min(
-                        82,
-                        fontSize
+                        110,
+                        Math.round(
+                            width *
+                            (
+                                caption.length <= 8
+                                    ? 0.12
+                                    : caption.length <= 15
+                                        ? 0.095
+                                        : 0.075
+                            )
+                        )
                     )
                 );
 
