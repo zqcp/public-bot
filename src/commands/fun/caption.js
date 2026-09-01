@@ -274,10 +274,11 @@ module.exports = {
 
 
             /*
-             * BLEED-STYLE TEXT
+             * =================================
+             * FONT
+             * =================================
              *
-             * Based directly on the
-             * "chilling" reference.
+             * Heavy black text.
              */
 
             const fontSize =
@@ -297,30 +298,31 @@ module.exports = {
 
 
             /*
-             * White bar height
+             * =================================
+             * LARGE WHITE TOP BOARD
+             * =================================
              */
 
             const paddingTop =
                 Math.round(
-                    actualFontSize * 0.45
+                    actualFontSize * 0.85
                 );
 
 
             const paddingBottom =
                 Math.round(
-                    actualFontSize * 0.45
+                    actualFontSize * 0.85
                 );
 
 
             const lineHeight =
                 Math.round(
-                    actualFontSize * 1.08
+                    actualFontSize * 1.05
                 );
 
 
             /*
-             * Match the reference's
-             * relatively wide text.
+             * Text width
              */
 
             const maxCharacters =
@@ -344,8 +346,7 @@ module.exports = {
 
 
             /*
-             * Don't let the caption
-             * become enormous.
+             * Maximum 4 lines
              */
 
             if (
@@ -362,7 +363,9 @@ module.exports = {
 
 
             /*
-             * White bar height
+             * =================================
+             * WHITE BOARD HEIGHT
+             * =================================
              */
 
             const captionHeight =
@@ -377,7 +380,9 @@ module.exports = {
 
 
             /*
-             * Text
+             * =================================
+             * TEXT
+             * =================================
              */
 
             const text =
@@ -399,13 +404,17 @@ module.exports = {
 
                             return `
                                 <text
-                                    x="50%"
+                                    x="${width / 2}"
                                     y="${y}"
                                     text-anchor="middle"
                                     font-family="Arial, Helvetica, sans-serif"
                                     font-size="${actualFontSize}px"
-                                    font-weight="700"
+                                    font-weight="900"
                                     fill="#000000"
+                                    stroke="#000000"
+                                    stroke-width="2.5"
+                                    stroke-linejoin="round"
+                                    paint-order="stroke fill"
                                 >${escapeXml(line)}</text>
                             `;
 
@@ -415,8 +424,9 @@ module.exports = {
 
 
             /*
-             * White caption bar
-             */
+             * =================================
+             * WHITE TOP BOARD
+             * ================================= */
 
             const svg =
                 `
@@ -442,10 +452,18 @@ module.exports = {
 
 
             /*
-             * Add the caption bar
+             * =================================
+             * ADD WHITE BOARD TO TOP
+             * =================================
              *
-             * The original image stays
-             * completely untouched.
+             * Original:
+             *
+             * IMAGE
+             *
+             * Result:
+             *
+             * WHITE CAPTION
+             * IMAGE
              */
 
             await sharp(
@@ -455,10 +473,18 @@ module.exports = {
                 }
             )
                 .extend({
-                    top: 0,
-                    bottom: captionHeight,
-                    left: 0,
-                    right: 0,
+                    top:
+                        captionHeight,
+
+                    bottom:
+                        0,
+
+                    left:
+                        0,
+
+                    right:
+                        0,
+
                     background: {
                         r: 255,
                         g: 255,
@@ -474,7 +500,7 @@ module.exports = {
                             ),
 
                         top:
-                            height,
+                            0,
 
                         left:
                             0
@@ -489,8 +515,9 @@ module.exports = {
 
 
             /*
-             * Send GIF
-             */
+             * =================================
+             * SEND GIF
+             * ================================= */
 
             return message.channel.send({
 
@@ -543,7 +570,9 @@ module.exports = {
 
                         if (
                             file &&
-                            fs.existsSync(file)
+                            fs.existsSync(
+                                file
+                            )
                         ) {
 
                             fs.unlink(
