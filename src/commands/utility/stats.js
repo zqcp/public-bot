@@ -25,8 +25,8 @@ module.exports = {
 
         const tier =
             await VCSystem.getTier(
-                message.guild.id,
-                stats.allTime
+                message.guild,
+                stats.level
             );
 
         const embed =
