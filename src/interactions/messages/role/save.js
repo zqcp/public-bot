@@ -1,14 +1,11 @@
 const {
     ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle
+    StringSelectMenuBuilder,
+    StringSelectMenuOptionBuilder
 } = require("discord.js");
 
 const Embed =
     require("../../../models/Embed");
-
-const renderer =
-    require("../../../systems/messages/renderer");
 
 module.exports = {
 
@@ -35,7 +32,7 @@ module.exports = {
 
             return interaction.reply({
                 content:
-                    "I couldn't determine which embed you're editing.",
+                    "Invalid role configuration.",
                 flags: 64
             });
 
@@ -64,74 +61,176 @@ module.exports = {
             if (
                 !Array.isArray(
                     saved.components
-                ) ||
-                !saved.components.length
+                )
             ) {
+
+                saved.components = [];
+
+            }
+
+            const selectorRow =
+                saved.components.find(
+                    component =>
+                        component?.type === 1 &&
+                        Array.isArray(
+                            component.components
+                        ) &&
+                        component.components.some(
+                            item =>
+                                item?.type === 3 &&
+                                item.custom_id ===
+                                    `roleSelect:${name}`
+                        )
+                );
+
+            if (!selectorRow) {
 
                 return interaction.reply({
                     content:
-                        "There are no role selector changes to save.",
+                        "No role selector has been configured yet.",
                     flags: 64
                 });
 
             }
 
-            const payload =
-                renderer.render(
-                    saved.toObject(),
-                    interaction.member
+            const selector =
+                selectorRow.components.find(
+                    item =>
+                        item?.type === 3 &&
+                        item.custom_id ===
+                            `roleSelect:${name}`
                 );
 
-            const editorRow =
-                new ActionRowBuilder()
-                    .addComponents(
+            if (
+                !selector ||
+                !Array.isArray(
+                    selector.options
+                ) ||
+                !selector.options.length
+            ) {
 
-                        new ButtonBuilder()
-                            .setCustomId(
-                                `embedEditor:${name}:save`
-                            )
-                            .setLabel("Save")
-                            .setStyle(
-                                ButtonStyle.Success
-                            ),
+                return interaction.reply({
+                    content:
+                        "No roles have been added to the selector.",
+                    flags: 64
+                });
 
-                        new ButtonBuilder()
-                            .setCustomId(
-                                `embedEditor:${name}:cancel`
-                            )
-                            .setLabel("Cancel")
-                            .setStyle(
-                                ButtonStyle.Danger
-                            )
+            }
 
+            const validOptions =
+                selector.options
+                    .map(
+                        option => {
+
+                            const role =
+                                interaction.guild.roles.cache.get(
+                                    option?.value
+                                );
+
+                            if (
+                                !role ||
+                                role.managed
+                            ) {
+                                return null;
+                            }
+
+                            return {
+
+                                label:
+                                    role.name.slice(
+                                        0,
+                                        100
+                                    ),
+
+                                description:
+                                    `Role ID: ${role.id}`,
+
+                                value:
+                                    role.id
+
+                            };
+
+                        }
+                    )
+                    .filter(Boolean)
+                    .slice(0, 25);
+
+            if (!validOptions.length) {
+
+                return interaction.reply({
+                    content:
+                        "None of the configured roles are still available.",
+                    flags: 64
+                });
+
+            }
+
+            selector.options =
+                validOptions;
+
+            selector.placeholder =
+                "Select your roles...";
+
+            selector.min_values =
+                1;
+
+            selector.max_values =
+                validOptions.length;
+
+            saved.markModified(
+                "components"
+            );
+
+            await saved.save();
+
+            const menu =
+                new StringSelectMenuBuilder()
+                    .setCustomId(
+                        `roleSelect:${name}`
+                    )
+                    .setPlaceholder(
+                        "Select your roles..."
+                    )
+                    .setMinValues(
+                        1
+                    )
+                    .setMaxValues(
+                        validOptions.length
+                    )
+                    .addOptions(
+                        validOptions.map(
+                            option =>
+                                new StringSelectMenuOptionBuilder()
+                                    .setLabel(
+                                        option.label
+                                    )
+                                    .setDescription(
+                                        option.description
+                                    )
+                                    .setValue(
+                                        option.value
+                                    )
+                        )
                     );
 
-            const components = [
-                ...(Array.isArray(
-                    payload.components
-                )
-                    ? payload.components
-                    : []),
-                editorRow
-            ];
+            const row =
+                new ActionRowBuilder()
+                    .addComponents(
+                        menu
+                    );
 
             await interaction.message.edit({
 
-                embeds:
-                    Array.isArray(
-                        payload.embeds
-                    )
-                        ? payload.embeds
-                        : [],
-
-                components
+                components: [
+                    row
+                ]
 
             });
 
             return interaction.reply({
 
                 content:
-                    `Saved the role selector for **${name}**.`,
+                    `Role selector for **${name}** has been saved.`,
 
                 flags: 64
 
@@ -145,9 +244,12 @@ module.exports = {
             );
 
             return interaction.reply({
+
                 content:
                     "I couldn't save the role selector.",
+
                 flags: 64
+
             });
 
         }
