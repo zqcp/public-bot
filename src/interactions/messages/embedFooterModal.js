@@ -38,10 +38,17 @@ module.exports = {
             });
         }
 
-        const footer =
+        const footerText =
             interaction.fields
                 .getTextInputValue(
-                    "footer"
+                    "footerText"
+                )
+                .trim();
+
+        const footerIcon =
+            interaction.fields
+                .getTextInputValue(
+                    "footerIcon"
                 )
                 .trim();
 
@@ -62,44 +69,37 @@ module.exports = {
             });
         }
 
-        /*
-         * Make sure the embeds array exists.
-         */
-
         if (!Array.isArray(saved.embeds)) {
             saved.embeds = [];
         }
-
-        /*
-         * Make sure the first embed exists.
-         */
 
         if (!saved.embeds.length) {
             saved.embeds.push({});
         }
 
         /*
-         * Save the footer.
+         * FOOTER
          *
-         * Variables are intentionally NOT replaced here.
-         * They stay inside the saved embed and are resolved
-         * by the renderer when the embed is displayed.
+         * Variables are kept exactly as entered.
+         * The renderer resolves them when displayed.
          */
 
-        if (footer) {
+        if (
+            footerText ||
+            footerIcon
+        ) {
 
-            if (
-                typeof saved.embeds[0].footer !==
-                "object" ||
-                !saved.embeds[0].footer
-            ) {
+            saved.embeds[0].footer = {};
 
-                saved.embeds[0].footer = {};
-
+            if (footerText) {
+                saved.embeds[0].footer.text =
+                    footerText;
             }
 
-            saved.embeds[0].footer.text =
-                footer;
+            if (footerIcon) {
+                saved.embeds[0].footer.icon_url =
+                    footerIcon;
+            }
 
         } else {
 
@@ -107,14 +107,9 @@ module.exports = {
 
         }
 
-        /*
-         * IMPORTANT:
-         *
-         * embeds is a nested array/object.
-         * Explicitly tell Mongoose that it changed.
-         */
-
-        saved.markModified("embeds");
+        saved.markModified(
+            "embeds"
+        );
 
         await saved.save();
 
@@ -159,7 +154,8 @@ module.exports = {
             embeds: [
                 embeds.success(
                     interaction.user,
-                    footer
+                    footerText ||
+                    footerIcon
                         ? `The footer for **${name}** has been updated.`
                         : `The footer for **${name}** has been removed.`
                 )
