@@ -1,4 +1,5 @@
-const Embed = require("../../../models/Embed");
+const Embed =
+    require("../../../models/Embed");
 
 module.exports = {
 
@@ -24,7 +25,10 @@ module.exports = {
         const roleId =
             parts[2];
 
-        if (!name || !roleId) {
+        if (
+            !name ||
+            !roleId
+        ) {
 
             return interaction.reply({
                 content:
@@ -44,6 +48,16 @@ module.exports = {
             return interaction.reply({
                 content:
                     "That role no longer exists.",
+                flags: 64
+            });
+
+        }
+
+        if (role.managed) {
+
+            return interaction.reply({
+                content:
+                    "That role cannot be managed.",
                 flags: 64
             });
 
@@ -69,19 +83,26 @@ module.exports = {
 
             }
 
-            if (!Array.isArray(saved.components)) {
+            if (
+                !Array.isArray(
+                    saved.components
+                )
+            ) {
+
                 saved.components = [];
+
             }
 
             let row =
                 saved.components.find(
                     component =>
+                        component?.type === 1 &&
                         Array.isArray(
                             component.components
                         ) &&
                         component.components.some(
                             item =>
-                                item.type === 3 &&
+                                item?.type === 3 &&
                                 item.custom_id ===
                                     `roleSelect:${name}`
                         )
@@ -90,19 +111,32 @@ module.exports = {
             if (!row) {
 
                 row = {
+
                     type: 1,
+
                     components: [
+
                         {
                             type: 3,
+
                             custom_id:
                                 `roleSelect:${name}`,
+
                             placeholder:
                                 "Select your roles...",
-                            min_values: 1,
-                            max_values: 1,
+
+                            min_values:
+                                1,
+
+                            max_values:
+                                1,
+
                             options: []
+
                         }
+
                     ]
+
                 };
 
                 saved.components.push(
@@ -114,40 +148,67 @@ module.exports = {
             const menu =
                 row.components.find(
                     item =>
-                        item.type === 3
+                        item?.type === 3
                 );
 
+            if (!menu) {
+
+                return interaction.reply({
+                    content:
+                        "I couldn't create the role selector.",
+                    flags: 64
+                });
+
+            }
+
             if (
-                !menu.options
+                !Array.isArray(
+                    menu.options
+                )
             ) {
+
                 menu.options = [];
+
             }
 
             const exists =
                 menu.options.some(
                     option =>
-                        option.value ===
+                        option?.value ===
                         role.id
                 );
 
-            if (!exists) {
+            if (exists) {
 
-                menu.options.push({
-                    label:
-                        role.name.slice(
-                            0,
-                            100
-                        ),
-                    value:
-                        role.id,
-                    description:
-                        `Role ID: ${role.id}`
+                return interaction.reply({
+                    content:
+                        `**${role.name}** is already in the role selector.`,
+                    flags: 64
                 });
 
             }
 
+            menu.options.push({
+
+                label:
+                    role.name.slice(
+                        0,
+                        100
+                    ),
+
+                value:
+                    role.id,
+
+                description:
+                    `Role ID: ${role.id}`
+
+            });
+
             menu.max_values =
-                menu.options.length;
+                Math.min(
+                    menu.options.length,
+                    25
+                );
 
             saved.markModified(
                 "components"
@@ -156,9 +217,12 @@ module.exports = {
             await saved.save();
 
             return interaction.reply({
+
                 content:
-                    `Added **${role.name}** to the role selector for **${name}**.`,
+                    `Added **${role.name}** to the role selector.`,
+
                 flags: 64
+
             });
 
         } catch (error) {
@@ -169,9 +233,12 @@ module.exports = {
             );
 
             return interaction.reply({
+
                 content:
                     "I couldn't add that role to the selector.",
+
                 flags: 64
+
             });
 
         }
