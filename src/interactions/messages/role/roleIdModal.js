@@ -89,7 +89,7 @@ module.exports = {
 
                     new ButtonBuilder()
                         .setCustomId(
-                            `roleRemove:${role.id}`
+                            `roleRemove:${name}:${role.id}`
                         )
                         .setLabel("Remove")
                         .setStyle(
