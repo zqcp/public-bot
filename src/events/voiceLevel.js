@@ -40,7 +40,7 @@ module.exports = {
             )
 
             .setDescription(
-                `${config.emojis.success} Congrats ${user}, you reached voice level \`${level}\`!` +
+                `Congrats ${user}, you reached voice level \`${level}\`!` +
                 (
                     roleName
                         ? `\n\nYou earned the **${roleName}** rank!`
