@@ -19,6 +19,22 @@ module.exports = {
             return;
         }
 
+        const parts =
+            interaction.customId.split(":");
+
+        const name =
+            parts[1];
+
+        if (!name) {
+
+            return interaction.reply({
+                content:
+                    "I couldn't determine which embed you're editing.",
+                flags: 64
+            });
+
+        }
+
         const roleId =
             interaction.fields
                 .getTextInputValue("roleId")
@@ -30,19 +46,23 @@ module.exports = {
             );
 
         if (!role) {
+
             return interaction.reply({
                 content:
                     "I couldn't find that role.",
                 flags: 64
             });
+
         }
 
         if (role.managed) {
+
             return interaction.reply({
                 content:
                     "That role cannot be managed.",
                 flags: 64
             });
+
         }
 
         const buttons =
@@ -51,7 +71,7 @@ module.exports = {
 
                     new ButtonBuilder()
                         .setCustomId(
-                            `roleAdd:${role.id}`
+                            `roleAdd:${name}:${role.id}`
                         )
                         .setLabel("Add")
                         .setStyle(
@@ -87,7 +107,7 @@ module.exports = {
 
                     new ButtonBuilder()
                         .setCustomId(
-                            `roleSave:${role.id}`
+                            `roleSave:${name}:${role.id}`
                         )
                         .setLabel("Save")
                         .setStyle(
@@ -102,7 +122,7 @@ module.exports = {
 
                     new ButtonBuilder()
                         .setCustomId(
-                            "roleAddAnother"
+                            `roleAddAnother:${name}`
                         )
                         .setLabel(
                             "Add another role"
