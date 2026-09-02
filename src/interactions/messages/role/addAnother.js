@@ -20,11 +20,8 @@ module.exports = {
             return;
         }
 
-        const parts =
-            interaction.customId.split(":");
-
         const name =
-            parts[1];
+            interaction.customId.split(":")[1];
 
         if (!name) {
 
