@@ -57,7 +57,7 @@ module.exports = {
 
             return interaction.reply({
                 content:
-                    "That role cannot be managed.",
+                    "That role cannot be used in a role selector.",
                 flags: 64
             });
 
@@ -182,7 +182,7 @@ module.exports = {
 
                 return interaction.reply({
                     content:
-                        `**${role.name}** is already in the role selector.`,
+                        `**${role.name}** is already in the selector.`,
                     flags: 64
                 });
 
@@ -205,10 +205,7 @@ module.exports = {
             });
 
             menu.max_values =
-                Math.min(
-                    menu.options.length,
-                    25
-                );
+                menu.options.length;
 
             saved.markModified(
                 "components"
@@ -219,7 +216,7 @@ module.exports = {
             return interaction.reply({
 
                 content:
-                    `Added **${role.name}** to the role selector.`,
+                    `Added **${role.name}** to the role selector for **${name}**.`,
 
                 flags: 64
 
