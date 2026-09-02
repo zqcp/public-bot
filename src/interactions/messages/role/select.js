@@ -1,9 +1,8 @@
 const {
-    PermissionFlagsBits
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle
 } = require("discord.js");
-
-const Embed =
-    require("../../../models/Embed");
 
 module.exports = {
 
@@ -20,166 +19,127 @@ module.exports = {
             return;
         }
 
+        const parts =
+            interaction.customId.split(":");
+
         const name =
-            interaction.customId.split(":")[1];
+            parts[1];
 
         if (!name) {
 
             return interaction.reply({
                 content:
-                    "Invalid role selector.",
+                    "I couldn't determine which embed you're editing.",
                 flags: 64
             });
 
         }
 
-        const saved =
-            await Embed.findOne({
-                guildId:
-                    interaction.guild.id,
+        const roleIds =
+            interaction.values;
 
-                name
-            }).lean();
-
-        if (!saved) {
-
-            return interaction.reply({
-                content:
-                    "I couldn't find that embed.",
-                flags: 64
-            });
-
-        }
-
-        const selectedRoles =
-            interaction.values || [];
-
-        if (!selectedRoles.length) {
-            return;
-        }
-
-        const botMember =
-            interaction.guild.members.me;
-
-        if (!botMember) {
-
-            return interaction.reply({
-                content:
-                    "I couldn't determine my server member.",
-                flags: 64
-            });
-
-        }
-
-        const added = [];
-        const removed = [];
-        const failed = [];
-
-        for (
-            const roleId of selectedRoles
+        if (
+            !Array.isArray(roleIds) ||
+            !roleIds.length
         ) {
 
-            const role =
-                interaction.guild.roles.cache.get(
-                    roleId
-                );
+            return interaction.reply({
+                content:
+                    "Please select at least one role.",
+                flags: 64
+            });
 
-            if (!role) {
-                continue;
-            }
+        }
 
-            if (role.managed) {
+        const roles =
+            roleIds
+                .map(
+                    roleId =>
+                        interaction.guild.roles.cache.get(
+                            roleId
+                        )
+                )
+                .filter(Boolean);
 
-                failed.push(
-                    role.name
-                );
+        if (!roles.length) {
 
-                continue;
-            }
+            return interaction.reply({
+                content:
+                    "I couldn't find the selected roles.",
+                flags: 64
+            });
 
-            if (
-                role.position >=
-                botMember.roles.highest.position
-            ) {
+        }
 
-                failed.push(
-                    role.name
-                );
+        const rows = [];
 
-                continue;
-            }
+        for (
+            const role of roles
+        ) {
 
-            try {
+            rows.push(
+                new ActionRowBuilder()
+                    .addComponents(
 
-                if (
-                    interaction.member.roles.cache.has(
-                        role.id
+                        new ButtonBuilder()
+                            .setCustomId(
+                                `roleAdd:${name}:${role.id}`
+                            )
+                            .setLabel(
+                                `Add ${role.name}`.slice(
+                                    0,
+                                    80
+                                )
+                            )
+                            .setStyle(
+                                ButtonStyle.Secondary
+                            ),
+
+                        new ButtonBuilder()
+                            .setCustomId(
+                                `roleEdit:${role.id}`
+                            )
+                            .setLabel(
+                                "Edit"
+                            )
+                            .setStyle(
+                                ButtonStyle.Secondary
+                            ),
+
+                        new ButtonBuilder()
+                            .setCustomId(
+                                `roleRemove:${name}:${role.id}`
+                            )
+                            .setLabel(
+                                "Remove"
+                            )
+                            .setStyle(
+                                ButtonStyle.Danger
+                            ),
+
+                        new ButtonBuilder()
+                            .setCustomId(
+                                `roleMove:${role.id}`
+                            )
+                            .setLabel(
+                                "Move"
+                            )
+                            .setStyle(
+                                ButtonStyle.Secondary
+                            ),
+
+                        new ButtonBuilder()
+                            .setCustomId(
+                                `roleSave:${name}:${role.id}`
+                            )
+                            .setLabel(
+                                "Save"
+                            )
+                            .setStyle(
+                                ButtonStyle.Success
+                            )
+
                     )
-                ) {
-
-                    await interaction.member.roles.remove(
-                        role
-                    );
-
-                    removed.push(
-                        role.name
-                    );
-
-                } else {
-
-                    await interaction.member.roles.add(
-                        role
-                    );
-
-                    added.push(
-                        role.name
-                    );
-
-                }
-
-            } catch (error) {
-
-                console.error(
-                    `[ROLE SELECT] Failed to toggle ${role.id}:`,
-                    error
-                );
-
-                failed.push(
-                    role.name
-                );
-
-            }
-
-        }
-
-        const lines = [];
-
-        if (added.length) {
-
-            lines.push(
-                `Added: ${added.map(
-                    role => `**${role}**`
-                ).join(", ")}`
-            );
-
-        }
-
-        if (removed.length) {
-
-            lines.push(
-                `Removed: ${removed.map(
-                    role => `**${role}**`
-                ).join(", ")}`
-            );
-
-        }
-
-        if (failed.length) {
-
-            lines.push(
-                `Failed: ${failed.map(
-                    role => `**${role}**`
-                ).join(", ")}`
             );
 
         }
@@ -187,9 +147,15 @@ module.exports = {
         return interaction.reply({
 
             content:
-                lines.length
-                    ? lines.join("\n")
-                    : "I couldn't change those roles.",
+                roles
+                    .map(
+                        role =>
+                            `**${role.name}**\nRole ID: \`${role.id}\``
+                    )
+                    .join("\n\n"),
+
+            components:
+                rows.slice(0, 5),
 
             flags: 64
 
