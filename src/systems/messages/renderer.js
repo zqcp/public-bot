@@ -83,6 +83,26 @@ module.exports = {
 
                     }
 
+                    if (data.footer?.icon_url) {
+
+                        if (member) {
+
+                            data.footer.icon_url =
+                                variables.replace(
+                                    data.footer.icon_url,
+                                    member
+                                );
+
+                        } else if (
+                            data.footer.icon_url.startsWith("{")
+                        ) {
+
+                            delete data.footer.icon_url;
+
+                        }
+
+                    }
+
                     return new EmbedBuilder(data);
 
                 });
