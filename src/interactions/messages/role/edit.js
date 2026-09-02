@@ -11,12 +11,30 @@ module.exports = {
 
     type: "button",
 
-    async execute(client, interaction) {
+    async execute(
+        client,
+        interaction
+    ) {
 
-        if (!interaction.guild) return;
+        if (!interaction.guild) {
+            return;
+        }
+
+        const parts =
+            interaction.customId.split(":");
 
         const roleId =
-            interaction.customId.split(":")[1];
+            parts[1];
+
+        if (!roleId) {
+
+            return interaction.reply({
+                content:
+                    "Invalid role.",
+                flags: 64
+            });
+
+        }
 
         const role =
             interaction.guild.roles.cache.get(
@@ -24,34 +42,55 @@ module.exports = {
             );
 
         if (!role) {
+
             return interaction.reply({
-                content: "That role no longer exists.",
+                content:
+                    "That role no longer exists.",
                 flags: 64
             });
+
         }
 
-        const name =
+        const input =
             new TextInputBuilder()
-                .setCustomId("name")
-                .setLabel("Role name")
-                .setStyle(TextInputStyle.Short)
-                .setValue(role.name)
-                .setRequired(true)
-                .setMaxLength(100);
+                .setCustomId(
+                    "name"
+                )
+                .setLabel(
+                    "Role name"
+                )
+                .setStyle(
+                    TextInputStyle.Short
+                )
+                .setValue(
+                    role.name
+                )
+                .setRequired(
+                    true
+                )
+                .setMaxLength(
+                    100
+                );
 
         const modal =
             new ModalBuilder()
                 .setCustomId(
                     `roleEditModal:${role.id}`
                 )
-                .setTitle("Edit Role");
+                .setTitle(
+                    "Edit Role"
+                );
 
         modal.addComponents(
             new ActionRowBuilder()
-                .addComponents(name)
+                .addComponents(
+                    input
+                )
         );
 
-        return interaction.showModal(modal);
+        return interaction.showModal(
+            modal
+        );
 
     }
 
