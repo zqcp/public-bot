@@ -26,11 +26,17 @@ module.exports = {
         const name =
             parts[1];
 
-        if (!name) {
+        const type =
+            parts[2];
+
+        if (
+            !name ||
+            type !== "role"
+        ) {
 
             return interaction.reply({
                 content:
-                    "I couldn't determine which embed you're editing.",
+                    "Invalid role editor.",
                 flags: 64
             });
 
@@ -38,16 +44,24 @@ module.exports = {
 
         const input =
             new TextInputBuilder()
-                .setCustomId("roleId")
-                .setLabel("Role ID")
+                .setCustomId(
+                    "roleId"
+                )
+                .setLabel(
+                    "Role ID"
+                )
                 .setPlaceholder(
                     "Enter the role ID..."
                 )
                 .setStyle(
                     TextInputStyle.Short
                 )
-                .setRequired(true)
-                .setMaxLength(20);
+                .setRequired(
+                    true
+                )
+                .setMaxLength(
+                    20
+                );
 
         const modal =
             new ModalBuilder()
@@ -59,8 +73,12 @@ module.exports = {
                 );
 
         modal.addComponents(
+
             new ActionRowBuilder()
-                .addComponents(input)
+                .addComponents(
+                    input
+                )
+
         );
 
         return interaction.showModal(
