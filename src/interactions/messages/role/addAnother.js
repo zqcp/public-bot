@@ -20,8 +20,11 @@ module.exports = {
             return;
         }
 
+        const parts =
+            interaction.customId.split(":");
+
         const name =
-            interaction.customId.split(":")[1];
+            parts[1];
 
         if (!name) {
 
@@ -35,16 +38,24 @@ module.exports = {
 
         const input =
             new TextInputBuilder()
-                .setCustomId("roleId")
-                .setLabel("Role ID")
+                .setCustomId(
+                    "roleId"
+                )
+                .setLabel(
+                    "Role ID"
+                )
                 .setPlaceholder(
                     "Enter another role ID..."
                 )
                 .setStyle(
                     TextInputStyle.Short
                 )
-                .setRequired(true)
-                .setMaxLength(20);
+                .setRequired(
+                    true
+                )
+                .setMaxLength(
+                    20
+                );
 
         const modal =
             new ModalBuilder()
@@ -57,7 +68,9 @@ module.exports = {
 
         modal.addComponents(
             new ActionRowBuilder()
-                .addComponents(input)
+                .addComponents(
+                    input
+                )
         );
 
         return interaction.showModal(
