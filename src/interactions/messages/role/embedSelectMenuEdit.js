@@ -54,7 +54,9 @@ module.exports = {
                 .setCustomId(
                     `roleIdModal:${name}`
                 )
-                .setTitle("Select Role");
+                .setTitle(
+                    "Select Role"
+                );
 
         modal.addComponents(
             new ActionRowBuilder()
