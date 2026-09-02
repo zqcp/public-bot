@@ -57,15 +57,29 @@ module.exports = {
             Array.isArray(saved.embeds) &&
             saved.embeds[0] &&
             saved.embeds[0].footer
-                ? saved.embeds[0].footer.text || ""
+                ? saved.embeds[0].footer
+                : {};
+
+        const currentText =
+            currentFooter.text
+                ? String(
+                    currentFooter.text
+                )
                 : "";
 
-        const input =
+        const currentIcon =
+            currentFooter.icon_url
+                ? String(
+                    currentFooter.icon_url
+                )
+                : "";
+
+        const textInput =
             new TextInputBuilder()
-                .setCustomId("footer")
-                .setLabel("Footer")
+                .setCustomId("footerText")
+                .setLabel("Footer Text")
                 .setPlaceholder(
-                    "Enter footer text. Variables are supported."
+                    "Footer text or variables"
                 )
                 .setStyle(
                     TextInputStyle.Paragraph
@@ -73,16 +87,28 @@ module.exports = {
                 .setRequired(false)
                 .setMaxLength(2048);
 
-        /*
-         * Discord does not allow setValue("")
-         * on an optional text input.
-         *
-         * Only set the value when a footer exists.
-         */
+        const iconInput =
+            new TextInputBuilder()
+                .setCustomId("footerIcon")
+                .setLabel("Footer Icon")
+                .setPlaceholder(
+                    "Image URL or supported variable"
+                )
+                .setStyle(
+                    TextInputStyle.Short
+                )
+                .setRequired(false)
+                .setMaxLength(2048);
 
-        if (currentFooter) {
-            input.setValue(
-                currentFooter
+        if (currentText) {
+            textInput.setValue(
+                currentText
+            );
+        }
+
+        if (currentIcon) {
+            iconInput.setValue(
+                currentIcon
             );
         }
 
@@ -94,8 +120,17 @@ module.exports = {
                 .setTitle("Edit Footer");
 
         modal.addComponents(
+
             new ActionRowBuilder()
-                .addComponents(input)
+                .addComponents(
+                    textInput
+                ),
+
+            new ActionRowBuilder()
+                .addComponents(
+                    iconInput
+                )
+
         );
 
         return interaction.showModal(
