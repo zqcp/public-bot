@@ -46,7 +46,10 @@ module.exports = {
                 role =>
                     new StringSelectMenuOptionBuilder()
                         .setLabel(
-                            role.name.slice(0, 100)
+                            role.name.slice(
+                                0,
+                                100
+                            )
                         )
                         .setDescription(
                             `Role ID: ${role.id}`
@@ -59,7 +62,7 @@ module.exports = {
         const menu =
             new StringSelectMenuBuilder()
                 .setCustomId(
-                    "roleSelect"
+                    "roleSelect:panel"
                 )
                 .setPlaceholder(
                     "Select your roles..."
@@ -82,7 +85,9 @@ module.exports = {
 
             components: [
                 new ActionRowBuilder()
-                    .addComponents(menu)
+                    .addComponents(
+                        menu
+                    )
             ],
 
             flags: 64
