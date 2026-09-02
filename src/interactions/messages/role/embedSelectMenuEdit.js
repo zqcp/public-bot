@@ -23,15 +23,17 @@ module.exports = {
         const parts =
             interaction.customId.split(":");
 
-        if (
-            parts[1] !== "roles" ||
-            parts[2] !== "role"
-        ) {
+        const name =
+            parts[1];
+
+        if (!name) {
+
             return interaction.reply({
                 content:
-                    "Invalid role editor.",
+                    "I couldn't determine which embed you're editing.",
                 flags: 64
             });
+
         }
 
         const input =
@@ -50,7 +52,7 @@ module.exports = {
         const modal =
             new ModalBuilder()
                 .setCustomId(
-                    "roleIdModal"
+                    `roleIdModal:${name}`
                 )
                 .setTitle("Select Role");
 
