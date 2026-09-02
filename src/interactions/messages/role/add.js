@@ -13,8 +13,11 @@ module.exports = {
             return;
         }
 
+        const parts =
+            interaction.customId.split(":");
+
         const roleId =
-            interaction.customId.split(":")[1];
+            parts[parts.length - 1];
 
         const role =
             interaction.guild.roles.cache.get(
@@ -22,18 +25,78 @@ module.exports = {
             );
 
         if (!role) {
+
             return interaction.reply({
                 content:
                     "That role no longer exists.",
                 flags: 64
             });
+
         }
 
-        return interaction.reply({
-            content:
-                `Added **${role.name}**\nRole ID: \`${role.id}\``,
-            flags: 64
-        });
+        if (role.managed) {
+
+            return interaction.reply({
+                content:
+                    "That role cannot be managed.",
+                flags: 64
+            });
+
+        }
+
+        if (
+            role.position >=
+            interaction.guild.members.me.roles.highest.position
+        ) {
+
+            return interaction.reply({
+                content:
+                    "I cannot manage that role.",
+                flags: 64
+            });
+
+        }
+
+        try {
+
+            if (
+                interaction.member.roles.cache.has(
+                    role.id
+                )
+            ) {
+
+                return interaction.reply({
+                    content:
+                        `You already have **${role.name}**.`,
+                    flags: 64
+                });
+
+            }
+
+            await interaction.member.roles.add(
+                role
+            );
+
+            return interaction.reply({
+                content:
+                    `Added **${role.name}** to you.`,
+                flags: 64
+            });
+
+        } catch (error) {
+
+            console.error(
+                "[ROLE ADD]",
+                error
+            );
+
+            return interaction.reply({
+                content:
+                    "I couldn't add that role.",
+                flags: 64
+            });
+
+        }
 
     }
 
