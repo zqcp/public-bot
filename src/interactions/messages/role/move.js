@@ -11,12 +11,36 @@ module.exports = {
 
     type: "button",
 
-    async execute(client, interaction) {
+    async execute(
+        client,
+        interaction
+    ) {
 
-        if (!interaction.guild) return;
+        if (!interaction.guild) {
+            return;
+        }
+
+        const parts =
+            interaction.customId.split(":");
+
+        const name =
+            parts[1];
 
         const roleId =
-            interaction.customId.split(":")[1];
+            parts[2];
+
+        if (
+            !name ||
+            !roleId
+        ) {
+
+            return interaction.reply({
+                content:
+                    "Invalid role configuration.",
+                flags: 64
+            });
+
+        }
 
         const role =
             interaction.guild.roles.cache.get(
@@ -24,33 +48,57 @@ module.exports = {
             );
 
         if (!role) {
+
             return interaction.reply({
-                content: "That role no longer exists.",
+                content:
+                    "That role no longer exists.",
                 flags: 64
             });
+
         }
 
-        const position =
+        const input =
             new TextInputBuilder()
-                .setCustomId("position")
-                .setLabel("Role position")
-                .setStyle(TextInputStyle.Short)
-                .setPlaceholder("1")
-                .setRequired(true);
+                .setCustomId(
+                    "position"
+                )
+                .setLabel(
+                    "Selector position"
+                )
+                .setPlaceholder(
+                    "Enter a position from 1 to 25..."
+                )
+                .setStyle(
+                    TextInputStyle.Short
+                )
+                .setRequired(
+                    true
+                )
+                .setMaxLength(
+                    2
+                );
 
         const modal =
             new ModalBuilder()
                 .setCustomId(
-                    `roleMoveModal:${role.id}`
+                    `roleMoveModal:${name}:${role.id}`
                 )
-                .setTitle("Move Role");
+                .setTitle(
+                    "Move Role"
+                );
 
         modal.addComponents(
+
             new ActionRowBuilder()
-                .addComponents(position)
+                .addComponents(
+                    input
+                )
+
         );
 
-        return interaction.showModal(modal);
+        return interaction.showModal(
+            modal
+        );
 
     }
 
