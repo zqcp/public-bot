@@ -1,6 +1,8 @@
 const {
-    ActionRowBuilder,
-    StringSelectMenuBuilder
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
+    ActionRowBuilder
 } = require("discord.js");
 
 const Embed = require("../../models/Embed");
@@ -55,44 +57,38 @@ module.exports = {
             Array.isArray(saved.embeds) &&
             saved.embeds[0] &&
             saved.embeds[0].timestamp
-                ? true
-                : false;
+                ? "yes"
+                : "no";
 
-        const menu =
-            new StringSelectMenuBuilder()
+        const input =
+            new TextInputBuilder()
+                .setCustomId("timestamp")
+                .setLabel("Timestamp")
+                .setPlaceholder("Type yes or no")
+                .setStyle(
+                    TextInputStyle.Short
+                )
+                .setRequired(true)
+                .setMaxLength(3)
+                .setValue(
+                    currentTimestamp
+                );
+
+        const modal =
+            new ModalBuilder()
                 .setCustomId(
-                    `embedTimestampSelect:${name}`
+                    `embedTimestampModal:${name}:${interaction.message.id}`
                 )
-                .setPlaceholder(
-                    "Enable or disable timestamp"
-                )
-                .addOptions(
-                    {
-                        label: "Yes",
-                        description: "Add a timestamp to the embed.",
-                        value: "yes",
-                        default: currentTimestamp
-                    },
-                    {
-                        label: "No",
-                        description: "Remove the timestamp from the embed.",
-                        value: "no",
-                        default: !currentTimestamp
-                    }
-                );
+                .setTitle("Edit Timestamp");
 
-        const row =
+        modal.addComponents(
             new ActionRowBuilder()
-                .addComponents(
-                    menu
-                );
+                .addComponents(input)
+        );
 
-        return interaction.reply({
-            components: [
-                row
-            ],
-            flags: 64
-        });
+        return interaction.showModal(
+            modal
+        );
 
     }
 
