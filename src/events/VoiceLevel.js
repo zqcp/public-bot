@@ -1,11 +1,13 @@
 const VoiceLevel =
     require("../systems/voiceLevel");
 
+
 module.exports = {
 
     name: "voiceStateUpdate",
 
     async execute(
+        client,
         oldState,
         newState
     ) {
@@ -18,7 +20,9 @@ module.exports = {
             !member ||
             member.user.bot
         ) {
+
             return;
+
         }
 
         const guild =
@@ -26,7 +30,9 @@ module.exports = {
             oldState.guild;
 
         if (!guild) {
+
             return;
+
         }
 
         const wasQualified =
@@ -42,6 +48,7 @@ module.exports = {
             !newState.serverMute &&
             !newState.selfDeaf &&
             !newState.serverDeaf;
+
 
         /*
          * USER ENTERED A QUALIFYING
@@ -59,7 +66,9 @@ module.exports = {
             );
 
             return;
+
         }
+
 
         /*
          * USER LEFT A QUALIFYING
@@ -77,7 +86,9 @@ module.exports = {
             );
 
             return;
+
         }
+
 
         /*
          * USER SWITCHED CHANNELS
