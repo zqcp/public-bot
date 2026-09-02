@@ -8,23 +8,44 @@ module.exports = {
 
     type: "modal",
 
-    async execute(client, interaction) {
+    async execute(
+        client,
+        interaction
+    ) {
 
-        if (!interaction.guild) return;
+        if (!interaction.guild) {
+            return;
+        }
 
         if (
             !interaction.member.permissions.has(
                 PermissionFlagsBits.ManageRoles
             )
         ) {
+
             return interaction.reply({
-                content: "You need the Manage Roles permission.",
+                content:
+                    "You need the **Manage Roles** permission.",
                 flags: 64
             });
+
         }
 
+        const parts =
+            interaction.customId.split(":");
+
         const roleId =
-            interaction.customId.split(":")[1];
+            parts[1];
+
+        if (!roleId) {
+
+            return interaction.reply({
+                content:
+                    "Invalid role.",
+                flags: 64
+            });
+
+        }
 
         const role =
             interaction.guild.roles.cache.get(
@@ -32,41 +53,81 @@ module.exports = {
             );
 
         if (!role) {
+
             return interaction.reply({
-                content: "That role no longer exists.",
+                content:
+                    "That role no longer exists.",
                 flags: 64
             });
+
         }
 
-        const name =
-            interaction.fields
-                .getTextInputValue("name")
-                .trim();
+        if (role.managed) {
 
-        if (!name) {
             return interaction.reply({
-                content: "Please provide a role name.",
+                content:
+                    "That role cannot be managed.",
                 flags: 64
             });
+
+        }
+
+        const botMember =
+            interaction.guild.members.me;
+
+        if (!botMember) {
+
+            return interaction.reply({
+                content:
+                    "I couldn't determine my server member.",
+                flags: 64
+            });
+
         }
 
         if (
             role.position >=
-            interaction.guild.members.me.roles.highest.position
+            botMember.roles.highest.position
         ) {
+
             return interaction.reply({
-                content: "I cannot manage that role.",
+                content:
+                    "I cannot edit that role because it is higher than or equal to my highest role.",
                 flags: 64
             });
+
+        }
+
+        const name =
+            interaction.fields
+                .getTextInputValue(
+                    "name"
+                )
+                .trim();
+
+        if (!name) {
+
+            return interaction.reply({
+                content:
+                    "Please provide a role name.",
+                flags: 64
+            });
+
         }
 
         try {
 
-            await role.setName(name);
+            await role.setName(
+                name
+            );
 
             return interaction.reply({
-                content: `Role renamed to **${role.name}**.`,
+
+                content:
+                    `Role renamed to **${role.name}**.`,
+
                 flags: 64
+
             });
 
         } catch (error) {
@@ -77,8 +138,12 @@ module.exports = {
             );
 
             return interaction.reply({
-                content: "I couldn't edit that role.",
+
+                content:
+                    "I couldn't edit that role.",
+
                 flags: 64
+
             });
 
         }
