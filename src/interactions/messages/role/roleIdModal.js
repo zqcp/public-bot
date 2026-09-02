@@ -37,7 +37,9 @@ module.exports = {
 
         const roleId =
             interaction.fields
-                .getTextInputValue("roleId")
+                .getTextInputValue(
+                    "roleId"
+                )
                 .trim();
 
         const role =
@@ -59,7 +61,33 @@ module.exports = {
 
             return interaction.reply({
                 content:
-                    "That role cannot be managed.",
+                    "That role cannot be managed by a role selector.",
+                flags: 64
+            });
+
+        }
+
+        const botMember =
+            interaction.guild.members.me;
+
+        if (!botMember) {
+
+            return interaction.reply({
+                content:
+                    "I couldn't determine my server member.",
+                flags: 64
+            });
+
+        }
+
+        if (
+            role.position >=
+            botMember.roles.highest.position
+        ) {
+
+            return interaction.reply({
+                content:
+                    "I cannot manage that role because it is higher than or equal to my highest role.",
                 flags: 64
             });
 
@@ -73,7 +101,9 @@ module.exports = {
                         .setCustomId(
                             `roleAdd:${name}:${role.id}`
                         )
-                        .setLabel("Add")
+                        .setLabel(
+                            "Add"
+                        )
                         .setStyle(
                             ButtonStyle.Secondary
                         ),
@@ -82,7 +112,9 @@ module.exports = {
                         .setCustomId(
                             `roleEdit:${role.id}`
                         )
-                        .setLabel("Edit")
+                        .setLabel(
+                            "Edit"
+                        )
                         .setStyle(
                             ButtonStyle.Secondary
                         ),
@@ -91,16 +123,20 @@ module.exports = {
                         .setCustomId(
                             `roleRemove:${name}:${role.id}`
                         )
-                        .setLabel("Remove")
+                        .setLabel(
+                            "Remove"
+                        )
                         .setStyle(
                             ButtonStyle.Secondary
                         ),
 
                     new ButtonBuilder()
                         .setCustomId(
-                            `roleMove:${role.id}`
+                            `roleMove:${name}:${role.id}`
                         )
-                        .setLabel("Move")
+                        .setLabel(
+                            "Move"
+                        )
                         .setStyle(
                             ButtonStyle.Secondary
                         ),
@@ -109,7 +145,9 @@ module.exports = {
                         .setCustomId(
                             `roleSave:${name}:${role.id}`
                         )
-                        .setLabel("Save")
+                        .setLabel(
+                            "Save"
+                        )
                         .setStyle(
                             ButtonStyle.Success
                         )
