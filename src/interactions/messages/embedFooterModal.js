@@ -54,7 +54,9 @@ module.exports = {
 
         const saved =
             await Embed.findOne({
-                guildId: interaction.guild.id,
+                guildId:
+                    interaction.guild.id,
+
                 name
             });
 
@@ -69,9 +71,17 @@ module.exports = {
             });
         }
 
+        /*
+         * Make sure the embeds array exists.
+         */
+
         if (!Array.isArray(saved.embeds)) {
             saved.embeds = [];
         }
+
+        /*
+         * Make sure the first embed exists.
+         */
 
         if (!saved.embeds.length) {
             saved.embeds.push({});
@@ -80,8 +90,9 @@ module.exports = {
         /*
          * FOOTER
          *
-         * Variables are kept exactly as entered.
-         * The renderer resolves them when displayed.
+         * Keep variables exactly as entered.
+         * The renderer resolves them when
+         * creating the preview.
          */
 
         if (
@@ -92,13 +103,17 @@ module.exports = {
             saved.embeds[0].footer = {};
 
             if (footerText) {
+
                 saved.embeds[0].footer.text =
                     footerText;
+
             }
 
             if (footerIcon) {
+
                 saved.embeds[0].footer.icon_url =
                     footerIcon;
+
             }
 
         } else {
@@ -106,6 +121,12 @@ module.exports = {
             delete saved.embeds[0].footer;
 
         }
+
+        /*
+         * IMPORTANT:
+         *
+         * embeds is a nested array/object.
+         */
 
         saved.markModified(
             "embeds"
@@ -115,6 +136,10 @@ module.exports = {
 
         /*
          * LIVE PREVIEW
+         *
+         * Render the exact saved embed data
+         * and replace the embed on the existing
+         * editor message.
          */
 
         if (editorMessageId) {
@@ -122,19 +147,29 @@ module.exports = {
             try {
 
                 const editorMessage =
-                    await interaction.message.channel.messages.fetch(
+                    await interaction.channel.messages.fetch(
                         editorMessageId
                     );
 
+                const savedEmbed =
+                    await Embed.findOne({
+                        guildId:
+                            interaction.guild.id,
+
+                        name
+                    }).lean();
+
                 const payload =
                     renderer.render(
-                        saved.toObject(),
+                        savedEmbed,
                         interaction.member
                     );
 
                 await editorMessage.edit({
                     embeds:
-                        Array.isArray(payload.embeds)
+                        Array.isArray(
+                            payload?.embeds
+                        )
                             ? payload.embeds
                             : []
                 });
