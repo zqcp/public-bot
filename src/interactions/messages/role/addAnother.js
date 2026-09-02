@@ -20,6 +20,22 @@ module.exports = {
             return;
         }
 
+        const parts =
+            interaction.customId.split(":");
+
+        const name =
+            parts[1];
+
+        if (!name) {
+
+            return interaction.reply({
+                content:
+                    "I couldn't determine which embed you're editing.",
+                flags: 64
+            });
+
+        }
+
         const input =
             new TextInputBuilder()
                 .setCustomId("roleId")
@@ -36,7 +52,7 @@ module.exports = {
         const modal =
             new ModalBuilder()
                 .setCustomId(
-                    "roleIdModal"
+                    `roleIdModal:${name}`
                 )
                 .setTitle(
                     "Add Another Role"
