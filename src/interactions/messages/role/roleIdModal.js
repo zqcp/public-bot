@@ -4,6 +4,9 @@ const {
     ButtonStyle
 } = require("discord.js");
 
+const Embed =
+    require("../../models/Embed");
+
 module.exports = {
 
     name: "roleIdModal",
@@ -92,6 +95,96 @@ module.exports = {
             });
 
         }
+
+        let selectorName =
+            null;
+
+        let placeholder =
+            null;
+
+        try {
+
+            selectorName =
+                interaction.fields
+                    .getTextInputValue(
+                        "selectorName"
+                    )
+                    .trim();
+
+        } catch {
+            // Optional for Add Another Role.
+        }
+
+        try {
+
+            placeholder =
+                interaction.fields
+                    .getTextInputValue(
+                        "placeholder"
+                    )
+                    .trim();
+
+        } catch {
+            // Optional for Add Another Role.
+        }
+
+        const saved =
+            await Embed.findOne({
+                guildId:
+                    interaction.guild.id,
+
+                name
+            });
+
+        if (!saved) {
+
+            return interaction.reply({
+                content:
+                    "I couldn't find that embed.",
+                flags: 64
+            });
+
+        }
+
+        const components =
+            Array.isArray(saved.components)
+                ? saved.components
+                : [];
+
+        const selector =
+            components.find(
+                component =>
+                    component?.type === 3 &&
+                    component.custom_id ===
+                        `roleSelect:${name}`
+            );
+
+        if (selector) {
+
+            if (selectorName) {
+
+                selector.selectorName =
+                    selectorName;
+
+            }
+
+            if (placeholder) {
+
+                selector.placeholder =
+                    placeholder;
+
+            }
+
+        }
+
+        saved.components =
+            components;
+
+        saved.markModified(
+            "components"
+        );
+
+        await saved.save();
 
         const buttons =
             new ActionRowBuilder()
