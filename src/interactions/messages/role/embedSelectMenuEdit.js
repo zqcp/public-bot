@@ -42,7 +42,7 @@ module.exports = {
 
         }
 
-        const input =
+        const roleInput =
             new TextInputBuilder()
                 .setCustomId(
                     "roleId"
@@ -63,6 +63,48 @@ module.exports = {
                     20
                 );
 
+        const selectorNameInput =
+            new TextInputBuilder()
+                .setCustomId(
+                    "selectorName"
+                )
+                .setLabel(
+                    "Selector Name"
+                )
+                .setPlaceholder(
+                    "Example: Colors"
+                )
+                .setStyle(
+                    TextInputStyle.Short
+                )
+                .setRequired(
+                    true
+                )
+                .setMaxLength(
+                    100
+                );
+
+        const placeholderInput =
+            new TextInputBuilder()
+                .setCustomId(
+                    "placeholder"
+                )
+                .setLabel(
+                    "Selector Placeholder"
+                )
+                .setPlaceholder(
+                    "Example: Choose your colors..."
+                )
+                .setStyle(
+                    TextInputStyle.Short
+                )
+                .setRequired(
+                    true
+                )
+                .setMaxLength(
+                    150
+                );
+
         const modal =
             new ModalBuilder()
                 .setCustomId(
@@ -76,7 +118,17 @@ module.exports = {
 
             new ActionRowBuilder()
                 .addComponents(
-                    input
+                    roleInput
+                ),
+
+            new ActionRowBuilder()
+                .addComponents(
+                    selectorNameInput
+                ),
+
+            new ActionRowBuilder()
+                .addComponents(
+                    placeholderInput
                 )
 
         );
