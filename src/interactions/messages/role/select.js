@@ -1,8 +1,10 @@
 const {
-    ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle
+    PermissionFlagsBits
 } = require("discord.js");
+
+const Embed =
+    require("../../models/Embed");
+
 
 module.exports = {
 
@@ -19,127 +21,169 @@ module.exports = {
             return;
         }
 
-        const parts =
-            interaction.customId.split(":");
+        const values =
+            interaction.values || [];
 
-        const name =
-            parts[1];
+        if (!values.length) {
+            return;
+        }
 
-        if (!name) {
+        const member =
+            interaction.member;
+
+        if (!member) {
+            return;
+        }
+
+        const saved =
+            await Embed.findOne({
+                guildId:
+                    interaction.guild.id,
+
+                "components.custom_id":
+                    interaction.customId
+            }).lean();
+
+        if (!saved) {
 
             return interaction.reply({
                 content:
-                    "I couldn't determine which embed you're editing.",
+                    "I couldn't find this role selector.",
                 flags: 64
             });
 
         }
 
-        const roleIds =
-            interaction.values;
+        const selector =
+            Array.isArray(saved.components)
+                ? saved.components.find(
+                    component =>
+                        component?.type === 3 &&
+                        component.custom_id ===
+                            interaction.customId
+                )
+                : null;
 
-        if (
-            !Array.isArray(roleIds) ||
-            !roleIds.length
-        ) {
+        if (!selector) {
 
             return interaction.reply({
                 content:
-                    "Please select at least one role.",
+                    "I couldn't find this role selector.",
                 flags: 64
             });
 
         }
 
         const roles =
-            roleIds
+            values
                 .map(
                     roleId =>
                         interaction.guild.roles.cache.get(
                             roleId
                         )
                 )
-                .filter(Boolean);
+                .filter(
+                    role =>
+                        role &&
+                        !role.managed
+                );
 
         if (!roles.length) {
 
             return interaction.reply({
                 content:
-                    "I couldn't find the selected roles.",
+                    "I couldn't find any valid roles from your selection.",
                 flags: 64
             });
 
         }
 
-        const rows = [];
+        const botMember =
+            interaction.guild.members.me;
+
+        if (!botMember) {
+
+            return interaction.reply({
+                content:
+                    "I couldn't determine my server member.",
+                flags: 64
+            });
+
+        }
+
+        const manageableRoles =
+            roles.filter(
+                role =>
+                    role.position <
+                    botMember.roles.highest.position
+            );
+
+        if (!manageableRoles.length) {
+
+            return interaction.reply({
+                content:
+                    "I cannot manage any of the selected roles.",
+                flags: 64
+            });
+
+        }
+
+        const added = [];
+        const removed = [];
 
         for (
-            const role of roles
+            const role
+            of manageableRoles
         ) {
 
-            rows.push(
-                new ActionRowBuilder()
-                    .addComponents(
+            if (
+                member.roles.cache.has(
+                    role.id
+                )
+            ) {
 
-                        new ButtonBuilder()
-                            .setCustomId(
-                                `roleAdd:${name}:${role.id}`
-                            )
-                            .setLabel(
-                                `Add ${role.name}`.slice(
-                                    0,
-                                    80
-                                )
-                            )
-                            .setStyle(
-                                ButtonStyle.Secondary
-                            ),
+                await member.roles.remove(
+                    role
+                );
 
-                        new ButtonBuilder()
-                            .setCustomId(
-                                `roleEdit:${role.id}`
-                            )
-                            .setLabel(
-                                "Edit"
-                            )
-                            .setStyle(
-                                ButtonStyle.Secondary
-                            ),
+                removed.push(
+                    role
+                );
 
-                        new ButtonBuilder()
-                            .setCustomId(
-                                `roleRemove:${name}:${role.id}`
-                            )
-                            .setLabel(
-                                "Remove"
-                            )
-                            .setStyle(
-                                ButtonStyle.Danger
-                            ),
+            } else {
 
-                        new ButtonBuilder()
-                            .setCustomId(
-                                `roleMove:${role.id}`
-                            )
-                            .setLabel(
-                                "Move"
-                            )
-                            .setStyle(
-                                ButtonStyle.Secondary
-                            ),
+                await member.roles.add(
+                    role
+                );
 
-                        new ButtonBuilder()
-                            .setCustomId(
-                                `roleSave:${name}:${role.id}`
-                            )
-                            .setLabel(
-                                "Save"
-                            )
-                            .setStyle(
-                                ButtonStyle.Success
-                            )
+                added.push(
+                    role
+                );
 
-                    )
+            }
+
+        }
+
+        const changes = [];
+
+        if (added.length) {
+
+            changes.push(
+                `Added ${added.map(
+                    role =>
+                        `<@&${role.id}>`
+                ).join(", ")}`
+            );
+
+        }
+
+        if (removed.length) {
+
+            changes.push(
+                `Removed ${removed.map(
+                    role =>
+                        `<@&${role.id}>`
+                ).join(", ")}`
             );
 
         }
@@ -147,15 +191,8 @@ module.exports = {
         return interaction.reply({
 
             content:
-                roles
-                    .map(
-                        role =>
-                            `**${role.name}**\nRole ID: \`${role.id}\``
-                    )
-                    .join("\n\n"),
-
-            components:
-                rows.slice(0, 5),
+                changes.join("\n") ||
+                "Your roles have been updated.",
 
             flags: 64
 
