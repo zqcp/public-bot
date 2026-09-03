@@ -7,6 +7,7 @@ const {
 const Embed =
     require("../../models/Embed");
 
+
 module.exports = {
 
     name: "roleIdModal",
@@ -112,7 +113,7 @@ module.exports = {
                     .trim();
 
         } catch {
-            // Optional for Add Another Role.
+            // Optional when adding another role.
         }
 
         try {
@@ -125,7 +126,7 @@ module.exports = {
                     .trim();
 
         } catch {
-            // Optional for Add Another Role.
+            // Optional when adding another role.
         }
 
         const saved =
@@ -151,7 +152,7 @@ module.exports = {
                 ? saved.components
                 : [];
 
-        const selector =
+        let selector =
             components.find(
                 component =>
                     component?.type === 3 &&
@@ -159,7 +160,47 @@ module.exports = {
                         `roleSelect:${name}`
             );
 
-        if (selector) {
+        /*
+         * CREATE SELECTOR
+         *
+         * This is important for the
+         * first role. It saves the
+         * custom selector name and
+         * placeholder immediately.
+         */
+
+        if (!selector) {
+
+            selector = {
+
+                type: 3,
+
+                custom_id:
+                    `roleSelect:${name}`,
+
+                selectorName:
+                    selectorName ||
+                    "Roles",
+
+                placeholder:
+                    placeholder ||
+                    "Choose your roles...",
+
+                min_values:
+                    1,
+
+                max_values:
+                    1,
+
+                options: []
+
+            };
+
+            components.push(
+                selector
+            );
+
+        } else {
 
             if (selectorName) {
 
@@ -176,6 +217,53 @@ module.exports = {
             }
 
         }
+
+        /*
+         * ADD FIRST ROLE
+         */
+
+        if (
+            !Array.isArray(
+                selector.options
+            )
+        ) {
+
+            selector.options = [];
+
+        }
+
+        const exists =
+            selector.options.some(
+                option =>
+                    option.value ===
+                    role.id
+            );
+
+        if (exists) {
+
+            return interaction.reply({
+                content:
+                    `**${role.name}** is already in this role selector.`,
+                flags: 64
+            });
+
+        }
+
+        selector.options.push({
+
+            label:
+                role.name,
+
+            value:
+                role.id,
+
+            description:
+                `Role ID: ${role.id}`
+
+        });
+
+        selector.max_values =
+            selector.options.length;
 
         saved.components =
             components;
@@ -267,7 +355,9 @@ module.exports = {
         return interaction.reply({
 
             content:
-                `Role: **${role.name}**\nRole ID: \`${role.id}\``,
+                `**${selector.selectorName}**\n` +
+                `Role: **${role.name}**\n` +
+                `Role ID: \`${role.id}\``,
 
             components: [
                 buttons,
