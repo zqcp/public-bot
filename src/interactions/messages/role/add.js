@@ -1,5 +1,10 @@
+const {
+    StringSelectMenuBuilder
+} = require("discord.js");
+
 const Embed =
-    require("../../../models/Embed");
+    require("../../models/Embed");
+
 
 module.exports = {
 
@@ -47,7 +52,7 @@ module.exports = {
 
             return interaction.reply({
                 content:
-                    "That role no longer exists.",
+                    "I couldn't find that role.",
                 flags: 64
             });
 
@@ -57,188 +62,207 @@ module.exports = {
 
             return interaction.reply({
                 content:
-                    "That role cannot be used in a role selector.",
+                    "That role cannot be added to a role selector.",
                 flags: 64
             });
 
         }
 
-        try {
+        const botMember =
+            interaction.guild.members.me;
 
-            const saved =
-                await Embed.findOne({
-                    guildId:
-                        interaction.guild.id,
+        if (!botMember) {
 
-                    name
-                });
+            return interaction.reply({
+                content:
+                    "I couldn't determine my server member.",
+                flags: 64
+            });
 
-            if (!saved) {
+        }
 
-                return interaction.reply({
-                    content:
-                        `I couldn't find the embed **${name}**.`,
-                    flags: 64
-                });
+        if (
+            role.position >=
+            botMember.roles.highest.position
+        ) {
 
-            }
+            return interaction.reply({
+                content:
+                    "I cannot manage that role because it is higher than or equal to my highest role.",
+                flags: 64
+            });
 
-            if (
-                !Array.isArray(
-                    saved.components
+        }
+
+        const saved =
+            await Embed.findOne({
+                guildId:
+                    interaction.guild.id,
+
+                name
+            });
+
+        if (!saved) {
+
+            return interaction.reply({
+                content:
+                    "I couldn't find that embed.",
+                flags: 64
+            });
+
+        }
+
+        const components =
+            Array.isArray(saved.components)
+                ? saved.components
+                : [];
+
+        let selector =
+            components.find(
+                component =>
+                    component?.type === 3 &&
+                    component.custom_id ===
+                        `roleSelect:${name}`
+            );
+
+        if (!selector) {
+
+            selector = {
+
+                type: 3,
+
+                custom_id:
+                    `roleSelect:${name}`,
+
+                selectorName:
+                    "Roles",
+
+                placeholder:
+                    "Choose your roles...",
+
+                min_values:
+                    1,
+
+                max_values:
+                    1,
+
+                options: []
+
+            };
+
+            components.push(
+                selector
+            );
+
+        }
+
+        if (
+            !Array.isArray(
+                selector.options
+            )
+        ) {
+
+            selector.options = [];
+
+        }
+
+        const exists =
+            selector.options.some(
+                option =>
+                    option.value ===
+                    role.id
+            );
+
+        if (exists) {
+
+            return interaction.reply({
+                content:
+                    `**${role.name}** is already in this role selector.`,
+                flags: 64
+            });
+
+        }
+
+        if (
+            selector.options.length >=
+            25
+        ) {
+
+            return interaction.reply({
+                content:
+                    "This selector has reached Discord's maximum of **25 options**.",
+                flags: 64
+            });
+
+        }
+
+        selector.options.push({
+
+            label:
+                role.name,
+
+            value:
+                role.id,
+
+            description:
+                `Role ID: ${role.id}`
+
+        });
+
+        selector.max_values =
+            selector.options.length;
+
+        saved.components =
+            components;
+
+        saved.markModified(
+            "components"
+        );
+
+        await saved.save();
+
+        const menu =
+            new StringSelectMenuBuilder()
+                .setCustomId(
+                    selector.custom_id
                 )
-            ) {
-
-                saved.components = [];
-
-            }
-
-            let row =
-                saved.components.find(
-                    component =>
-                        component?.type === 1 &&
-                        Array.isArray(
-                            component.components
-                        ) &&
-                        component.components.some(
-                            item =>
-                                item?.type === 3 &&
-                                item.custom_id ===
-                                    `roleSelect:${name}`
-                        )
+                .setPlaceholder(
+                    selector.placeholder ||
+                    "Choose your roles..."
+                )
+                .setMinValues(
+                    selector.min_values || 1
+                )
+                .setMaxValues(
+                    Math.min(
+                        selector.max_values ||
+                        1,
+                        selector.options.length
+                    )
+                )
+                .addOptions(
+                    selector.options
                 );
 
-            if (!row) {
+        return interaction.reply({
 
-                row = {
+            content:
+                `Added **${role.name}** to **${selector.selectorName || "Roles"}**.`,
 
+            components: [
+
+                {
                     type: 1,
-
                     components: [
-
-                        {
-                            type: 3,
-
-                            custom_id:
-                                `roleSelect:${name}`,
-
-                            placeholder:
-                                "Select your roles...",
-
-                            min_values:
-                                1,
-
-                            max_values:
-                                1,
-
-                            options: []
-
-                        }
-
+                        menu
                     ]
+                }
 
-                };
+            ],
 
-                saved.components.push(
-                    row
-                );
+            flags: 64
 
-            }
-
-            const menu =
-                row.components.find(
-                    item =>
-                        item?.type === 3
-                );
-
-            if (!menu) {
-
-                return interaction.reply({
-                    content:
-                        "I couldn't create the role selector.",
-                    flags: 64
-                });
-
-            }
-
-            if (
-                !Array.isArray(
-                    menu.options
-                )
-            ) {
-
-                menu.options = [];
-
-            }
-
-            const exists =
-                menu.options.some(
-                    option =>
-                        option?.value ===
-                        role.id
-                );
-
-            if (exists) {
-
-                return interaction.reply({
-                    content:
-                        `**${role.name}** is already in the selector.`,
-                    flags: 64
-                });
-
-            }
-
-            menu.options.push({
-
-                label:
-                    role.name.slice(
-                        0,
-                        100
-                    ),
-
-                value:
-                    role.id,
-
-                description:
-                    `Role ID: ${role.id}`
-
-            });
-
-            menu.max_values =
-                menu.options.length;
-
-            saved.markModified(
-                "components"
-            );
-
-            await saved.save();
-
-            return interaction.reply({
-
-                content:
-                    `Added **${role.name}** to the role selector for **${name}**.`,
-
-                flags: 64
-
-            });
-
-        } catch (error) {
-
-            console.error(
-                "[ROLE ADD]",
-                error
-            );
-
-            return interaction.reply({
-
-                content:
-                    "I couldn't add that role to the selector.",
-
-                flags: 64
-
-            });
-
-        }
+        });
 
     }
 
