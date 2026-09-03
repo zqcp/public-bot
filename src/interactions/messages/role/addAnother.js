@@ -67,10 +67,12 @@ module.exports = {
                 );
 
         modal.addComponents(
+
             new ActionRowBuilder()
                 .addComponents(
                     input
                 )
+
         );
 
         return interaction.showModal(
