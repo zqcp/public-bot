@@ -43,6 +43,10 @@ module.exports = {
                             JSON.stringify(embed)
                         );
 
+                    /*
+                     * THUMBNAIL
+                     */
+
                     if (data.thumbnail?.url) {
 
                         if (member) {
@@ -53,8 +57,12 @@ module.exports = {
                                     member
                                 );
 
-                        } else if (
-                            data.thumbnail.url.includes("{")
+                        }
+
+                        if (
+                            !/^https?:\/\/\S+$/i.test(
+                                data.thumbnail.url
+                            )
                         ) {
 
                             delete data.thumbnail;
@@ -62,6 +70,10 @@ module.exports = {
                         }
 
                     }
+
+                    /*
+                     * IMAGE
+                     */
 
                     if (data.image?.url) {
 
@@ -83,29 +95,16 @@ module.exports = {
 
                     }
 
-                    if (data.footer?.icon_url) {
+                    /*
+                     * FOOTER
+                     */
 
-                        if (member) {
+                    if (data.footer) {
 
-                            data.footer.icon_url =
-                                variables.replace(
-                                    data.footer.icon_url,
-                                    member
-                                );
-
-                        } else if (
-                            data.footer.icon_url.includes("{")
+                        if (
+                            data.footer.text &&
+                            member
                         ) {
-
-                            delete data.footer.icon_url;
-
-                        }
-
-                    }
-
-                    if (data.footer?.text) {
-
-                        if (member) {
 
                             data.footer.text =
                                 variables.replace(
@@ -113,23 +112,40 @@ module.exports = {
                                     member
                                 );
 
-                        } else if (
-                            data.footer.text.includes("{")
+                        }
+
+                        if (
+                            data.footer.icon_url &&
+                            member
                         ) {
 
-                            delete data.footer.text;
+                            data.footer.icon_url =
+                                variables.replace(
+                                    data.footer.icon_url,
+                                    member
+                                );
 
                         }
 
-                    }
+                        if (
+                            data.footer.icon_url &&
+                            !/^https?:\/\/\S+$/i.test(
+                                data.footer.icon_url
+                            )
+                        ) {
 
-                    if (
-                        data.footer &&
-                        !data.footer.text &&
-                        !data.footer.icon_url
-                    ) {
+                            delete data.footer.icon_url;
 
-                        delete data.footer;
+                        }
+
+                        if (
+                            !data.footer.text &&
+                            !data.footer.icon_url
+                        ) {
+
+                            delete data.footer;
+
+                        }
 
                     }
 
