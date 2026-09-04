@@ -262,6 +262,39 @@ module.exports = {
 
             } catch (error) {
 
+                /*
+                 * Message was deleted or the
+                 * stored reference is invalid.
+                 *
+                 * Remove the stale reference so
+                 * future saves do not keep trying
+                 * the same missing message.
+                 */
+
+                if (
+                    error?.code === 10008
+                ) {
+
+                    await registry.remove(
+                        guildId,
+                        name,
+                        reference.channelId,
+                        reference.messageId
+                    ).catch(
+                        removeError => {
+
+                            console.error(
+                                `[MESSAGE REGISTRY] Failed to remove stale reference for ${name}:`,
+                                removeError
+                            );
+
+                        }
+                    );
+
+                    continue;
+
+                }
+
                 console.error(
                     `[MESSAGE EDIT] Failed to update ${name}:`,
                     error
