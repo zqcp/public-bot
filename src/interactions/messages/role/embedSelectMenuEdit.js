@@ -108,7 +108,7 @@ module.exports = {
         const modal =
             new ModalBuilder()
                 .setCustomId(
-                    `roleIdModal:${name}`
+                    `roleSetupModal:${name}`
                 )
                 .setTitle(
                     "Select Role"
