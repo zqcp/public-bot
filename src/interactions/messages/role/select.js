@@ -3,14 +3,14 @@ const {
 } = require("discord.js");
 
 const Embed =
-    require("../../models/Embed");
+    require("../../../models/Embed");
 
 
 module.exports = {
 
     name: "roleSelect",
 
-    type: "selectMenu",
+    type: "select",
 
     async execute(
         client,
@@ -21,178 +21,267 @@ module.exports = {
             return;
         }
 
-        const values =
+        const selectedRoles =
             interaction.values || [];
 
-        if (!values.length) {
+        if (!selectedRoles.length) {
             return;
         }
 
-        const member =
-            interaction.member;
 
-        if (!member) {
-            return;
+        /*
+         * FIND THE EMBED NAME
+         *
+         * roleSelect:<embedName>
+         */
+
+        const parts =
+            interaction.customId.split(":");
+
+        const name =
+            parts.slice(1).join(":");
+
+
+        if (!name) {
+            return interaction.reply({
+                content:
+                    "I couldn't determine which role selector you're using.",
+                flags: 64
+            });
         }
+
+
+        /*
+         * LOAD EMBED
+         */
 
         const saved =
             await Embed.findOne({
                 guildId:
                     interaction.guild.id,
 
-                "components.custom_id":
-                    interaction.customId
+                name
             }).lean();
 
         if (!saved) {
+            return interaction.reply({
+                content:
+                    "I couldn't find the embed connected to this role selector.",
+                flags: 64
+            });
+        }
 
+
+        /*
+         * FIND THE SELECTOR
+         *
+         * Action Row
+         * └── String Select
+         */
+
+        const components =
+            Array.isArray(
+                saved.components
+            )
+                ? saved.components
+                : [];
+
+        const row =
+            components.find(
+                component =>
+                    component?.type === 1 &&
+                    Array.isArray(
+                        component.components
+                    ) &&
+                    component.components.some(
+                        select =>
+                            select?.type === 3 &&
+                            select.custom_id ===
+                                interaction.customId
+                    )
+            );
+
+        if (!row) {
             return interaction.reply({
                 content:
                     "I couldn't find this role selector.",
                 flags: 64
             });
-
         }
+
 
         const selector =
-            Array.isArray(saved.components)
-                ? saved.components.find(
-                    component =>
-                        component?.type === 3 &&
-                        component.custom_id ===
-                            interaction.customId
-                )
-                : null;
+            row.components.find(
+                component =>
+                    component?.type === 3 &&
+                    component.custom_id ===
+                        interaction.customId
+            );
 
         if (!selector) {
-
             return interaction.reply({
                 content:
                     "I couldn't find this role selector.",
                 flags: 64
             });
-
         }
 
-        const roles =
-            values
-                .map(
-                    roleId =>
-                        interaction.guild.roles.cache.get(
-                            roleId
-                        )
-                )
-                .filter(
-                    role =>
-                        role &&
-                        !role.managed
-                );
 
-        if (!roles.length) {
+        /*
+         * MAKE SURE THE USER CAN MANAGE
+         * THE ROLES THEY ARE SELECTING.
+         */
 
-            return interaction.reply({
-                content:
-                    "I couldn't find any valid roles from your selection.",
-                flags: 64
-            });
-
-        }
+        const member =
+            interaction.member;
 
         const botMember =
             interaction.guild.members.me;
 
-        if (!botMember) {
-
+        if (!member || !botMember) {
             return interaction.reply({
                 content:
-                    "I couldn't determine my server member.",
+                    "I couldn't determine the server members.",
                 flags: 64
             });
-
         }
 
-        const manageableRoles =
-            roles.filter(
-                role =>
-                    role.position <
-                    botMember.roles.highest.position
-            );
 
-        if (!manageableRoles.length) {
-
-            return interaction.reply({
-                content:
-                    "I cannot manage any of the selected roles.",
-                flags: 64
-            });
-
-        }
+        /*
+         * ASSIGN SELECTED ROLES
+         */
 
         const added = [];
-        const removed = [];
+        const failed = [];
+
 
         for (
-            const role
-            of manageableRoles
+            const roleId of selectedRoles
         ) {
 
+            const role =
+                interaction.guild.roles.cache.get(
+                    roleId
+                );
+
+            if (!role) {
+                failed.push(
+                    roleId
+                );
+                continue;
+            }
+
+
+            /*
+             * Never allow managed roles.
+             */
+
             if (
-                member.roles.cache.has(
+                role.managed
+            ) {
+                failed.push(
+                    role.name
+                );
+                continue;
+            }
+
+
+            /*
+             * The bot must be able to
+             * manage the role.
+             */
+
+            if (
+                role.position >=
+                botMember.roles.highest.position
+            ) {
+                failed.push(
+                    role.name
+                );
+                continue;
+            }
+
+
+            /*
+             * Add the role if the member
+             * does not already have it.
+             */
+
+            if (
+                !member.roles.cache.has(
                     role.id
                 )
             ) {
 
-                await member.roles.remove(
-                    role
-                );
+                try {
 
-                removed.push(
-                    role
-                );
+                    await member.roles.add(
+                        role
+                    );
 
-            } else {
+                    added.push(
+                        role.name
+                    );
 
-                await member.roles.add(
-                    role
-                );
+                } catch (error) {
 
-                added.push(
-                    role
-                );
+                    console.error(
+                        "[ROLE SELECT] Failed to add role:",
+                        error
+                    );
+
+                    failed.push(
+                        role.name
+                    );
+
+                }
 
             }
 
         }
 
-        const changes = [];
+
+        /*
+         * RESPONSE
+         */
 
         if (added.length) {
 
-            changes.push(
-                `Added ${added.map(
-                    role =>
-                        `<@&${role.id}>`
-                ).join(", ")}`
-            );
+            return interaction.reply({
+
+                content:
+                    `Roles added: **${added.join(", ")}**` +
+                    (
+                        failed.length
+                            ? `\n\nCould not add: **${failed.join(", ")}**`
+                            : ""
+                    ),
+
+                flags: 64
+
+            });
 
         }
 
-        if (removed.length) {
 
-            changes.push(
-                `Removed ${removed.map(
-                    role =>
-                        `<@&${role.id}>`
-                ).join(", ")}`
-            );
+        if (failed.length) {
+
+            return interaction.reply({
+
+                content:
+                    `I couldn't add: **${failed.join(", ")}**`,
+
+                flags: 64
+
+            });
 
         }
+
 
         return interaction.reply({
 
             content:
-                changes.join("\n") ||
-                "Your roles have been updated.",
+                "You already have all of those roles.",
 
             flags: 64
 
