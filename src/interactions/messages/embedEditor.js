@@ -315,6 +315,8 @@ module.exports = {
                                 );
 
                             await message.edit({
+                                content:
+                                    saved.content ?? null,
                                 embeds:
                                     Array.isArray(
                                         preview.embeds
@@ -342,6 +344,8 @@ module.exports = {
                  */
 
                 await interaction.message.edit({
+                    content:
+                        saved.content ?? null,
                     embeds:
                         Array.isArray(
                             preview.embeds
