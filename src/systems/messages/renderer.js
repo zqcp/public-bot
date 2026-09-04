@@ -83,26 +83,6 @@ module.exports = {
 
                     }
 
-                    if (data.footer?.icon_url) {
-
-                        if (member) {
-
-                            data.footer.icon_url =
-                                variables.replace(
-                                    data.footer.icon_url,
-                                    member
-                                );
-
-                        } else if (
-                            data.footer.icon_url.startsWith("{")
-                        ) {
-
-                            delete data.footer;
-
-                        }
-
-                    }
-
                     return new EmbedBuilder(data);
 
                 });
@@ -152,6 +132,10 @@ module.exports = {
                 continue;
             }
 
+            /*
+             * Already a Discord.js builder
+             */
+
             if (
                 typeof item.toJSON ===
                 "function"
@@ -163,6 +147,10 @@ module.exports = {
 
                 continue;
             }
+
+            /*
+             * Plain saved button
+             */
 
             if (
                 item.type === 2
@@ -176,6 +164,10 @@ module.exports = {
 
                 continue;
             }
+
+            /*
+             * Plain saved select menu
+             */
 
             if (
                 item.type === 3
@@ -241,6 +233,11 @@ module.exports = {
 
                 continue;
             }
+
+            /*
+             * Fallback for your custom
+             * type-based select format.
+             */
 
             row.addComponents(
                 this.renderSelect(
