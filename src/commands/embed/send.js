@@ -3,7 +3,6 @@ const embeds = require("../../embeds/embeds");
 const helpEmbed = require("../../embeds/help/embed");
 const globalEmbeds = require("../../embeds/global");
 const renderer = require("../../systems/messages/renderer");
-const registry = require("../../systems/messages/registry");
 
 module.exports = {
 
@@ -146,9 +145,10 @@ module.exports = {
 
         try {
 
-            payload = renderer.render(
-                saved.toObject()
-            );
+            payload =
+                renderer.render(
+                    saved.toObject()
+                );
 
         } catch (error) {
 
@@ -198,21 +198,58 @@ module.exports = {
         }
 
         /*
-         * Store the Discord message reference.
+         * Register the exact message Discord
+         * just returned.
          *
-         * This is what allows future:
-         *
-         * ,embed edit <name>
-         *
-         * to update this exact message.
+         * Remove previous references for this
+         * embed in this channel so Save always
+         * targets the newest sent message.
          */
 
-        await registry.add(
-            message.guild.id,
-            name,
-            targetChannel.id,
-            sentMessage.id
+        if (!Array.isArray(saved.messages)) {
+            saved.messages = [];
+        }
+
+        saved.messages =
+            saved.messages.filter(
+                reference =>
+                    reference.channelId !==
+                    targetChannel.id
+            );
+
+        saved.messages.push({
+            channelId:
+                targetChannel.id,
+
+            messageId:
+                sentMessage.id
+        });
+
+        saved.markModified(
+            "messages"
         );
+
+        try {
+
+            await saved.save();
+
+        } catch (error) {
+
+            console.error(
+                `[EMBED SEND] Failed to register ${name}:`,
+                error
+            );
+
+            return message.channel.send({
+                embeds: [
+                    embeds.error(
+                        message.author,
+                        "The embed was sent, but I couldn't register the message for future updates."
+                    )
+                ]
+            });
+
+        }
 
         return message.channel.send({
             embeds: [
