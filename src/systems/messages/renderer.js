@@ -43,6 +43,10 @@ module.exports = {
                             JSON.stringify(embed)
                         );
 
+                    /*
+                     * THUMBNAIL
+                     */
+
                     if (data.thumbnail?.url) {
 
                         if (member) {
@@ -53,15 +57,25 @@ module.exports = {
                                     member
                                 );
 
-                        } else if (
-                            data.thumbnail.url.startsWith("{")
-                        ) {
+                        }
+
+                        try {
+
+                            new URL(
+                                data.thumbnail.url
+                            );
+
+                        } catch {
 
                             delete data.thumbnail;
 
                         }
 
                     }
+
+                    /*
+                     * IMAGE
+                     */
 
                     if (data.image?.url) {
 
@@ -73,9 +87,15 @@ module.exports = {
                                     member
                                 );
 
-                        } else if (
-                            data.image.url.startsWith("{")
-                        ) {
+                        }
+
+                        try {
+
+                            new URL(
+                                data.image.url
+                            );
+
+                        } catch {
 
                             delete data.image;
 
@@ -83,7 +103,103 @@ module.exports = {
 
                     }
 
-                    return new EmbedBuilder(data);
+                    /*
+                     * FOOTER
+                     */
+
+                    if (data.footer) {
+
+                        if (
+                            data.footer.text &&
+                            member
+                        ) {
+
+                            data.footer.text =
+                                variables.replace(
+                                    data.footer.text,
+                                    member
+                                );
+
+                        }
+
+                        /*
+                         * Support both Discord.js
+                         * formats:
+                         *
+                         * icon_url
+                         * iconURL
+                         */
+
+                        if (
+                            data.footer.icon_url &&
+                            member
+                        ) {
+
+                            data.footer.icon_url =
+                                variables.replace(
+                                    data.footer.icon_url,
+                                    member
+                                );
+
+                        }
+
+                        if (
+                            data.footer.iconURL &&
+                            member
+                        ) {
+
+                            data.footer.iconURL =
+                                variables.replace(
+                                    data.footer.iconURL,
+                                    member
+                                );
+
+                        }
+
+                        /*
+                         * Validate footer icon URL.
+                         */
+
+                        const footerIcon =
+                            data.footer.icon_url ||
+                            data.footer.iconURL;
+
+                        if (footerIcon) {
+
+                            try {
+
+                                new URL(
+                                    footerIcon
+                                );
+
+                            } catch {
+
+                                delete data.footer.icon_url;
+                                delete data.footer.iconURL;
+
+                            }
+
+                        }
+
+                        /*
+                         * Remove empty footer.
+                         */
+
+                        if (
+                            !data.footer.text &&
+                            !data.footer.icon_url &&
+                            !data.footer.iconURL
+                        ) {
+
+                            delete data.footer;
+
+                        }
+
+                    }
+
+                    return new EmbedBuilder(
+                        data
+                    );
 
                 });
 
@@ -95,11 +211,15 @@ module.exports = {
                 .filter(Boolean)
                 .map(component => {
 
-                    if (component instanceof ActionRowBuilder) {
+                    if (
+                        component instanceof ActionRowBuilder
+                    ) {
                         return component;
                     }
 
-                    return this.renderComponent(component);
+                    return this.renderComponent(
+                        component
+                    );
 
                 });
 
@@ -111,7 +231,9 @@ module.exports = {
 
     renderComponent(component = {}) {
 
-        if (component instanceof ActionRowBuilder) {
+        if (
+            component instanceof ActionRowBuilder
+        ) {
             return component;
         }
 
