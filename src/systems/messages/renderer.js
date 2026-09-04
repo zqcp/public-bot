@@ -17,173 +17,364 @@ module.exports = {
 
         const payload = {};
 
+        /*
+         * CONTENT
+         */
+
         if (
             messageData.content !== null &&
             messageData.content !== undefined
         ) {
-            payload.content = messageData.content;
+
+            const content =
+                this.replaceValue(
+                    messageData.content,
+                    member
+                );
+
+            if (
+                content !== null &&
+                content !== undefined &&
+                String(content).length > 0
+            ) {
+
+                payload.content =
+                    String(content);
+
+            }
+
         }
 
-        if (Array.isArray(messageData.embeds)) {
+        /*
+         * EMBEDS
+         */
 
-            payload.embeds = messageData.embeds
-                .filter(Boolean)
-                .filter(embed =>
-                    embed instanceof EmbedBuilder ||
-                    Object.keys(embed).length > 0
-                )
-                .map(embed => {
+        if (
+            Array.isArray(
+                messageData.embeds
+            )
+        ) {
 
-                    if (embed instanceof EmbedBuilder) {
-                        return embed;
-                    }
+            const embeds = [];
 
-                    const data =
+            for (
+                const embed of messageData.embeds
+            ) {
+
+                if (!embed) {
+                    continue;
+                }
+
+                /*
+                 * Already a Discord.js builder
+                 */
+
+                if (
+                    embed instanceof EmbedBuilder
+                ) {
+
+                    embeds.push(embed);
+                    continue;
+
+                }
+
+                if (
+                    typeof embed !== "object"
+                ) {
+
+                    continue;
+
+                }
+
+                /*
+                 * Clone saved embed data
+                 */
+
+                let data;
+
+                try {
+
+                    data =
                         JSON.parse(
                             JSON.stringify(embed)
                         );
 
-                    /*
-                     * THUMBNAIL
-                     */
+                } catch (error) {
 
-                    if (data.thumbnail?.url) {
+                    console.error(
+                        "[MESSAGE RENDERER] Failed to clone embed:",
+                        error
+                    );
 
-                        if (member) {
+                    continue;
 
-                            data.thumbnail.url =
-                                variables.replace(
-                                    data.thumbnail.url,
-                                    member
-                                );
+                }
 
-                        } else if (
-                            data.thumbnail.url.startsWith("{")
-                        ) {
+                /*
+                 * Resolve ALL variables recursively.
+                 *
+                 * This covers:
+                 *
+                 * title
+                 * description
+                 * url
+                 * color
+                 * author
+                 * footer
+                 * thumbnail
+                 * image
+                 * fields
+                 * timestamp
+                 * etc.
+                 */
 
-                            delete data.thumbnail;
+                data =
+                    this.replaceValue(
+                        data,
+                        member
+                    );
 
-                        }
+                /*
+                 * Clean undefined/null values
+                 * that Discord does not accept.
+                 */
 
-                    }
+                data =
+                    this.cleanValue(
+                        data
+                    );
 
-                    /*
-                     * IMAGE
-                     */
+                /*
+                 * Discord embed requires useful data.
+                 *
+                 * Do not create empty embeds.
+                 */
 
-                    if (data.image?.url) {
+                if (
+                    !data ||
+                    typeof data !== "object" ||
+                    !Object.keys(data).length
+                ) {
 
-                        if (member) {
+                    continue;
 
-                            data.image.url =
-                                variables.replace(
-                                    data.image.url,
-                                    member
-                                );
+                }
 
-                        } else if (
-                            data.image.url.startsWith("{")
-                        ) {
+                /*
+                 * Support saved helper format:
+                 *
+                 * footer.iconURL
+                 *
+                 * Discord API expects:
+                 *
+                 * footer.icon_url
+                 */
 
-                            delete data.image;
+                if (
+                    data.footer?.iconURL &&
+                    !data.footer.icon_url
+                ) {
 
-                        }
+                    data.footer.icon_url =
+                        data.footer.iconURL;
 
-                    }
+                    delete data.footer.iconURL;
 
-                    /*
-                     * FOOTER
-                     */
+                }
 
-                    if (data.footer) {
+                /*
+                 * Remove empty footer.
+                 */
 
-                        if (data.footer.text) {
+                if (data.footer) {
 
-                            if (member) {
+                    if (
+                        !data.footer.text &&
+                        !data.footer.icon_url
+                    ) {
 
-                                data.footer.text =
-                                    variables.replace(
-                                        data.footer.text,
-                                        member
-                                    );
-
-                            } else if (
-                                data.footer.text.startsWith("{")
-                            ) {
-
-                                delete data.footer.text;
-
-                            }
-
-                        }
-
-                        /*
-                         * Support both Discord API
-                         * format and saved helper format.
-                         */
-
-                        if (
-                            data.footer.iconURL &&
-                            !data.footer.icon_url
-                        ) {
-
-                            data.footer.icon_url =
-                                data.footer.iconURL;
-
-                            delete data.footer.iconURL;
-
-                        }
-
-                        if (data.footer.icon_url) {
-
-                            if (member) {
-
-                                data.footer.icon_url =
-                                    variables.replace(
-                                        data.footer.icon_url,
-                                        member
-                                    );
-
-                            } else if (
-                                data.footer.icon_url.startsWith("{")
-                            ) {
-
-                                delete data.footer.icon_url;
-
-                            }
-
-                        }
-
-                        if (
-                            !data.footer.text &&
-                            !data.footer.icon_url
-                        ) {
-
-                            delete data.footer;
-
-                        }
+                        delete data.footer;
 
                     }
 
-                    return new EmbedBuilder(data);
+                }
 
-                });
+                /*
+                 * Remove empty author.
+                 */
+
+                if (data.author) {
+
+                    if (
+                        !data.author.name
+                    ) {
+
+                        delete data.author;
+
+                    }
+
+                }
+
+                /*
+                 * Remove empty thumbnail.
+                 */
+
+                if (
+                    data.thumbnail &&
+                    !data.thumbnail.url
+                ) {
+
+                    delete data.thumbnail;
+
+                }
+
+                /*
+                 * Remove empty image.
+                 */
+
+                if (
+                    data.image &&
+                    !data.image.url
+                ) {
+
+                    delete data.image;
+
+                }
+
+                /*
+                 * Remove invalid fields.
+                 */
+
+                if (
+                    Array.isArray(
+                        data.fields
+                    )
+                ) {
+
+                    data.fields =
+                        data.fields.filter(
+                            field =>
+                                field &&
+                                typeof field === "object" &&
+                                field.name !== undefined &&
+                                field.value !== undefined
+                        );
+
+                    if (
+                        !data.fields.length
+                    ) {
+
+                        delete data.fields;
+
+                    }
+
+                }
+
+                try {
+
+                    embeds.push(
+                        new EmbedBuilder(data)
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "[MESSAGE RENDERER] Invalid embed:",
+                        error
+                    );
+
+                }
+
+            }
+
+            /*
+             * Only send embeds if we actually
+             * produced valid embeds.
+             */
+
+            if (embeds.length) {
+
+                payload.embeds =
+                    embeds;
+
+            }
 
         }
 
-        if (Array.isArray(messageData.components)) {
+        /*
+         * COMPONENTS
+         */
 
-            payload.components = messageData.components
-                .filter(Boolean)
-                .map(component => {
+        if (
+            Array.isArray(
+                messageData.components
+            )
+        ) {
 
-                    if (component instanceof ActionRowBuilder) {
-                        return component;
+            const components = [];
+
+            for (
+                const component of messageData.components
+            ) {
+
+                if (!component) {
+                    continue;
+                }
+
+                const rendered =
+                    this.renderComponent(
+                        component,
+                        member
+                    );
+
+                /*
+                 * Never send empty rows.
+                 */
+
+                if (
+                    rendered &&
+                    typeof rendered.toJSON ===
+                        "function"
+                ) {
+
+                    let json;
+
+                    try {
+
+                        json =
+                            rendered.toJSON();
+
+                    } catch {
+
+                        json = null;
+
                     }
 
-                    return this.renderComponent(component);
+                    if (
+                        json?.components?.length
+                    ) {
 
-                });
+                        components.push(
+                            rendered
+                        );
+
+                    }
+
+                }
+
+            }
+
+            /*
+             * Only include components when
+             * at least one valid row exists.
+             */
+
+            if (components.length) {
+
+                payload.components =
+                    components;
+
+            }
 
         }
 
@@ -191,145 +382,526 @@ module.exports = {
 
     },
 
-    renderComponent(component = {}) {
+    /*
+     * Recursively resolve variables.
+     *
+     * This is intentionally used on the
+     * entire saved message structure.
+     */
 
-        if (component instanceof ActionRowBuilder) {
-            return component;
+    replaceValue(value, member) {
+
+        if (
+            value === null ||
+            value === undefined
+        ) {
+
+            return value;
+
         }
 
-        const row =
-            new ActionRowBuilder();
+        /*
+         * String
+         */
+
+        if (
+            typeof value === "string"
+        ) {
+
+            if (!member) {
+
+                return value;
+
+            }
+
+            try {
+
+                return variables.replace(
+                    value,
+                    member
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "[MESSAGE RENDERER] Variable replacement failed:",
+                    error
+                );
+
+                return value;
+
+            }
+
+        }
+
+        /*
+         * Array
+         */
+
+        if (
+            Array.isArray(value)
+        ) {
+
+            return value.map(
+                item =>
+                    this.replaceValue(
+                        item,
+                        member
+                    )
+            );
+
+        }
+
+        /*
+         * Object
+         */
+
+        if (
+            typeof value === "object"
+        ) {
+
+            const result = {};
+
+            for (
+                const [
+                    key,
+                    child
+                ] of Object.entries(value)
+            ) {
+
+                result[key] =
+                    this.replaceValue(
+                        child,
+                        member
+                    );
+
+            }
+
+            return result;
+
+        }
+
+        /*
+         * Number / boolean
+         */
+
+        return value;
+
+    },
+
+    /*
+     * Remove null/undefined values recursively.
+     */
+
+    cleanValue(value) {
+
+        if (
+            value === null ||
+            value === undefined
+        ) {
+
+            return undefined;
+
+        }
+
+        if (
+            Array.isArray(value)
+        ) {
+
+            return value
+                .map(
+                    item =>
+                        this.cleanValue(item)
+                )
+                .filter(
+                    item =>
+                        item !== undefined
+                );
+
+        }
+
+        if (
+            typeof value === "object"
+        ) {
+
+            const result = {};
+
+            for (
+                const [
+                    key,
+                    child
+                ] of Object.entries(value)
+            ) {
+
+                const cleaned =
+                    this.cleanValue(
+                        child
+                    );
+
+                if (
+                    cleaned !== undefined
+                ) {
+
+                    result[key] =
+                        cleaned;
+
+                }
+
+            }
+
+            return result;
+
+        }
+
+        return value;
+
+    },
+
+    renderComponent(
+        component = {},
+        member = null
+    ) {
+
+        /*
+         * Already a Discord.js row
+         */
+
+        if (
+            component instanceof ActionRowBuilder
+        ) {
+
+            return component;
+
+        }
+
+        if (
+            !component ||
+            typeof component !== "object"
+        ) {
+
+            return null;
+
+        }
+
+        /*
+         * Resolve variables throughout
+         * the saved component.
+         */
+
+        component =
+            this.replaceValue(
+                component,
+                member
+            );
+
+        /*
+         * Some saved systems store the
+         * component directly instead of
+         * inside an ActionRow.
+         */
+
+        if (
+            component.type === 2 ||
+            component.type === 3 ||
+            component.type === 5 ||
+            component.type === 6 ||
+            component.type === 7 ||
+            component.type === 8
+        ) {
+
+            const row =
+                new ActionRowBuilder();
+
+            const rendered =
+                this.renderSingleComponent(
+                    component
+                );
+
+            if (rendered) {
+
+                row.addComponents(
+                    rendered
+                );
+
+                return row;
+
+            }
+
+            return null;
+
+        }
+
+        /*
+         * Normal saved ActionRow.
+         */
 
         if (
             !Array.isArray(
                 component.components
             )
         ) {
-            return row;
+
+            return null;
+
         }
 
-        for (const item of component.components) {
+        const row =
+            new ActionRowBuilder();
+
+        for (
+            const item of component.components
+        ) {
 
             if (!item) {
                 continue;
             }
 
-            /*
-             * Already a Discord.js builder
-             */
-
-            if (
-                typeof item.toJSON ===
-                "function"
-            ) {
-
-                row.addComponents(
+            const rendered =
+                this.renderSingleComponent(
                     item
                 );
 
-                continue;
-            }
-
-            /*
-             * Plain saved button
-             */
-
-            if (
-                item.type === 2
-            ) {
+            if (rendered) {
 
                 row.addComponents(
-                    new ButtonBuilder(
-                        item
-                    )
+                    rendered
                 );
 
-                continue;
             }
 
-            /*
-             * Plain saved select menu
-             */
+        }
+
+        /*
+         * Never return an empty row.
+         */
+
+        try {
 
             if (
-                item.type === 3
+                !row.toJSON()?.components?.length
             ) {
 
-                row.addComponents(
-                    new StringSelectMenuBuilder(
-                        item
-                    )
-                );
+                return null;
 
-                continue;
             }
 
-            if (
-                item.type === 5
-            ) {
+        } catch {
 
-                row.addComponents(
-                    new UserSelectMenuBuilder(
-                        item
-                    )
-                );
-
-                continue;
-            }
-
-            if (
-                item.type === 6
-            ) {
-
-                row.addComponents(
-                    new RoleSelectMenuBuilder(
-                        item
-                    )
-                );
-
-                continue;
-            }
-
-            if (
-                item.type === 7
-            ) {
-
-                row.addComponents(
-                    new MentionableSelectMenuBuilder(
-                        item
-                    )
-                );
-
-                continue;
-            }
-
-            if (
-                item.type === 8
-            ) {
-
-                row.addComponents(
-                    new ChannelSelectMenuBuilder(
-                        item
-                    )
-                );
-
-                continue;
-            }
-
-            /*
-             * Fallback for your custom
-             * type-based select format.
-             */
-
-            row.addComponents(
-                this.renderSelect(
-                    item
-                )
-            );
+            return null;
 
         }
 
         return row;
+
+    },
+
+    renderSingleComponent(
+        item = {}
+    ) {
+
+        /*
+         * Already a Discord.js builder
+         */
+
+        if (
+            typeof item.toJSON ===
+            "function"
+        ) {
+
+            return item;
+
+        }
+
+        if (
+            !item ||
+            typeof item !== "object"
+        ) {
+
+            return null;
+
+        }
+
+        /*
+         * BUTTON
+         */
+
+        if (
+            item.type === 2 ||
+            item.type === "button"
+        ) {
+
+            try {
+
+                return new ButtonBuilder(
+                    this.cleanValue(
+                        item
+                    )
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "[MESSAGE RENDERER] Invalid button:",
+                    error
+                );
+
+                return null;
+
+            }
+
+        }
+
+        /*
+         * STRING SELECT
+         */
+
+        if (
+            item.type === 3 ||
+            item.type === "string"
+        ) {
+
+            try {
+
+                return new StringSelectMenuBuilder(
+                    this.cleanValue(
+                        item
+                    )
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "[MESSAGE RENDERER] Invalid string select:",
+                    error
+                );
+
+                return null;
+
+            }
+
+        }
+
+        /*
+         * USER SELECT
+         */
+
+        if (
+            item.type === 5 ||
+            item.type === "user"
+        ) {
+
+            try {
+
+                return new UserSelectMenuBuilder(
+                    this.cleanValue(
+                        item
+                    )
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "[MESSAGE RENDERER] Invalid user select:",
+                    error
+                );
+
+                return null;
+
+            }
+
+        }
+
+        /*
+         * ROLE SELECT
+         */
+
+        if (
+            item.type === 6 ||
+            item.type === "role"
+        ) {
+
+            try {
+
+                return new RoleSelectMenuBuilder(
+                    this.cleanValue(
+                        item
+                    )
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "[MESSAGE RENDERER] Invalid role select:",
+                    error
+                );
+
+                return null;
+
+            }
+
+        }
+
+        /*
+         * MENTIONABLE SELECT
+         */
+
+        if (
+            item.type === 7 ||
+            item.type === "mentionable"
+        ) {
+
+            try {
+
+                return new MentionableSelectMenuBuilder(
+                    this.cleanValue(
+                        item
+                    )
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "[MESSAGE RENDERER] Invalid mentionable select:",
+                    error
+                );
+
+                return null;
+
+            }
+
+        }
+
+        /*
+         * CHANNEL SELECT
+         */
+
+        if (
+            item.type === 8 ||
+            item.type === "channel"
+        ) {
+
+            try {
+
+                return new ChannelSelectMenuBuilder(
+                    this.cleanValue(
+                        item
+                    )
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "[MESSAGE RENDERER] Invalid channel select:",
+                    error
+                );
+
+                return null;
+
+            }
+
+        }
+
+        return null;
 
     },
 
@@ -340,7 +912,9 @@ module.exports = {
         ) {
 
             return new RoleSelectMenuBuilder(
-                select
+                this.cleanValue(
+                    select
+                )
             );
 
         }
@@ -350,7 +924,9 @@ module.exports = {
         ) {
 
             return new UserSelectMenuBuilder(
-                select
+                this.cleanValue(
+                    select
+                )
             );
 
         }
@@ -360,7 +936,9 @@ module.exports = {
         ) {
 
             return new ChannelSelectMenuBuilder(
-                select
+                this.cleanValue(
+                    select
+                )
             );
 
         }
@@ -370,13 +948,17 @@ module.exports = {
         ) {
 
             return new MentionableSelectMenuBuilder(
-                select
+                this.cleanValue(
+                    select
+                )
             );
 
         }
 
         return new StringSelectMenuBuilder(
-            select
+            this.cleanValue(
+                select
+            )
         );
 
     }
