@@ -95,12 +95,6 @@ module.exports = {
             return null;
         }
 
-        /*
-         * Make sure the saved embed always has
-         * at least one blank embed available
-         * for the editor to modify.
-         */
-
         if (!Array.isArray(embed.embeds)) {
             embed.embeds = [];
         }
@@ -116,11 +110,6 @@ module.exports = {
             clone(current),
             clone(changes)
         );
-
-        /*
-         * Make sure the updated document also
-         * keeps a valid blank embed.
-         */
 
         if (!Array.isArray(updated.embeds)) {
             updated.embeds = [];
@@ -204,7 +193,8 @@ module.exports = {
     async updateMessage(
         client,
         guildId,
-        name
+        name,
+        member
     ) {
 
         const embed =
@@ -219,12 +209,6 @@ module.exports = {
 
         const saved =
             embed.toObject();
-
-        /*
-         * Keep the saved document compatible
-         * with the editor even if it was created
-         * before the blank embed was added.
-         */
 
         if (!Array.isArray(saved.embeds)) {
             saved.embeds = [];
@@ -245,7 +229,10 @@ module.exports = {
         }
 
         const payload =
-            renderer.render(saved);
+            renderer.render(
+                saved,
+                member
+            );
 
         for (const reference of references) {
 
@@ -292,7 +279,8 @@ module.exports = {
         client,
         guildId,
         name,
-        changes = {}
+        changes = {},
+        member
     ) {
 
         const updated =
@@ -309,7 +297,8 @@ module.exports = {
         await this.updateMessage(
             client,
             guildId,
-            name
+            name,
+            member
         );
 
         return updated;
