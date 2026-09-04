@@ -1,10 +1,10 @@
 const {
-    StringSelectMenuBuilder,
-    ActionRowBuilder
+    ActionRowBuilder,
+    StringSelectMenuBuilder
 } = require("discord.js");
 
 const Embed =
-    require("../../models/Embed");
+    require("../../../models/Embed");
 
 
 module.exports = {
@@ -38,6 +38,11 @@ module.exports = {
 
         }
 
+
+        /*
+         * LOAD EMBED
+         */
+
         const saved =
             await Embed.findOne({
                 guildId:
@@ -56,13 +61,49 @@ module.exports = {
 
         }
 
+
+        /*
+         * FIND ROLE SELECT
+         *
+         * Action Row
+         * └── String Select
+         */
+
         const components =
-            Array.isArray(saved.components)
+            Array.isArray(
+                saved.components
+            )
                 ? saved.components
                 : [];
 
-        const selector =
+        const row =
             components.find(
+                component =>
+                    component?.type === 1 &&
+                    Array.isArray(
+                        component.components
+                    ) &&
+                    component.components.some(
+                        select =>
+                            select?.type === 3 &&
+                            select.custom_id ===
+                                `roleSelect:${name}`
+                    )
+            );
+
+        if (!row) {
+
+            return interaction.reply({
+                content:
+                    "I couldn't find the role selector.",
+                flags: 64
+            });
+
+        }
+
+
+        const selector =
+            row.components.find(
                 component =>
                     component?.type === 3 &&
                     component.custom_id ===
@@ -73,11 +114,16 @@ module.exports = {
 
             return interaction.reply({
                 content:
-                    "There is no role selector configured for this embed.",
+                    "I couldn't find the role selector.",
                 flags: 64
             });
 
         }
+
+
+        /*
+         * VALIDATE OPTIONS
+         */
 
         if (
             !Array.isArray(
@@ -88,104 +134,34 @@ module.exports = {
 
             return interaction.reply({
                 content:
-                    "Add at least one role before saving the selector.",
+                    "You need to add at least one role before saving the selector.",
                 flags: 64
             });
 
         }
 
-        selector.options =
-            selector.options
-                .filter(
-                    option => {
 
-                        const role =
-                            interaction.guild.roles.cache.get(
-                                option.value
-                            );
-
-                        return (
-                            role &&
-                            !role.managed
-                        );
-
-                    }
-                )
-                .map(
-                    option => {
-
-                        const role =
-                            interaction.guild.roles.cache.get(
-                                option.value
-                            );
-
-                        return {
-
-                            label:
-                                role.name,
-
-                            value:
-                                role.id,
-
-                            description:
-                                `Role ID: ${role.id}`
-
-                        };
-
-                    }
-                );
+        /*
+         * DISCORD STRING SELECT LIMIT
+         */
 
         if (
-            !selector.options.length
+            selector.options.length >
+            25
         ) {
 
             return interaction.reply({
                 content:
-                    "None of the configured roles can be used by this selector.",
+                    "This selector cannot contain more than **25 roles**.",
                 flags: 64
             });
 
         }
 
-        selector.max_values =
-            Math.min(
-                selector.max_values ||
-                    selector.options.length,
-                selector.options.length
-            );
 
-        selector.min_values =
-            Math.min(
-                selector.min_values || 1,
-                selector.options.length
-            );
-
-        if (
-            selector.max_values <
-            selector.min_values
-        ) {
-
-            selector.max_values =
-                selector.min_values;
-
-        }
-
-        selector.placeholder =
-            selector.placeholder ||
-            "Choose your roles...";
-
-        selector.selectorName =
-            selector.selectorName ||
-            "Roles";
-
-        saved.components =
-            components;
-
-        saved.markModified(
-            "components"
-        );
-
-        await saved.save();
+        /*
+         * BUILD SELECT MENU
+         */
 
         const menu =
             new StringSelectMenuBuilder()
@@ -193,22 +169,64 @@ module.exports = {
                     selector.custom_id
                 )
                 .setPlaceholder(
-                    selector.placeholder
+                    selector.placeholder ||
+                    "Choose your roles..."
                 )
                 .setMinValues(
-                    selector.min_values
+                    Math.max(
+                        1,
+                        Math.min(
+                            Number(
+                                selector.min_values
+                            ) || 1,
+                            selector.options.length
+                        )
+                    )
                 )
                 .setMaxValues(
-                    selector.max_values
+                    Math.max(
+                        1,
+                        Math.min(
+                            Number(
+                                selector.max_values
+                            ) || 1,
+                            selector.options.length
+                        )
+                    )
                 )
                 .addOptions(
-                    selector.options
+                    selector.options.map(
+                        option => ({
+
+                            label:
+                                option.label,
+
+                            value:
+                                option.value,
+
+                            ...(option.description
+                                ? {
+                                    description:
+                                        option.description
+                                }
+                                : {})
+
+                        })
+                    )
                 );
+
+
+        /*
+         * RETURN THE SAVED SELECTOR
+         */
 
         return interaction.update({
 
             content:
-                `**${selector.selectorName}**`,
+                `**${selector.selectorName || name}**\n` +
+                `Role selector saved successfully.\n` +
+                `Placeholder: \`${selector.placeholder || "Choose your roles..."}\`\n` +
+                `Options: **${selector.options.length}/25**`,
 
             components: [
 
