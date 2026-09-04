@@ -53,12 +53,6 @@ module.exports = {
                                     member
                                 );
 
-                        } else if (
-                            data.thumbnail.url.startsWith("{")
-                        ) {
-
-                            delete data.thumbnail;
-
                         }
 
                     }
@@ -78,6 +72,34 @@ module.exports = {
                         ) {
 
                             delete data.image;
+
+                        }
+
+                    }
+
+                    if (data.footer?.icon_url) {
+
+                        if (member) {
+
+                            data.footer.icon_url =
+                                variables.replace(
+                                    data.footer.icon_url,
+                                    member
+                                );
+
+                        }
+
+                    }
+
+                    if (data.footer?.text) {
+
+                        if (member) {
+
+                            data.footer.text =
+                                variables.replace(
+                                    data.footer.text,
+                                    member
+                                );
 
                         }
 
