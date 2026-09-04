@@ -43,6 +43,10 @@ module.exports = {
                             JSON.stringify(embed)
                         );
 
+                    /*
+                     * THUMBNAIL
+                     */
+
                     if (data.thumbnail?.url) {
 
                         if (member) {
@@ -62,6 +66,10 @@ module.exports = {
                         }
 
                     }
+
+                    /*
+                     * IMAGE
+                     */
 
                     if (data.image?.url) {
 
@@ -89,38 +97,60 @@ module.exports = {
 
                     if (data.footer) {
 
-                        if (
-                            data.footer.text &&
-                            member
-                        ) {
+                        if (data.footer.text) {
 
-                            data.footer.text =
-                                variables.replace(
-                                    data.footer.text,
-                                    member
-                                );
+                            if (member) {
+
+                                data.footer.text =
+                                    variables.replace(
+                                        data.footer.text,
+                                        member
+                                    );
+
+                            } else if (
+                                data.footer.text.startsWith("{")
+                            ) {
+
+                                delete data.footer.text;
+
+                            }
 
                         }
 
+                        /*
+                         * Support both Discord API
+                         * format and saved helper format.
+                         */
+
                         if (
-                            data.footer.icon_url &&
-                            member
+                            data.footer.iconURL &&
+                            !data.footer.icon_url
                         ) {
 
                             data.footer.icon_url =
-                                variables.replace(
-                                    data.footer.icon_url,
-                                    member
-                                );
+                                data.footer.iconURL;
+
+                            delete data.footer.iconURL;
 
                         }
 
-                        if (
-                            data.footer.icon_url &&
-                            data.footer.icon_url.startsWith("{")
-                        ) {
+                        if (data.footer.icon_url) {
 
-                            delete data.footer.icon_url;
+                            if (member) {
+
+                                data.footer.icon_url =
+                                    variables.replace(
+                                        data.footer.icon_url,
+                                        member
+                                    );
+
+                            } else if (
+                                data.footer.icon_url.startsWith("{")
+                            ) {
+
+                                delete data.footer.icon_url;
+
+                            }
 
                         }
 
