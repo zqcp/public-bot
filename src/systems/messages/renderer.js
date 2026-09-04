@@ -9,8 +9,7 @@ const {
     MentionableSelectMenuBuilder
 } = require("discord.js");
 
-const variables =
-    require("../variables");
+const variables = require("../variables");
 
 module.exports = {
 
@@ -53,15 +52,28 @@ module.exports = {
                          */
 
                         if (
-                            data.thumbnail?.url &&
-                            member
+                            data.thumbnail?.url
                         ) {
 
-                            data.thumbnail.url =
-                                variables.replace(
-                                    data.thumbnail.url,
-                                    member
-                                );
+                            if (member) {
+
+                                data.thumbnail.url =
+                                    variables.replace(
+                                        data.thumbnail.url,
+                                        member
+                                    );
+
+                            }
+
+                            if (
+                                !/^https?:\/\/.+/i.test(
+                                    data.thumbnail.url
+                                )
+                            ) {
+
+                                delete data.thumbnail;
+
+                            }
 
                         }
 
@@ -82,17 +94,26 @@ module.exports = {
 
                         }
 
+                        if (
+                            data.image?.url &&
+                            !/^https?:\/\/.+/i.test(
+                                data.image.url
+                            )
+                        ) {
+
+                            delete data.image;
+
+                        }
+
                         /*
                          * FOOTER
                          */
 
-                        if (
-                            data.footer &&
-                            member
-                        ) {
+                        if (data.footer) {
 
                             if (
-                                data.footer.text
+                                data.footer.text &&
+                                member
                             ) {
 
                                 data.footer.text =
@@ -104,7 +125,8 @@ module.exports = {
                             }
 
                             if (
-                                data.footer.icon_url
+                                data.footer.icon_url &&
+                                member
                             ) {
 
                                 data.footer.icon_url =
@@ -115,11 +137,29 @@ module.exports = {
 
                             }
 
+                            if (
+                                data.footer.icon_url &&
+                                !/^https?:\/\/.+/i.test(
+                                    data.footer.icon_url
+                                )
+                            ) {
+
+                                delete data.footer.icon_url;
+
+                            }
+
+                            if (
+                                !data.footer.text &&
+                                !data.footer.icon_url
+                            ) {
+
+                                delete data.footer;
+
+                            }
+
                         }
 
-                        return new EmbedBuilder(
-                            data
-                        );
+                        return new EmbedBuilder(data);
 
                     });
 
@@ -136,7 +176,6 @@ module.exports = {
                             component instanceof
                             ActionRowBuilder
                         ) {
-
                             return component;
                         }
 
