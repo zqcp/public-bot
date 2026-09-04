@@ -5,7 +5,7 @@ const {
 } = require("discord.js");
 
 const Embed =
-    require("../../models/Embed");
+    require("../../../models/Embed");
 
 
 module.exports = {
