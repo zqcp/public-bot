@@ -39,7 +39,7 @@ module.exports = {
 
         }
 
-        const roleId =
+        let roleInput =
             interaction.fields
                 .getTextInputValue(
                     "roleId"
@@ -60,16 +60,37 @@ module.exports = {
                 )
                 .trim();
 
+        /*
+         * Accept:
+         *
+         * 123456789012345678
+         *
+         * OR:
+         *
+         * <@&123456789012345678>
+         */
+
+        const mentionMatch =
+            roleInput.match(
+                /^<@&(\d+)>$/
+            );
+
+        if (mentionMatch) {
+            roleInput =
+                mentionMatch[1];
+        }
+
         const role =
             interaction.guild.roles.cache.get(
-                roleId
+                roleInput
             );
 
         if (!role) {
 
             return interaction.reply({
                 content:
-                    "I couldn't find that role.",
+                    `I couldn't find the role with ID \`${roleInput}\`.\n\n` +
+                    "Please enter the **Role ID** or paste the role mention.",
                 flags: 64
             });
 
