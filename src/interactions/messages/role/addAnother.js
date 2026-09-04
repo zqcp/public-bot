@@ -5,6 +5,7 @@ const {
     ActionRowBuilder
 } = require("discord.js");
 
+
 module.exports = {
 
     name: "roleAddAnother",
@@ -36,26 +37,14 @@ module.exports = {
 
         }
 
-        const input =
-            new TextInputBuilder()
-                .setCustomId(
-                    "roleId"
-                )
-                .setLabel(
-                    "Role ID"
-                )
-                .setPlaceholder(
-                    "Enter another role ID..."
-                )
-                .setStyle(
-                    TextInputStyle.Short
-                )
-                .setRequired(
-                    true
-                )
-                .setMaxLength(
-                    20
-                );
+
+        /*
+         * OPEN ROLE ID MODAL
+         *
+         * This keeps the existing structure.
+         * roleIdModal handles adding the
+         * additional role to the selector.
+         */
 
         const modal =
             new ModalBuilder()
@@ -66,14 +55,37 @@ module.exports = {
                     "Add Another Role"
                 );
 
-        modal.addComponents(
 
+        const roleId =
+            new TextInputBuilder()
+                .setCustomId(
+                    "roleId"
+                )
+                .setLabel(
+                    "Role ID"
+                )
+                .setPlaceholder(
+                    "Enter the role ID or paste the role mention..."
+                )
+                .setStyle(
+                    TextInputStyle.Short
+                )
+                .setRequired(
+                    true
+                );
+
+
+        const row =
             new ActionRowBuilder()
                 .addComponents(
-                    input
-                )
+                    roleId
+                );
 
+
+        modal.addComponents(
+            row
         );
+
 
         return interaction.showModal(
             modal
