@@ -6,7 +6,6 @@ const {
 
 const Embed = require("../../models/Embed");
 const embeds = require("../../embeds/embeds");
-const editor = require("../../systems/messages/editor");
 const renderer = require("../../systems/messages/renderer");
 
 module.exports = {
@@ -201,13 +200,6 @@ module.exports = {
 
                     );
 
-            /*
-             * Render the current saved embed data.
-             *
-             * This uses the same saved data that
-             * ,embed send uses.
-             */
-
             let payload;
 
             try {
@@ -236,15 +228,6 @@ module.exports = {
                 });
 
             }
-
-            /*
-             * Edit the ORIGINAL ,embed edit message.
-             *
-             * The saved embed is placed into that same
-             * message along with the editor buttons.
-             *
-             * No second message is created.
-             */
 
             try {
 
@@ -290,55 +273,82 @@ module.exports = {
 
             try {
 
-                /*
-                 * Acknowledge the button immediately so
-                 * Discord does not expire the interaction
-                 * while the existing messages are updated.
-                 */
-
                 await interaction.deferReply({
                     flags: 64
                 });
 
                 /*
-                 * Apply the saved embed data to every
-                 * message created with ,embed send.
+                 * Render the exact same embed
+                 * that the editor preview uses.
                  */
 
-                await editor.updateMessage(
-                    client,
-                    interaction.guild.id,
-                    name
-                );
+                const preview =
+                    renderer.render(
+                        saved.toObject(),
+                        interaction.member
+                    );
 
                 /*
-                 * Also refresh this editor message so
-                 * it immediately shows the latest data.
+                 * Update the sent messages directly.
                  */
 
-                const updated =
-                    await Embed.findOne({
-                        guildId: interaction.guild.id,
-                        name
-                    });
+                if (
+                    Array.isArray(saved.messages) &&
+                    saved.messages.length
+                ) {
 
-                if (updated) {
+                    for (
+                        const reference
+                        of saved.messages
+                    ) {
 
-                    const payload =
-                        require("../../systems/messages/renderer")
-                            .render(
-                                updated.toObject(),
-                                interaction.member
+                        try {
+
+                            const channel =
+                                await client.channels.fetch(
+                                    reference.channelId
+                                );
+
+                            const message =
+                                await channel.messages.fetch(
+                                    reference.messageId
+                                );
+
+                            await message.edit({
+                                embeds:
+                                    Array.isArray(
+                                        preview.embeds
+                                    )
+                                        ? preview.embeds
+                                        : []
+                            });
+
+                        } catch (error) {
+
+                            console.error(
+                                `[EMBED SAVE] Failed to update message ${reference.messageId}:`,
+                                error
                             );
 
-                    await interaction.message.edit({
-                        embeds:
-                            Array.isArray(payload.embeds)
-                                ? payload.embeds
-                                : []
-                    });
+                        }
+
+                    }
 
                 }
+
+                /*
+                 * Keep the editor preview identical
+                 * to the sent embed.
+                 */
+
+                await interaction.message.edit({
+                    embeds:
+                        Array.isArray(
+                            preview.embeds
+                        )
+                            ? preview.embeds
+                            : []
+                });
 
                 return interaction.editReply({
                     embeds: [
@@ -356,31 +366,17 @@ module.exports = {
                     error
                 );
 
-                if (interaction.deferred) {
-                    return interaction.editReply({
-                        embeds: [
-                            embeds.error(
-                                interaction.user,
-                                `I couldn't update the existing messages for **${name}**.`
-                            )
-                        ]
-                    });
-                }
+                return interaction.editReply({
+                    embeds: [
+                        embeds.error(
+                            interaction.user,
+                            `I couldn't update the existing messages for **${name}**.`
+                        )
+                    ]
+                });
 
-                if (!interaction.replied) {
-                    return interaction.reply({
-                        embeds: [
-                            embeds.error(
-                                interaction.user,
-                                `I couldn't update the existing messages for **${name}**.`
-                            )
-                        ],
-                        flags: 64
-                    });
-                }
-
-                return;
             }
+
         }
 
         if (action === "cancel") {
