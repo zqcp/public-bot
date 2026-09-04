@@ -21,70 +21,51 @@ module.exports = {
             messageData.content !== null &&
             messageData.content !== undefined
         ) {
-            payload.content =
-                messageData.content;
+            payload.content = messageData.content;
         }
 
         if (Array.isArray(messageData.embeds)) {
 
-            payload.embeds =
-                messageData.embeds
-                    .filter(Boolean)
-                    .filter(embed =>
-                        embed instanceof EmbedBuilder ||
-                        Object.keys(embed).length > 0
-                    )
-                    .map(embed => {
+            payload.embeds = messageData.embeds
+                .filter(Boolean)
+                .filter(embed =>
+                    embed instanceof EmbedBuilder ||
+                    Object.keys(embed).length > 0
+                )
+                .map(embed => {
 
-                        if (
-                            embed instanceof EmbedBuilder
+                    if (embed instanceof EmbedBuilder) {
+                        return embed;
+                    }
+
+                    const data =
+                        JSON.parse(
+                            JSON.stringify(embed)
+                        );
+
+                    if (data.thumbnail?.url) {
+
+                        if (member) {
+
+                            data.thumbnail.url =
+                                variables.replace(
+                                    data.thumbnail.url,
+                                    member
+                                );
+
+                        } else if (
+                            data.thumbnail.url.startsWith("{")
                         ) {
-                            return embed;
-                        }
 
-                        const data =
-                            JSON.parse(
-                                JSON.stringify(embed)
-                            );
-
-                        /*
-                         * THUMBNAIL
-                         */
-
-                        if (
-                            data.thumbnail?.url
-                        ) {
-
-                            if (member) {
-
-                                data.thumbnail.url =
-                                    variables.replace(
-                                        data.thumbnail.url,
-                                        member
-                                    );
-
-                            }
-
-                            if (
-                                !/^https?:\/\/.+/i.test(
-                                    data.thumbnail.url
-                                )
-                            ) {
-
-                                delete data.thumbnail;
-
-                            }
+                            delete data.thumbnail;
 
                         }
 
-                        /*
-                         * IMAGE
-                         */
+                    }
 
-                        if (
-                            data.image?.url &&
-                            member
-                        ) {
+                    if (data.image?.url) {
+
+                        if (member) {
 
                             data.image.url =
                                 variables.replace(
@@ -92,98 +73,87 @@ module.exports = {
                                     member
                                 );
 
-                        }
-
-                        if (
-                            data.image?.url &&
-                            !/^https?:\/\/.+/i.test(
-                                data.image.url
-                            )
+                        } else if (
+                            data.image.url.startsWith("{")
                         ) {
 
                             delete data.image;
 
                         }
 
-                        /*
-                         * FOOTER
-                         */
+                    }
 
-                        if (data.footer) {
+                    /*
+                     * FOOTER
+                     */
 
-                            if (
-                                data.footer.text &&
-                                member
-                            ) {
+                    if (data.footer) {
 
-                                data.footer.text =
-                                    variables.replace(
-                                        data.footer.text,
-                                        member
-                                    );
+                        if (
+                            data.footer.text &&
+                            member
+                        ) {
 
-                            }
-
-                            if (
-                                data.footer.icon_url &&
-                                member
-                            ) {
-
-                                data.footer.icon_url =
-                                    variables.replace(
-                                        data.footer.icon_url,
-                                        member
-                                    );
-
-                            }
-
-                            if (
-                                data.footer.icon_url &&
-                                !/^https?:\/\/.+/i.test(
-                                    data.footer.icon_url
-                                )
-                            ) {
-
-                                delete data.footer.icon_url;
-
-                            }
-
-                            if (
-                                !data.footer.text &&
-                                !data.footer.icon_url
-                            ) {
-
-                                delete data.footer;
-
-                            }
+                            data.footer.text =
+                                variables.replace(
+                                    data.footer.text,
+                                    member
+                                );
 
                         }
 
-                        return new EmbedBuilder(data);
+                        if (
+                            data.footer.icon_url &&
+                            member
+                        ) {
 
-                    });
+                            data.footer.icon_url =
+                                variables.replace(
+                                    data.footer.icon_url,
+                                    member
+                                );
+
+                        }
+
+                        if (
+                            data.footer.icon_url &&
+                            data.footer.icon_url.startsWith("{")
+                        ) {
+
+                            delete data.footer.icon_url;
+
+                        }
+
+                        if (
+                            !data.footer.text &&
+                            !data.footer.icon_url
+                        ) {
+
+                            delete data.footer;
+
+                        }
+
+                    }
+
+                    return new EmbedBuilder(data);
+
+                });
 
         }
 
         if (Array.isArray(messageData.components)) {
 
-            payload.components =
-                messageData.components
-                    .filter(Boolean)
-                    .map(component => {
+            payload.components = messageData.components
+                .filter(Boolean)
+                .map(component => {
 
-                        if (
-                            component instanceof
-                            ActionRowBuilder
-                        ) {
-                            return component;
-                        }
+                    if (component instanceof ActionRowBuilder) {
+                        return component;
+                    }
 
-                        return this.renderComponent(
-                            component
-                        );
+                    return this.renderComponent(component);
 
-                    });
+                });
 
         }
 
@@ -193,9 +163,7 @@ module.exports = {
 
     renderComponent(component = {}) {
 
-        if (
-            component instanceof ActionRowBuilder
-        ) {
+        if (component instanceof ActionRowBuilder) {
             return component;
         }
 
@@ -210,41 +178,57 @@ module.exports = {
             return row;
         }
 
-        for (
-            const item of component.components
-        ) {
+        for (const item of component.components) {
 
             if (!item) {
                 continue;
             }
+
+            /*
+             * Already a Discord.js builder
+             */
 
             if (
                 typeof item.toJSON ===
                 "function"
             ) {
 
-                row.addComponents(item);
+                row.addComponents(
+                    item
+                );
 
                 continue;
             }
+
+            /*
+             * Plain saved button
+             */
 
             if (
                 item.type === 2
             ) {
 
                 row.addComponents(
-                    new ButtonBuilder(item)
+                    new ButtonBuilder(
+                        item
+                    )
                 );
 
                 continue;
             }
+
+            /*
+             * Plain saved select menu
+             */
 
             if (
                 item.type === 3
             ) {
 
                 row.addComponents(
-                    new StringSelectMenuBuilder(item)
+                    new StringSelectMenuBuilder(
+                        item
+                    )
                 );
 
                 continue;
@@ -255,7 +239,9 @@ module.exports = {
             ) {
 
                 row.addComponents(
-                    new UserSelectMenuBuilder(item)
+                    new UserSelectMenuBuilder(
+                        item
+                    )
                 );
 
                 continue;
@@ -266,7 +252,9 @@ module.exports = {
             ) {
 
                 row.addComponents(
-                    new RoleSelectMenuBuilder(item)
+                    new RoleSelectMenuBuilder(
+                        item
+                    )
                 );
 
                 continue;
@@ -277,7 +265,9 @@ module.exports = {
             ) {
 
                 row.addComponents(
-                    new MentionableSelectMenuBuilder(item)
+                    new MentionableSelectMenuBuilder(
+                        item
+                    )
                 );
 
                 continue;
@@ -288,14 +278,23 @@ module.exports = {
             ) {
 
                 row.addComponents(
-                    new ChannelSelectMenuBuilder(item)
+                    new ChannelSelectMenuBuilder(
+                        item
+                    )
                 );
 
                 continue;
             }
 
+            /*
+             * Fallback for your custom
+             * type-based select format.
+             */
+
             row.addComponents(
-                this.renderSelect(item)
+                this.renderSelect(
+                    item
+                )
             );
 
         }
