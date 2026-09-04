@@ -53,6 +53,12 @@ module.exports = {
                                     member
                                 );
 
+                        } else if (
+                            data.thumbnail.url.includes("{")
+                        ) {
+
+                            delete data.thumbnail;
+
                         }
 
                     }
@@ -87,6 +93,12 @@ module.exports = {
                                     member
                                 );
 
+                        } else if (
+                            data.footer.icon_url.includes("{")
+                        ) {
+
+                            delete data.footer.icon_url;
+
                         }
 
                     }
@@ -101,7 +113,23 @@ module.exports = {
                                     member
                                 );
 
+                        } else if (
+                            data.footer.text.includes("{")
+                        ) {
+
+                            delete data.footer.text;
+
                         }
+
+                    }
+
+                    if (
+                        data.footer &&
+                        !data.footer.text &&
+                        !data.footer.icon_url
+                    ) {
+
+                        delete data.footer;
 
                     }
 
@@ -154,10 +182,6 @@ module.exports = {
                 continue;
             }
 
-            /*
-             * Already a Discord.js builder
-             */
-
             if (
                 typeof item.toJSON ===
                 "function"
@@ -169,10 +193,6 @@ module.exports = {
 
                 continue;
             }
-
-            /*
-             * Plain saved button
-             */
 
             if (
                 item.type === 2
@@ -186,10 +206,6 @@ module.exports = {
 
                 continue;
             }
-
-            /*
-             * Plain saved select menu
-             */
 
             if (
                 item.type === 3
@@ -255,11 +271,6 @@ module.exports = {
 
                 continue;
             }
-
-            /*
-             * Fallback for your custom
-             * type-based select format.
-             */
 
             row.addComponents(
                 this.renderSelect(
