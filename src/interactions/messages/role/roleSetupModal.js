@@ -39,47 +39,38 @@ module.exports = {
 
         }
 
-        let roleId =
+
+        /*
+         * ROLE INPUT
+         *
+         * Accept:
+         *
+         * 1524715396328853506
+         *
+         * <@&1524715396328853506>
+         *
+         * or any input containing
+         * a valid Discord role ID.
+         */
+
+        const roleInput =
             interaction.fields
                 .getTextInputValue(
                     "roleId"
                 )
                 .trim();
 
-
-        /*
-         * Normalize role input.
-         *
-         * Accept:
-         *
-         * 123456789012345678
-         *
-         * <@&123456789012345678>
-         */
-
-        const mentionMatch =
-            roleId.match(
-                /^<@&(\d+)>$/
+        const roleIdMatch =
+            roleInput.match(
+                /\d{17,20}/
             );
 
-        if (mentionMatch) {
+        const roleId =
+            roleIdMatch
+                ? roleIdMatch[0]
+                : null;
 
-            roleId =
-                mentionMatch[1];
-
-        }
-
-
-        /*
-         * Make sure the value is a
-         * Discord snowflake.
-         */
-
-        if (
-            !/^\d+$/.test(
-                roleId
-            )
-        ) {
+        if (!roleId) {
 
             return interaction.reply({
                 content:
@@ -89,6 +80,10 @@ module.exports = {
 
         }
 
+
+        /*
+         * SELECTOR SETTINGS
+         */
 
         const selectorName =
             interaction.fields
@@ -105,21 +100,68 @@ module.exports = {
                 .trim();
 
 
+        if (!selectorName) {
+
+            return interaction.reply({
+                content:
+                    "Please provide a selector name.",
+                flags: 64
+            });
+
+        }
+
+        if (!placeholder) {
+
+            return interaction.reply({
+                content:
+                    "Please provide a selector placeholder.",
+                flags: 64
+            });
+
+        }
+
+
         /*
-         * FETCH ROLE DIRECTLY
+         * FETCH ALL ROLES
          *
          * Do not rely on the role cache.
          */
 
-        const role =
+        const roles =
             await interaction.guild.roles
-                .fetch(
-                    roleId
-                )
+                .fetch()
                 .catch(
-                    () => null
+                    error => {
+
+                        console.error(
+                            "[ROLE SETUP] Failed to fetch roles:",
+                            error
+                        );
+
+                        return null;
+
+                    }
                 );
 
+        if (!roles) {
+
+            return interaction.reply({
+                content:
+                    "I couldn't load the roles for this server.",
+                flags: 64
+            });
+
+        }
+
+
+        /*
+         * FIND ROLE BY ID
+         */
+
+        const role =
+            roles.get(
+                roleId
+            );
 
         if (!role) {
 
@@ -148,17 +190,26 @@ module.exports = {
 
 
         /*
-         * BOT ROLE HIERARCHY
+         * BOT MEMBER
          */
 
         const botMember =
             interaction.guild.members.me ||
             await interaction.guild.members
                 .fetch(
-                    interaction.client.user.id
+                    client.user.id
                 )
                 .catch(
-                    () => null
+                    error => {
+
+                        console.error(
+                            "[ROLE SETUP] Failed to fetch bot member:",
+                            error
+                        );
+
+                        return null;
+
+                    }
                 );
 
         if (!botMember) {
@@ -172,6 +223,10 @@ module.exports = {
         }
 
 
+        /*
+         * ROLE HIERARCHY
+         */
+
         if (
             role.position >=
             botMember.roles.highest.position
@@ -180,31 +235,6 @@ module.exports = {
             return interaction.reply({
                 content:
                     "I cannot manage that role because it is higher than or equal to my highest role.",
-                flags: 64
-            });
-
-        }
-
-
-        /*
-         * SELECTOR SETTINGS
-         */
-
-        if (!selectorName) {
-
-            return interaction.reply({
-                content:
-                    "Please provide a selector name.",
-                flags: 64
-            });
-
-        }
-
-        if (!placeholder) {
-
-            return interaction.reply({
-                content:
-                    "Please provide a selector placeholder.",
                 flags: 64
             });
 
@@ -236,6 +266,11 @@ module.exports = {
 
         /*
          * COMPONENTS
+         *
+         * Keep the existing structure:
+         *
+         * Action Row
+         * └── String Select Menu
          */
 
         const components =
@@ -267,7 +302,7 @@ module.exports = {
 
 
         /*
-         * CREATE SELECTOR
+         * CREATE ROLE SELECT
          */
 
         if (!row) {
@@ -307,6 +342,10 @@ module.exports = {
         }
 
 
+        /*
+         * FIND SELECT MENU
+         */
+
         const selector =
             row.components.find(
                 component =>
@@ -314,7 +353,6 @@ module.exports = {
                     component.custom_id ===
                         `roleSelect:${name}`
             );
-
 
         if (!selector) {
 
@@ -328,7 +366,7 @@ module.exports = {
 
 
         /*
-         * UPDATE SELECTOR
+         * UPDATE SELECTOR SETTINGS
          */
 
         selector.selectorName =
@@ -350,7 +388,7 @@ module.exports = {
 
 
         /*
-         * CHECK DUPLICATE
+         * CHECK DUPLICATE ROLE
          */
 
         const exists =
@@ -360,6 +398,10 @@ module.exports = {
                     role.id
             );
 
+
+        /*
+         * ADD ROLE
+         */
 
         if (!exists) {
 
@@ -516,6 +558,10 @@ module.exports = {
 
                 );
 
+
+        /*
+         * RESPONSE
+         */
 
         return interaction.reply({
 
