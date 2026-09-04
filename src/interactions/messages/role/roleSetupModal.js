@@ -60,6 +60,19 @@ module.exports = {
                 )
                 .trim();
 
+
+        /*
+         * ROLE ID
+         *
+         * Accept either:
+         *
+         * 123456789012345678
+         *
+         * or:
+         *
+         * <@&123456789012345678>
+         */
+
         const mentionMatch =
             roleId.match(
                 /^<@&(\d+)>$/
@@ -72,18 +85,22 @@ module.exports = {
 
         }
 
+
+        /*
+         * VALIDATE ROLE
+         */
+
         const role =
-            await interaction.guild.roles
-                .fetch(roleId)
-                .catch(
-                    () => null
-                );
+            interaction.guild.roles.cache.get(
+                roleId
+            );
 
         if (!role) {
 
             return interaction.reply({
                 content:
-                    `I couldn't find the role with ID \`${roleId}\`.`,
+                    `I couldn't find the role with ID \`${roleId}\`.\n\n` +
+                    "Please enter the **Role ID** or paste the role mention.",
                 flags: 64
             });
 
@@ -98,6 +115,11 @@ module.exports = {
             });
 
         }
+
+
+        /*
+         * BOT ROLE HIERARCHY
+         */
 
         const botMember =
             interaction.guild.members.me;
@@ -125,6 +147,11 @@ module.exports = {
 
         }
 
+
+        /*
+         * VALIDATE SELECTOR
+         */
+
         if (!selectorName) {
 
             return interaction.reply({
@@ -145,6 +172,11 @@ module.exports = {
 
         }
 
+
+        /*
+         * LOAD EMBED
+         */
+
         const saved =
             await Embed.findOne({
                 guildId:
@@ -163,72 +195,147 @@ module.exports = {
 
         }
 
+
+        /*
+         * COMPONENTS
+         *
+         * Keep the existing message
+         * component structure:
+         *
+         * Action Row
+         * └── String Select
+         */
+
         const components =
-            Array.isArray(saved.components)
+            Array.isArray(
+                saved.components
+            )
                 ? saved.components
                 : [];
 
-        let selector =
+
+        /*
+         * FIND EXISTING ROLE SELECT
+         */
+
+        let row =
             components.find(
+                component =>
+                    component?.type === 1 &&
+                    Array.isArray(
+                        component.components
+                    ) &&
+                    component.components.some(
+                        select =>
+                            select?.type === 3 &&
+                            select.custom_id ===
+                                `roleSelect:${name}`
+                    )
+            );
+
+
+        /*
+         * CREATE SELECTOR
+         */
+
+        if (!row) {
+
+            row = {
+
+                type: 1,
+
+                components: [
+
+                    {
+                        type: 3,
+
+                        custom_id:
+                            `roleSelect:${name}`,
+
+                        selectorName,
+
+                        placeholder,
+
+                        min_values: 1,
+
+                        max_values: 1,
+
+                        options: []
+
+                    }
+
+                ]
+
+            };
+
+            components.push(
+                row
+            );
+
+        }
+
+
+        /*
+         * FIND SELECT MENU
+         */
+
+        const selector =
+            row.components.find(
                 component =>
                     component?.type === 3 &&
                     component.custom_id ===
                         `roleSelect:${name}`
             );
 
+
         if (!selector) {
 
-            selector = {
-
-                type: 3,
-
-                custom_id:
-                    `roleSelect:${name}`,
-
-                selectorName,
-
-                placeholder,
-
-                min_values:
-                    1,
-
-                max_values:
-                    1,
-
-                options: []
-
-            };
-
-            components.push(
-                selector
-            );
-
-        } else {
-
-            selector.selectorName =
-                selectorName;
-
-            selector.placeholder =
-                placeholder;
-
-            if (
-                !Array.isArray(
-                    selector.options
-                )
-            ) {
-
-                selector.options = [];
-
-            }
+            return interaction.reply({
+                content:
+                    "I couldn't prepare the role selector.",
+                flags: 64
+            });
 
         }
+
+
+        /*
+         * UPDATE SELECTOR SETTINGS
+         */
+
+        selector.selectorName =
+            selectorName;
+
+        selector.placeholder =
+            placeholder;
+
+
+        if (
+            !Array.isArray(
+                selector.options
+            )
+        ) {
+
+            selector.options = [];
+
+        }
+
+
+        /*
+         * CHECK FOR DUPLICATE ROLE
+         */
 
         const exists =
             selector.options.some(
                 option =>
-                    option.value ===
+                    option?.value ===
                     role.id
             );
+
+
+        /*
+         * ADD FIRST ROLE
+         */
 
         if (!exists) {
 
@@ -260,15 +367,37 @@ module.exports = {
 
         }
 
-        selector.max_values =
+
+        /*
+         * KEEP VALUES VALID
+         */
+
+        selector.min_values =
             Math.max(
                 1,
                 Math.min(
-                    selector.max_values ||
-                        selector.options.length,
+                    Number(
+                        selector.min_values
+                    ) || 1,
                     selector.options.length
                 )
             );
+
+        selector.max_values =
+            Math.max(
+                selector.min_values,
+                Math.min(
+                    Number(
+                        selector.max_values
+                    ) || 1,
+                    selector.options.length
+                )
+            );
+
+
+        /*
+         * SAVE COMPONENTS
+         */
 
         saved.components =
             components;
@@ -278,6 +407,11 @@ module.exports = {
         );
 
         await saved.save();
+
+
+        /*
+         * EDITOR CONTROLS
+         */
 
         const buttons =
             new ActionRowBuilder()
@@ -296,7 +430,7 @@ module.exports = {
 
                     new ButtonBuilder()
                         .setCustomId(
-                            `roleEdit:${name}`
+                            `roleEdit:${role.id}`
                         )
                         .setLabel(
                             "Edit"
@@ -340,6 +474,7 @@ module.exports = {
 
                 );
 
+
         const addAnother =
             new ActionRowBuilder()
                 .addComponents(
@@ -356,6 +491,11 @@ module.exports = {
                         )
 
                 );
+
+
+        /*
+         * RESPONSE
+         */
 
         return interaction.reply({
 
