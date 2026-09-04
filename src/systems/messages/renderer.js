@@ -43,10 +43,6 @@ module.exports = {
                             JSON.stringify(embed)
                         );
 
-                    /*
-                     * THUMBNAIL
-                     */
-
                     if (data.thumbnail?.url) {
 
                         if (member) {
@@ -57,25 +53,15 @@ module.exports = {
                                     member
                                 );
 
-                        }
-
-                        try {
-
-                            new URL(
-                                data.thumbnail.url
-                            );
-
-                        } catch {
+                        } else if (
+                            data.thumbnail.url.startsWith("{")
+                        ) {
 
                             delete data.thumbnail;
 
                         }
 
                     }
-
-                    /*
-                     * IMAGE
-                     */
 
                     if (data.image?.url) {
 
@@ -87,15 +73,9 @@ module.exports = {
                                     member
                                 );
 
-                        }
-
-                        try {
-
-                            new URL(
-                                data.image.url
-                            );
-
-                        } catch {
+                        } else if (
+                            data.image.url.startsWith("{")
+                        ) {
 
                             delete data.image;
 
@@ -121,14 +101,6 @@ module.exports = {
                                 );
 
                         }
-
-                        /*
-                         * Support both Discord.js
-                         * formats:
-                         *
-                         * icon_url
-                         * iconURL
-                         */
 
                         if (
                             data.footer.icon_url &&
@@ -156,34 +128,23 @@ module.exports = {
 
                         }
 
-                        /*
-                         * Validate footer icon URL.
-                         */
+                        if (
+                            data.footer.icon_url &&
+                            data.footer.icon_url.startsWith("{")
+                        ) {
 
-                        const footerIcon =
-                            data.footer.icon_url ||
-                            data.footer.iconURL;
-
-                        if (footerIcon) {
-
-                            try {
-
-                                new URL(
-                                    footerIcon
-                                );
-
-                            } catch {
-
-                                delete data.footer.icon_url;
-                                delete data.footer.iconURL;
-
-                            }
+                            delete data.footer.icon_url;
 
                         }
 
-                        /*
-                         * Remove empty footer.
-                         */
+                        if (
+                            data.footer.iconURL &&
+                            data.footer.iconURL.startsWith("{")
+                        ) {
+
+                            delete data.footer.iconURL;
+
+                        }
 
                         if (
                             !data.footer.text &&
@@ -197,9 +158,7 @@ module.exports = {
 
                     }
 
-                    return new EmbedBuilder(
-                        data
-                    );
+                    return new EmbedBuilder(data);
 
                 });
 
@@ -211,15 +170,11 @@ module.exports = {
                 .filter(Boolean)
                 .map(component => {
 
-                    if (
-                        component instanceof ActionRowBuilder
-                    ) {
+                    if (component instanceof ActionRowBuilder) {
                         return component;
                     }
 
-                    return this.renderComponent(
-                        component
-                    );
+                    return this.renderComponent(component);
 
                 });
 
@@ -231,9 +186,7 @@ module.exports = {
 
     renderComponent(component = {}) {
 
-        if (
-            component instanceof ActionRowBuilder
-        ) {
+        if (component instanceof ActionRowBuilder) {
             return component;
         }
 
