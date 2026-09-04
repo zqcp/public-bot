@@ -1,9 +1,11 @@
 const {
-    StringSelectMenuBuilder
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle
 } = require("discord.js");
 
 const Embed =
-    require("../../models/Embed");
+    require("../../../models/Embed");
 
 
 module.exports = {
@@ -30,69 +32,20 @@ module.exports = {
         const roleId =
             parts[2];
 
-        if (
-            !name ||
-            !roleId
-        ) {
+        if (!name || !roleId) {
 
             return interaction.reply({
                 content:
-                    "Invalid role configuration.",
+                    "I couldn't determine which role selector you're editing.",
                 flags: 64
             });
 
         }
 
-        const role =
-            interaction.guild.roles.cache.get(
-                roleId
-            );
 
-        if (!role) {
-
-            return interaction.reply({
-                content:
-                    "I couldn't find that role.",
-                flags: 64
-            });
-
-        }
-
-        if (role.managed) {
-
-            return interaction.reply({
-                content:
-                    "That role cannot be added to a role selector.",
-                flags: 64
-            });
-
-        }
-
-        const botMember =
-            interaction.guild.members.me;
-
-        if (!botMember) {
-
-            return interaction.reply({
-                content:
-                    "I couldn't determine my server member.",
-                flags: 64
-            });
-
-        }
-
-        if (
-            role.position >=
-            botMember.roles.highest.position
-        ) {
-
-            return interaction.reply({
-                content:
-                    "I cannot manage that role because it is higher than or equal to my highest role.",
-                flags: 64
-            });
-
-        }
+        /*
+         * LOAD EMBED
+         */
 
         const saved =
             await Embed.findOne({
@@ -112,13 +65,69 @@ module.exports = {
 
         }
 
+
+        /*
+         * FIND ROLE
+         */
+
+        const role =
+            interaction.guild.roles.cache.get(
+                roleId
+            );
+
+        if (!role) {
+
+            return interaction.reply({
+                content:
+                    `I couldn't find the role with ID \`${roleId}\`.`,
+                flags: 64
+            });
+
+        }
+
+
+        /*
+         * FIND ROLE SELECT
+         *
+         * Action Row
+         * └── String Select
+         */
+
         const components =
-            Array.isArray(saved.components)
+            Array.isArray(
+                saved.components
+            )
                 ? saved.components
                 : [];
 
-        let selector =
+        const row =
             components.find(
+                component =>
+                    component?.type === 1 &&
+                    Array.isArray(
+                        component.components
+                    ) &&
+                    component.components.some(
+                        select =>
+                            select?.type === 3 &&
+                            select.custom_id ===
+                                `roleSelect:${name}`
+                    )
+            );
+
+        if (!row) {
+
+            return interaction.reply({
+                content:
+                    "I couldn't find the role selector.",
+                flags: 64
+            });
+
+        }
+
+
+        const selector =
+            row.components.find(
                 component =>
                     component?.type === 3 &&
                     component.custom_id ===
@@ -127,34 +136,18 @@ module.exports = {
 
         if (!selector) {
 
-            selector = {
-
-                type: 3,
-
-                custom_id:
-                    `roleSelect:${name}`,
-
-                selectorName:
-                    "Roles",
-
-                placeholder:
-                    "Choose your roles...",
-
-                min_values:
-                    1,
-
-                max_values:
-                    1,
-
-                options: []
-
-            };
-
-            components.push(
-                selector
-            );
+            return interaction.reply({
+                content:
+                    "I couldn't find the role selector.",
+                flags: 64
+            });
 
         }
+
+
+        /*
+         * OPTIONS
+         */
 
         if (
             !Array.isArray(
@@ -166,10 +159,15 @@ module.exports = {
 
         }
 
+
+        /*
+         * DUPLICATE CHECK
+         */
+
         const exists =
             selector.options.some(
                 option =>
-                    option.value ===
+                    option?.value ===
                     role.id
             );
 
@@ -177,11 +175,16 @@ module.exports = {
 
             return interaction.reply({
                 content:
-                    `**${role.name}** is already in this role selector.`,
+                    `The role **${role.name}** is already in this selector.`,
                 flags: 64
             });
 
         }
+
+
+        /*
+         * DISCORD LIMIT
+         */
 
         if (
             selector.options.length >=
@@ -196,6 +199,11 @@ module.exports = {
 
         }
 
+
+        /*
+         * ADD ROLE
+         */
+
         selector.options.push({
 
             label:
@@ -209,8 +217,37 @@ module.exports = {
 
         });
 
+
+        /*
+         * KEEP VALUES VALID
+         */
+
+        selector.min_values =
+            Math.max(
+                1,
+                Math.min(
+                    Number(
+                        selector.min_values
+                    ) || 1,
+                    selector.options.length
+                )
+            );
+
         selector.max_values =
-            selector.options.length;
+            Math.max(
+                selector.min_values,
+                Math.min(
+                    Number(
+                        selector.max_values
+                    ) || 1,
+                    selector.options.length
+                )
+            );
+
+
+        /*
+         * SAVE
+         */
 
         saved.components =
             components;
@@ -221,43 +258,103 @@ module.exports = {
 
         await saved.save();
 
-        const menu =
-            new StringSelectMenuBuilder()
-                .setCustomId(
-                    selector.custom_id
-                )
-                .setPlaceholder(
-                    selector.placeholder ||
-                    "Choose your roles..."
-                )
-                .setMinValues(
-                    selector.min_values || 1
-                )
-                .setMaxValues(
-                    Math.min(
-                        selector.max_values ||
-                        1,
-                        selector.options.length
-                    )
-                )
-                .addOptions(
-                    selector.options
+
+        /*
+         * EDITOR CONTROLS
+         */
+
+        const buttons =
+            new ActionRowBuilder()
+                .addComponents(
+
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `roleAdd:${name}:${role.id}`
+                        )
+                        .setLabel(
+                            "Add"
+                        )
+                        .setStyle(
+                            ButtonStyle.Secondary
+                        ),
+
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `roleEdit:${role.id}`
+                        )
+                        .setLabel(
+                            "Edit"
+                        )
+                        .setStyle(
+                            ButtonStyle.Secondary
+                        ),
+
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `roleRemove:${name}:${role.id}`
+                        )
+                        .setLabel(
+                            "Remove"
+                        )
+                        .setStyle(
+                            ButtonStyle.Secondary
+                        ),
+
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `roleMove:${name}:${role.id}`
+                        )
+                        .setLabel(
+                            "Move"
+                        )
+                        .setStyle(
+                            ButtonStyle.Secondary
+                        ),
+
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `roleSave:${name}`
+                        )
+                        .setLabel(
+                            "Save"
+                        )
+                        .setStyle(
+                            ButtonStyle.Success
+                        )
+
                 );
+
+
+        const addAnother =
+            new ActionRowBuilder()
+                .addComponents(
+
+                    new ButtonBuilder()
+                        .setCustomId(
+                            `roleAddAnother:${name}`
+                        )
+                        .setLabel(
+                            "Add another role"
+                        )
+                        .setStyle(
+                            ButtonStyle.Secondary
+                        )
+
+                );
+
 
         return interaction.reply({
 
             content:
-                `Added **${role.name}** to **${selector.selectorName || "Roles"}**.`,
+                `**${selector.selectorName || name}**\n` +
+                `Added role: **${role.name}**\n` +
+                `Role ID: \`${role.id}\`\n` +
+                `Placeholder: \`${selector.placeholder || "Choose your roles..." }\`\n` +
+                `Options: **${selector.options.length}/25**`,
 
             components: [
-
-                {
-                    type: 1,
-                    components: [
-                        menu
-                    ]
-                }
-
+                buttons,
+                addAnother
             ],
 
             flags: 64
