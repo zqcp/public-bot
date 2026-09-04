@@ -46,29 +46,13 @@ module.exports = {
                 )
                 .trim();
 
-        const selectorName =
-            interaction.fields
-                .getTextInputValue(
-                    "selectorName"
-                )
-                .trim();
-
-        const placeholder =
-            interaction.fields
-                .getTextInputValue(
-                    "placeholder"
-                )
-                .trim();
-
 
         /*
-         * ROLE ID
+         * Normalize role input.
          *
-         * Accept either:
+         * Accept:
          *
          * 123456789012345678
-         *
-         * or:
          *
          * <@&123456789012345678>
          */
@@ -87,24 +71,70 @@ module.exports = {
 
 
         /*
-         * VALIDATE ROLE
+         * Make sure the value is a
+         * Discord snowflake.
+         */
+
+        if (
+            !/^\d+$/.test(
+                roleId
+            )
+        ) {
+
+            return interaction.reply({
+                content:
+                    "Please provide a valid **Role ID** or role mention.",
+                flags: 64
+            });
+
+        }
+
+
+        const selectorName =
+            interaction.fields
+                .getTextInputValue(
+                    "selectorName"
+                )
+                .trim();
+
+        const placeholder =
+            interaction.fields
+                .getTextInputValue(
+                    "placeholder"
+                )
+                .trim();
+
+
+        /*
+         * FETCH ROLE DIRECTLY
+         *
+         * Do not rely on the role cache.
          */
 
         const role =
-            interaction.guild.roles.cache.get(
-                roleId
-            );
+            await interaction.guild.roles
+                .fetch(
+                    roleId
+                )
+                .catch(
+                    () => null
+                );
+
 
         if (!role) {
 
             return interaction.reply({
                 content:
-                    `I couldn't find the role with ID \`${roleId}\`.\n\n` +
-                    "Please enter the **Role ID** or paste the role mention.",
+                    `I couldn't find the role with ID \`${roleId}\` in this server.`,
                 flags: 64
             });
 
         }
+
+
+        /*
+         * MANAGED ROLE
+         */
 
         if (role.managed) {
 
@@ -122,7 +152,14 @@ module.exports = {
          */
 
         const botMember =
-            interaction.guild.members.me;
+            interaction.guild.members.me ||
+            await interaction.guild.members
+                .fetch(
+                    interaction.client.user.id
+                )
+                .catch(
+                    () => null
+                );
 
         if (!botMember) {
 
@@ -133,6 +170,7 @@ module.exports = {
             });
 
         }
+
 
         if (
             role.position >=
@@ -149,7 +187,7 @@ module.exports = {
 
 
         /*
-         * VALIDATE SELECTOR
+         * SELECTOR SETTINGS
          */
 
         if (!selectorName) {
@@ -198,12 +236,6 @@ module.exports = {
 
         /*
          * COMPONENTS
-         *
-         * Keep the existing message
-         * component structure:
-         *
-         * Action Row
-         * └── String Select
          */
 
         const components =
@@ -275,10 +307,6 @@ module.exports = {
         }
 
 
-        /*
-         * FIND SELECT MENU
-         */
-
         const selector =
             row.components.find(
                 component =>
@@ -300,7 +328,7 @@ module.exports = {
 
 
         /*
-         * UPDATE SELECTOR SETTINGS
+         * UPDATE SELECTOR
          */
 
         selector.selectorName =
@@ -322,7 +350,7 @@ module.exports = {
 
 
         /*
-         * CHECK FOR DUPLICATE ROLE
+         * CHECK DUPLICATE
          */
 
         const exists =
@@ -332,10 +360,6 @@ module.exports = {
                     role.id
             );
 
-
-        /*
-         * ADD FIRST ROLE
-         */
 
         if (!exists) {
 
@@ -369,7 +393,7 @@ module.exports = {
 
 
         /*
-         * KEEP VALUES VALID
+         * KEEP SELECT VALUES VALID
          */
 
         selector.min_values =
@@ -396,7 +420,7 @@ module.exports = {
 
 
         /*
-         * SAVE COMPONENTS
+         * SAVE
          */
 
         saved.components =
@@ -492,10 +516,6 @@ module.exports = {
 
                 );
 
-
-        /*
-         * RESPONSE
-         */
 
         return interaction.reply({
 
